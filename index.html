@@ -160,6 +160,16 @@ a{color:inherit}
 .nextbtn:hover{border-color:var(--accent);color:var(--accent)}
 .emptycol{text-align:center;color:var(--text-3);font-size:12px;padding:14px 8px}
 .board.tri{grid-auto-columns:minmax(230px,1fr)}
+.phonesgrid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.phonecard{padding:14px 15px;display:flex;flex-direction:column;gap:12px}
+.phonecard .ph-top{display:flex;align-items:center;gap:10px}
+.phonecard .ph-top>svg{width:20px;height:20px;color:var(--text-2);flex:none}
+.phonecard .ph-i{min-width:0;flex:1}
+.phonecard .ph-i b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.phonecard .ph-i span{font-size:11.5px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.phonecard .ph-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:var(--text-2);border-top:1px solid var(--border);padding-top:11px}
+.phonecard.free{border-style:dashed;border-color:var(--border-2)}
+.phonecard.free .ph-i span{color:var(--warn)}
 /* toggle switch */
 .tgl{width:38px;height:22px;border-radius:20px;background:var(--surface-3);border:1px solid var(--border-2);position:relative;padding:0;transition:.15s}
 .tgl span{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--text-3);transition:.15s}
@@ -381,6 +391,7 @@ function normalize(db){
     if(c.objetivo===undefined)c.objetivo="engj";
     if(c.qtdCampanhas===undefined)c.qtdCampanhas=1;
   });
+  (db.celulares||[]).forEach(c=>{if(c.ofertaId===undefined)c.ofertaId=null;});
   return db;
 }
 function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(DB));}catch(e){}}
@@ -412,10 +423,10 @@ function seed(){
       {id:uid(),ofertaId:of3,nome:"Vivendo de comida — delivery em casa",estagio:"pre-escala",celularId:null,campanha:"07.06 PRE CONVERSAS COMPRAS",formato:"Rotina / vlog",notas:"Testando conta em dólar.",ativo:false,orcamento:15,moeda:"USD",objetivo:"conversas-compras",qtdCampanhas:1,criadoEm:now()-4*DAY},
     ],
     celulares:[
-      {id:c1,nome:"iPhone Azul",modelo:"iPhone 11",chipId:"k1",status:"rodando",notas:"",criadoEm:now()-35*DAY},
-      {id:c2,nome:"Moto G #2",modelo:"Moto G73",chipId:"k2",status:"rodando",notas:"",criadoEm:now()-22*DAY},
-      {id:c3,nome:"Samsung A #3",modelo:"Galaxy A14",chipId:"k3",status:"rodando",notas:"",criadoEm:now()-19*DAY},
-      {id:c4,nome:"iPhone Preto",modelo:"iPhone 12",chipId:null,status:"descanso",notas:"Descansando pós-alerta.",criadoEm:now()-25*DAY},
+      {id:c1,nome:"iPhone Azul",modelo:"iPhone 11",chipId:"k1",status:"rodando",ofertaId:of1,notas:"",criadoEm:now()-35*DAY},
+      {id:c2,nome:"Moto G #2",modelo:"Moto G73",chipId:"k2",status:"rodando",ofertaId:of1,notas:"",criadoEm:now()-22*DAY},
+      {id:c3,nome:"Samsung A #3",modelo:"Galaxy A14",chipId:"k3",status:"rodando",ofertaId:of2,notas:"",criadoEm:now()-19*DAY},
+      {id:c4,nome:"iPhone Preto",modelo:"iPhone 12",chipId:null,status:"descanso",ofertaId:null,notas:"Sem oferta no momento.",criadoEm:now()-25*DAY},
     ],
     chips:[
       {id:"k1",numero:"+52 55 1234 5678",operadora:"Telcel",celularId:c1,cadastradoEm:now()-34*DAY,ultimaRecargaEm:now()-3*DAY,status:"ativo",notas:""},
@@ -440,7 +451,7 @@ const VIEWS=[
   {id:"prompts",nome:"Prompts",ico:"prompt",sub:"Sua biblioteca de prompts salvos"},
 ];
 let route="overview";
-let curBM=DB.bms[0]?.id||null;
+let curBM=null; // null = todas as BMs
 let openOferta=null;
 let promptFilter="Todos";
 
@@ -538,16 +549,17 @@ function vOfertas(){
   topActions(`<button class="btn pri" id="addof">${svg("plus")}Nova oferta</button>`);
   const bms=DB.bms;
   const tabs=`<div class="bmtabs">
+    <button class="bmtab ${!curBM?"on":""}" data-bm="__all__"><span class="swatch" style="background:linear-gradient(135deg,#4f8cff,#26c281,#f0a830)"></span>Todas<span class="n">${DB.ofertas.length}</span></button>
     ${bms.map(b=>{const n=DB.ofertas.filter(o=>o.bmId===b.id).length;return `<button class="bmtab ${curBM===b.id?"on":""}" data-bm="${b.id}"><span class="swatch" style="background:${b.cor}"></span>${esc(b.nome)}<span class="n">${n}</span></button>`;}).join("")}
     <button class="bmtab add" id="addbm">${svg("plus")}BM</button>
   </div>`;
-  const ofs=DB.ofertas.filter(o=>o.bmId===curBM);
-  const bm=byId(DB.bms,curBM);
+  const ofs=curBM?DB.ofertas.filter(o=>o.bmId===curBM):DB.ofertas;
+  const bm=curBM?byId(DB.bms,curBM):null;
   let body;
   if(!bms.length){body=empty("layers","Nenhuma BM ainda","Crie sua primeira Business Manager para começar a organizar ofertas e criativos.",`<button class="btn pri" id="e1">${svg("plus")}Criar BM</button>`);}
-  else if(!ofs.length){body=empty("layers","Nenhuma oferta nesta BM",`Adicione a primeira oferta em <b>${esc(bm?.nome||"")}</b> para montar seu funil de criativos.`,`<button class="btn pri" id="e2">${svg("plus")}Nova oferta</button>`);}
+  else if(!ofs.length){body=empty("layers",curBM?"Nenhuma oferta nesta BM":"Nenhuma oferta ainda",curBM?`Adicione a primeira oferta em <b>${esc(bm?.nome||"")}</b> para montar seu funil de criativos.`:"Crie sua primeira oferta para montar o funil de criativos.",`<button class="btn pri" id="e2">${svg("plus")}Nova oferta</button>`);}
   else{
-    body=`<div class="grid ofertas">${ofs.map(o=>ofertaCard(o)).join("")}</div>`;
+    body=`<div class="grid ofertas">${ofs.map(o=>ofertaCard(o,!curBM)).join("")}</div>`;
   }
   const bmActions=bm?`<div style="display:flex;align-items:center;gap:8px;margin:2px 0 20px">
      <div class="crumb"><span class="swatch" style="width:12px;height:12px;border-radius:4px;background:${bm.cor}"></span> Editando: <b style="font-size:13px">${esc(bm.nome)}</b></div>
@@ -555,7 +567,7 @@ function vOfertas(){
      <button class="iconbtn" id="delbm" title="Excluir BM">${svg("trash")}</button></div>`:"";
   $("#view").innerHTML=tabs+bmActions+body;
 
-  $("#view").querySelectorAll("[data-bm]").forEach(b=>b.onclick=()=>{curBM=b.dataset.bm;render();});
+  $("#view").querySelectorAll("[data-bm]").forEach(b=>b.onclick=()=>{curBM=b.dataset.bm==="__all__"?null:b.dataset.bm;render();});
   const addbm=$("#addbm");if(addbm)addbm.onclick=()=>bmModal();
   ["addof","e2"].forEach(id=>{const el=$("#"+id);if(el)el.onclick=()=>ofertaModal();});
   const e1=$("#e1");if(e1)e1.onclick=()=>bmModal();
@@ -564,10 +576,10 @@ function vOfertas(){
     const ofIds=DB.ofertas.filter(o=>o.bmId===bm.id).map(o=>o.id);
     DB.criativos=DB.criativos.filter(c=>!ofIds.includes(c.ofertaId));
     DB.ofertas=DB.ofertas.filter(o=>o.bmId!==bm.id);
-    DB.bms=DB.bms.filter(b=>b.id!==bm.id);curBM=DB.bms[0]?.id||null;save();render();toast("BM excluída");});};
+    DB.bms=DB.bms.filter(b=>b.id!==bm.id);curBM=null;save();render();toast("BM excluída");});};
   $("#view").querySelectorAll("[data-open]").forEach(el=>el.onclick=()=>{openOferta=el.dataset.open;render();window.scrollTo(0,0);});
 }
-function ofertaCard(o){
+function ofertaCard(o,showBM){
   const cs=DB.criativos.filter(c=>c.ofertaId===o.id);
   const veic=cs.filter(isVeic);
   const bm=byId(DB.bms,o.bmId);
@@ -577,7 +589,8 @@ function ofertaCard(o){
   const camps=veic.reduce((s,c)=>s+ (+c.qtdCampanhas||0),0);
   const segs=ESTAGIOS.map(e=>{const n=cs.filter(c=>c.estagio===e.id).length;return n?`<i style="flex:${n};background:var(${e.cor})"></i>`:"";}).join("");
   return `<div class="card oferta" data-open="${o.id}" style="border-left-color:${bm?.cor||"var(--accent)"}">
-    <div class="top"><div><h3>${esc(o.nome)}</h3><div class="nicho">${esc(o.nicho||"—")}</div></div>
+    <div class="top"><div><h3>${esc(o.nome)}</h3><div class="nicho">${esc(o.nicho||"—")}</div>
+      ${showBM&&bm?`<span class="pill" style="color:var(--text-2);background:var(--surface-2);margin-top:8px"><span class="dot" style="background:${bm.cor}"></span>${esc(bm.nome)}</span>`:""}</div>
       ${at.length?`<span class="pill" style="color:var(--good);background:var(--good-soft)"><span class="dot"></span>${at.length} no ar</span>`:""}</div>
     <div class="bar">${segs||'<i style="flex:1;background:var(--surface-3)"></i>'}</div>
     <div class="mini">
@@ -654,6 +667,7 @@ function vKanban(){
     ${kpi}
     <div class="sect-h" style="margin-top:6px"><h2>${svgInline("bolt")}Em veiculação · Pré-escala & Escala</h2><div class="line"></div></div>
     ${veicBlock}
+    ${phonesSection(of)}
     <div class="sect-h"><h2>Funil de validação</h2><div class="line"></div><span class="tag">arraste entre as colunas</span></div>
     <div class="board tri">${board}</div>`;
 
@@ -664,12 +678,34 @@ function vKanban(){
   $("#view").querySelectorAll(".ccard").forEach(el=>el.onclick=ev=>{if(el._dragging||ev.target.closest("[data-next]"))return;criativoModal(byId(DB.criativos,el.dataset.id));});
   $("#view").querySelectorAll("[data-next]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.next);c.estagio=NEXT[c.estagio];if(isVeic(c)&&c.ativo===undefined)c.ativo=true;save();render();toast(`Avançou para ${ESTG[c.estagio].nome}`);});
   $("#view").querySelectorAll("[data-tgl]").forEach(b=>b.onclick=()=>{const c=byId(DB.criativos,b.dataset.tgl);c.ativo=!c.ativo;save();render();});
+  $("#view").querySelectorAll("[data-assign]").forEach(b=>b.onclick=()=>{const c=byId(DB.celulares,b.dataset.assign);c.ofertaId=of.id;save();render();toast("Celular adicionado à oferta");});
+  $("#view").querySelectorAll("[data-unassign]").forEach(b=>b.onclick=()=>{const c=byId(DB.celulares,b.dataset.unassign);c.ofertaId=null;save();render();toast("Celular tirado da oferta");});
+  $("#view").querySelectorAll("[data-editcel]").forEach(b=>b.onclick=()=>celModal(byId(DB.celulares,b.dataset.editcel)));
   $("#view").querySelectorAll("[data-stage]").forEach(s=>s.onchange=()=>{const c=byId(DB.criativos,s.dataset.stage);c.estagio=s.value;save();render();toast(`Movido para ${ESTG[s.value].nome}`);});
   $("#view").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>criativoModal(byId(DB.criativos,b.dataset.edit)));
   $("#view").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const c=byId(DB.criativos,b.dataset.del);confirmDel(`Excluir "${c.nome}"?`,"",()=>{DB.criativos=DB.criativos.filter(x=>x.id!==c.id);save();render();toast("Criativo excluído");});});
   setupDnD();
 }
 function kpiTile(ico,k,v,foot,col){return `<div class="stat"><div class="k">${svg(ico)}${k}</div><div class="v" style="font-size:23px${col?`;color:var(${col})`:""}">${v}</div><div class="foot">${foot}</div></div>`;}
+function phonesSection(of){
+  const assigned=DB.celulares.filter(c=>c.ofertaId===of.id);
+  const free=DB.celulares.filter(c=>!c.ofertaId);
+  const card=c=>{
+    const runs=DB.criativos.filter(x=>x.celularId===c.id&&x.ofertaId===of.id).length;
+    const chip=byId(DB.chips,c.chipId);
+    return `<div class="card phonecard">
+      <div class="ph-top">${svg("phone")}<div class="ph-i"><b>${esc(c.nome)}</b><span>${esc(c.modelo||"—")}${chip?" · "+esc(chip.numero):""}</span></div>${statusPill(CEL_STATUS,c.status)}</div>
+      <div class="ph-foot"><span>${runs} criativo${runs!==1?"s":""} rodando aqui</span><div style="display:flex;gap:2px"><button class="iconbtn" data-editcel="${c.id}" title="Editar">${svg("edit")}</button><button class="iconbtn" data-unassign="${c.id}" title="Tirar da oferta">${svg("trash")}</button></div></div>
+    </div>`;
+  };
+  const freeCard=c=>`<div class="card phonecard free">
+      <div class="ph-top">${svg("phone")}<div class="ph-i"><b>${esc(c.nome)}</b><span>${esc(c.modelo||"sem oferta")}</span></div></div>
+      <button class="btn sm pri" data-assign="${c.id}" style="justify-content:center">${svg("plus")}Adicionar a esta oferta</button>
+    </div>`;
+  const empty=(!assigned.length&&!free.length)?`<div class="card" style="padding:20px;color:var(--text-3);font-size:13px;text-align:center;grid-column:1/-1">Nenhum celular ainda. Cadastre em <b style="color:var(--text-2)">Celulares</b> e escolha esta oferta — ou eles aparecem aqui com um <b style="color:var(--text-2)">+</b> para adicionar.</div>`:"";
+  return `<div class="sect-h"><h2>${svgInline("phone")}Celulares nesta oferta</h2><div class="line"></div>${assigned.length?`<span class="tag">${assigned.length} vinculado${assigned.length>1?"s":""}</span>`:""}${free.length?`<span class="tag" style="color:var(--warn)">${free.length} sem oferta</span>`:""}</div>
+    <div class="grid phonesgrid">${assigned.map(card).join("")}${free.map(freeCard).join("")}${empty}</div>`;
+}
 function stageSelect(c){
   return `<select class="ministage" data-stage="${c.id}" style="color:var(${ESTG[c.estagio].cor})">${ESTAGIOS.map(e=>`<option value="${e.id}" ${e.id===c.estagio?"selected":""}>${e.nome}</option>`).join("")}</select>`;
 }
@@ -701,11 +737,13 @@ function setupDnD(){
 function vCelulares(){
   topActions(`<button class="btn pri" id="addcel">${svg("plus")}Novo celular</button>`);
   if(!DB.celulares.length){$("#view").innerHTML=empty("phone","Nenhum celular","Cadastre os aparelhos que você usa para rodar os criativos.",`<button class="btn pri" id="e">${svg("plus")}Cadastrar celular</button>`);$("#e").onclick=()=>celModal();$("#addcel").onclick=()=>celModal();return;}
-  $("#view").innerHTML=`<div class="tblwrap"><table><thead><tr><th>Celular</th><th>Chip</th><th>Criativos rodando</th><th>Status</th><th></th></tr></thead><tbody>
+  $("#view").innerHTML=`<div class="tblwrap"><table><thead><tr><th>Celular</th><th>Oferta</th><th>Chip</th><th>Criativos rodando</th><th>Status</th><th></th></tr></thead><tbody>
     ${DB.celulares.map(c=>{
       const chip=DB.chips.find(k=>k.id===c.chipId);
       const crs=DB.criativos.filter(x=>x.celularId===c.id);
+      const of=c.ofertaId&&byId(DB.ofertas,c.ofertaId);const ofbm=of&&byId(DB.bms,of.bmId);
       return `<tr><td><div class="nm">${esc(c.nome)}</div><div class="sub2">${esc(c.modelo||"—")}</div></td>
+        <td>${of?`<span class="pill" style="color:var(--text-2);background:var(--surface-2)"><span class="dot" style="background:${ofbm?.cor||'var(--accent)'}"></span>${esc(of.nome)}</span>`:'<span style="color:var(--text-3)">— sem oferta</span>'}</td>
         <td>${chip?`<span class="mono" style="font-size:12.5px">${esc(chip.numero)}</span><div class="sub2">${esc(chip.operadora)}</div>`:'<span style="color:var(--text-3)">Sem chip</span>'}</td>
         <td>${crs.length?crs.slice(0,3).map(x=>`<span class="tag" style="margin:1px 2px 1px 0">${esc(x.nome.slice(0,26))}${x.nome.length>26?"…":""}</span>`).join(""):'<span style="color:var(--text-3)">—</span>'}${crs.length>3?`<span class="tag">+${crs.length-3}</span>`:""}</td>
         <td>${statusPill(CEL_STATUS,c.status)}</td>
@@ -825,7 +863,7 @@ function ofertaModal(of){
   modal({title:editing?"Editar oferta":"Nova oferta",ico:"bolt",body:`
     ${field("Nome da oferta","nome",of?.nome||"",{ph:"Ex.: Crochê MX"})}
     ${field("Nicho / público","nicho",of?.nicho||"",{optional:true,ph:"Ex.: Artesanato / renda extra"})}
-    ${field("BM","bmId",of?.bmId||curBM,{type:"select",options:DB.bms.map(b=>({v:b.id,l:b.nome}))})}`,
+    ${field("BM","bmId",of?.bmId||curBM||DB.bms[0]?.id||"",{type:"select",options:DB.bms.map(b=>({v:b.id,l:b.nome}))})}`,
     onOk:close=>{const root=$("#modal-root");const nome=val(root,"nome");if(!nome)return toast("Dê um nome à oferta"),false;
       const bmId=val(root,"bmId");const nicho=val(root,"nicho");
       if(editing){Object.assign(of,{nome,nicho,bmId});}else{DB.ofertas.push({id:uid(),bmId,nome,nicho,criadoEm:now()});}
@@ -866,14 +904,16 @@ function criativoModal(cr,preset={}){
 function celModal(cel){
   const editing=!!cel;
   const chipOpts=[{v:"",l:"— Sem chip —"},...DB.chips.map(k=>({v:k.id,l:`${k.numero} (${k.operadora})`}))];
+  const ofOpts=[{v:"",l:"— Sem oferta —"},...DB.ofertas.map(o=>{const bm=byId(DB.bms,o.bmId);return {v:o.id,l:`${bm?bm.nome+" · ":""}${o.nome}`};})];
   modal({title:editing?"Editar celular":"Novo celular",ico:"phone",body:`
     <div class="frow">${field("Apelido","nome",cel?.nome||"",{ph:"Ex.: iPhone Azul"})}
     ${field("Modelo","modelo",cel?.modelo||"",{optional:true,ph:"Ex.: iPhone 11"})}</div>
-    <div class="frow">${field("Chip vinculado","chipId",cel?.chipId||"",{type:"select",options:chipOpts})}
+    <div class="frow">${field("Oferta","ofertaId",cel?.ofertaId||"",{type:"select",options:ofOpts})}
     ${field("Status","status",cel?.status||"reserva",{type:"select",options:Object.entries(CEL_STATUS).map(([v,o])=>({v,l:o.l}))})}</div>
+    ${field("Chip vinculado","chipId",cel?.chipId||"",{type:"select",options:chipOpts})}
     ${field("Notas","notas",cel?.notas||"",{type:"textarea",optional:true})}`,
     onOk:close=>{const root=$("#modal-root");const nome=val(root,"nome");if(!nome)return toast("Dê um apelido ao celular"),false;
-      const data={nome,modelo:val(root,"modelo"),chipId:val(root,"chipId")||null,status:val(root,"status"),notas:val(root,"notas")};
+      const data={nome,modelo:val(root,"modelo"),chipId:val(root,"chipId")||null,ofertaId:val(root,"ofertaId")||null,status:val(root,"status"),notas:val(root,"notas")};
       if(editing){Object.assign(cel,data);}else{cel={id:uid(),...data,criadoEm:now()};DB.celulares.push(cel);}
       if(data.chipId){const k=byId(DB.chips,data.chipId);if(k)k.celularId=cel.id;}
       save();render();close();toast(editing?"Celular atualizado":"Celular criado");}});
