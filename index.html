@@ -884,7 +884,14 @@ function ofertaModal(of){
 }
 function criativoModal(cr,preset={}){
   const editing=!!cr;const c=cr||preset;
-  const celOpts=[{v:"",l:"— Sem celular —"},...DB.celulares.map(x=>({v:x.id,l:`${x.nome}${x.modelo?" ("+x.modelo+")":""}`}))];
+  const celOptionsHTML=(ofId,sel)=>{
+    const list=DB.celulares.filter(x=>x.ofertaId&&x.ofertaId===ofId);
+    if(sel&&!list.some(x=>x.id===sel)){const s=byId(DB.celulares,sel);if(s)list.push(s);}
+    let h=`<option value="" ${!sel?"selected":""}>— Sem celular —</option>`;
+    h+=list.map(x=>`<option value="${x.id}" ${x.id===sel?"selected":""}>${esc(x.nome)}${x.modelo?" ("+esc(x.modelo)+")":""}${x.ofertaId!==ofId?" · outra oferta":""}</option>`).join("");
+    if(!list.length)h+=`<option value="" disabled>Nenhum celular nesta oferta — cadastre um</option>`;
+    return h;
+  };
   const ofOpts=DB.ofertas.map(o=>{const bm=byId(DB.bms,o.bmId);return {v:o.id,l:`${bm?bm.nome+" · ":""}${o.nome}`};});
   const showV=EM_VEIC.includes(c.estagio||"modelado");
   modal({wide:true,title:editing?"Editar criativo":"Novo criativo",ico:"film",body:`
@@ -892,7 +899,7 @@ function criativoModal(cr,preset={}){
     <div class="frow">${field("Oferta","ofertaId",c.ofertaId||DB.ofertas[0]?.id||"",{type:"select",options:ofOpts.length?ofOpts:[{v:"",l:"Crie uma oferta primeiro"}]})}
     ${field("Estágio","estagio",c.estagio||"modelado",{type:"select",options:ESTAGIOS.map(e=>({v:e.id,l:e.nome}))})}</div>
     <div class="frow">${field("Formato","formato",c.formato||"",{optional:true,ph:"Ex.: Depoimento POV"})}
-    ${field("Celular rodando","celularId",c.celularId||"",{type:"select",options:celOpts})}</div>
+    <div class="field"><label>Celular rodando <span class="opt">(desta oferta)</span></label><select name="celularId" id="crcelsel">${celOptionsHTML(c.ofertaId||DB.ofertas[0]?.id||"",c.celularId||"")}</select></div></div>
     ${field("Nome da campanha","campanha",c.campanha||"",{optional:true,ph:"Ex.: 08.08 ESCALA CELULAR 9"})}
     <div id="veicblock" style="${showV?"":"display:none"}">
       <div style="display:flex;align-items:center;gap:8px;margin:4px 0 2px"><span class="pill stg" style="color:var(--st-escala);background:var(--good-soft)"><span class="dot"></span>Dados de veiculação</span><div style="flex:1;height:1px;background:var(--border)"></div></div>
@@ -911,6 +918,7 @@ function criativoModal(cr,preset={}){
       if(editing){Object.assign(cr,data);}else{DB.criativos.push({id:uid(),...data,criadoEm:now()});}
       save();render();close();toast(editing?"Criativo atualizado":"Criativo criado");}});
   const stg=$('#modal-root [name="estagio"]');if(stg)stg.onchange=()=>{$("#veicblock").style.display=EM_VEIC.includes(stg.value)?"":"none";};
+  const ofc=$('#modal-root [name="ofertaId"]');if(ofc)ofc.onchange=()=>{const cs=$("#crcelsel");if(cs)cs.innerHTML=celOptionsHTML(ofc.value,"");};
   const del=editing?`<button class="btn ghost danger" style="margin-right:auto" id="delcr">${svg("trash")}Excluir</button>`:"";
   if(editing){const f=$("#modal-root .modal-f");f.insertAdjacentHTML("afterbegin",del);$("#delcr").onclick=()=>{$("#modal-root").innerHTML="";confirmDel(`Excluir "${cr.nome}"?`,"",()=>{DB.criativos=DB.criativos.filter(x=>x.id!==cr.id);save();render();toast("Criativo excluído");});};}
 }
