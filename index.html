@@ -16,7 +16,7 @@
   --good:#26c281; --good-soft:rgba(38,194,129,.15);
   --warn:#f0a830; --warn-soft:rgba(240,168,48,.15);
   --crit:#f2585f; --crit-soft:rgba(242,88,95,.15);
-  --st-modelado:#8b93a7; --st-validado:#4f8cff; --st-pre:#f0a830; --st-escala:#26c281; --st-zona:#c9b8ff;
+  --st-modelado:#8b93a7; --st-teste:#22c9d8; --st-validado:#4f8cff; --st-pre:#f0a830; --st-escala:#26c281; --st-zona:#c9b8ff;
   --shadow:0 8px 30px -12px rgba(0,0,0,.6);
   --r:14px; --r-sm:10px;
   --sans:"IBM Plex Sans",system-ui,sans-serif;
@@ -31,7 +31,7 @@
   --good:#12996a; --good-soft:rgba(18,153,106,.12);
   --warn:#c8801a; --warn-soft:rgba(200,128,26,.12);
   --crit:#d83b43; --crit-soft:rgba(216,59,67,.1);
-  --st-modelado:#7a8298; --st-validado:#2f6fe0; --st-pre:#c8801a; --st-escala:#12996a; --st-zona:#7c5ff0;
+  --st-modelado:#7a8298; --st-teste:#0e9aab; --st-validado:#2f6fe0; --st-pre:#c8801a; --st-escala:#12996a; --st-zona:#7c5ff0;
   --shadow:0 8px 24px -14px rgba(30,45,80,.35);
 }
 *{box-sizing:border-box}
@@ -344,8 +344,9 @@ const OBJETIVOS=[
 ];
 const OBJ=Object.fromEntries(OBJETIVOS.map(o=>[o.v,o]));
 const EM_VEIC=["pre-escala","escala"];
+const COM_DADOS=["teste","pre-escala","escala"]; // estágios que mostram orçamento/objetivo/ROI
 const isVeic=c=>EM_VEIC.includes(c.estagio);
-const NEXT={modelado:"validado",validado:"pre-escala"};
+const NEXT={modelado:"teste",teste:"validado",validado:"pre-escala"};
 
 /* icons */
 const I={
@@ -373,6 +374,7 @@ const svg=(k,cls="")=>`<svg class="${cls}" viewBox="0 0 24 24" fill="none" strok
 /* ---------- estagios ---------- */
 const ESTAGIOS=[
   {id:"modelado",nome:"Modelado",cor:"--st-modelado",desc:"Cópia recém-modelada, ainda não testada"},
+  {id:"teste",nome:"Testando",cor:"--st-teste",desc:"Criativo em teste"},
   {id:"validado",nome:"Validado",cor:"--st-validado",desc:"Passou no teste inicial"},
   {id:"pre-escala",nome:"Pré-escala",cor:"--st-pre",desc:"Aguentando budget, subindo"},
   {id:"escala",nome:"Escala",cor:"--st-escala",desc:"Rodando forte"},
@@ -382,7 +384,7 @@ const ESTG=Object.fromEntries(ESTAGIOS.map(e=>[e.id,e]));
 const BM_CORES=["#4f8cff","#26c281","#f0a830","#f2585f","#c9b8ff","#25d0c0","#ff8a5b","#a0d468"];
 const CEL_STATUS={rodando:{l:"Rodando",c:"--good"},aquecido:{l:"Aquecido",c:"--accent"},aquecendo:{l:"Aquecendo",c:"--warn"},banido:{l:"Banido",c:"--crit"}};
 const RECARGA_ATENCAO=60,RECARGA_ALERTA=90; // dias: 2 meses = atenção, 3 meses = alerta
-const CHIP_STATUS={aquecendo:{l:"Aquecendo",c:"--warn"},ativo:{l:"Ativo",c:"--good"},reserva:{l:"Reserva",c:"--text-3"},banido:{l:"Banido",c:"--crit"}};
+const CHIP_STATUS={aquecendo:{l:"Aquecendo",c:"--warn"},testando:{l:"Testando",c:"--st-teste"},ativo:{l:"Ativo",c:"--good"},reserva:{l:"Reserva",c:"--text-3"},banido:{l:"Banido",c:"--crit"}};
 
 /* ---------- store ---------- */
 const KEY="central_x1_v1";
@@ -424,7 +426,7 @@ function seed(){
     criativos:[
       {id:uid(),ofertaId:of1,nome:"VSL — abuela ensina ponto",estagio:"escala",celularId:c1,campanha:"08.08 ESCALA ENGJ CELULAR 9",formato:"Depoimento POV",notas:"Melhor CPA da conta.",ativo:true,orcamento:50,moeda:"BRL",objetivo:"engj",qtdCampanhas:3,roi:"3.2x",postId:"120210998877665544",criadoEm:now()-30*DAY},
       {id:uid(),ofertaId:of1,nome:"Reel — mãos fazendo flor",estagio:"pre-escala",celularId:c2,campanha:"06.08 ESCALA ZAP 1",formato:"Tutorial silencioso",notas:"",ativo:true,orcamento:40,moeda:"BRL",objetivo:"conversas",qtdCampanhas:2,criadoEm:now()-14*DAY},
-      {id:uid(),ofertaId:of1,nome:"Hook — 'sin salir de casa'",estagio:"validado",celularId:null,campanha:"CROCHE-TESTE-07",formato:"Texto na tela + b-roll",notas:"CTR bom, escalar com cuidado.",criadoEm:now()-6*DAY},
+      {id:uid(),ofertaId:of1,nome:"Hook — 'sin salir de casa'",estagio:"teste",celularId:c4,campanha:"CROCHE-TESTE-07",formato:"Texto na tela + b-roll",notas:"Testando hook novo.",ativo:true,orcamento:10,moeda:"BRL",objetivo:"conversas",qtdCampanhas:1,criadoEm:now()-6*DAY},
       {id:uid(),ofertaId:of1,nome:"Modelagem do criativo do concorrente",estagio:"modelado",celularId:null,campanha:"",formato:"UGC unboxing",notas:"Copiar estrutura, trocar oferta.",criadoEm:now()-2*DAY},
       {id:uid(),ofertaId:of1,nome:"VSL antiga v1",estagio:"zona-branca",celularId:null,campanha:"CROCHE-ESC-ANTIGO",formato:"Depoimento POV",notas:"Vencedor histórico, guardado.",roi:"5.0x",postId:"120210111222333444",criadoEm:now()-60*DAY},
       {id:uid(),ofertaId:of2,nome:"Médico SUS explica glicemia",estagio:"escala",celularId:c3,campanha:"29.06 ESCALA ENGJ COMPRAS CELULAR 6",formato:"Autoridade / jaleco",notas:"'Fora do tema, dentro do contexto' — ROAS alto.",ativo:true,orcamento:52.15,moeda:"BRL",objetivo:"engj-compras",qtdCampanhas:1,roi:"4.1x",postId:"120211223344556677",criadoEm:now()-18*DAY},
@@ -436,13 +438,13 @@ function seed(){
       {id:c1,nome:"iPhone Azul",modelo:"iPhone 11",chipId:"k1",status:"rodando",ofertaId:of1,notas:"",criadoEm:now()-35*DAY},
       {id:c2,nome:"Moto G #2",modelo:"Moto G73",chipId:"k2",status:"rodando",ofertaId:of1,notas:"",criadoEm:now()-22*DAY},
       {id:c3,nome:"Samsung A #3",modelo:"Galaxy A14",chipId:"k3",status:"rodando",ofertaId:of2,notas:"",criadoEm:now()-19*DAY},
-      {id:c4,nome:"iPhone Preto",modelo:"iPhone 12",chipId:null,status:"aquecido",ofertaId:null,notas:"Sem oferta no momento.",criadoEm:now()-25*DAY},
+      {id:c4,nome:"iPhone Preto",modelo:"iPhone 12",chipId:"k4",status:"rodando",ofertaId:of1,notas:"Rodando criativo de teste.",criadoEm:now()-25*DAY},
     ],
     chips:[
       {id:"k1",numero:"+52 55 1234 5678",operadora:"Telcel",celularId:c1,cadastradoEm:now()-34*DAY,ultimaRecargaEm:now()-3*DAY,status:"ativo",notas:""},
       {id:"k2",numero:"+52 55 2345 6789",operadora:"AT&T",celularId:c2,cadastradoEm:now()-70*DAY,ultimaRecargaEm:now()-65*DAY,status:"ativo",notas:"Atenção: 2 meses sem recarga."},
       {id:"k3",numero:"+52 55 3456 7890",operadora:"Movistar",celularId:c3,cadastradoEm:now()-100*DAY,ultimaRecargaEm:now()-95*DAY,status:"ativo",notas:"Alerta: 3+ meses sem recarga!"},
-      {id:"k4",numero:"+52 55 4567 8901",operadora:"Telcel",celularId:null,cadastradoEm:now()-3*DAY,ultimaRecargaEm:now()-3*DAY,status:"aquecendo",notas:"Aquecendo há 3 dias."},
+      {id:"k4",numero:"+52 55 4567 8901",operadora:"Telcel",celularId:c4,cadastradoEm:now()-6*DAY,ultimaRecargaEm:now()-2*DAY,status:"testando",notas:"Chip em teste."},
     ],
     prompts:[
       {id:uid(),titulo:"Modelar criativo do concorrente",categoria:"Criativos",conteudo:"Analise este criativo do concorrente e recrie a ESTRUTURA (hook, desenvolvimento, CTA) para a minha oferta de [OFERTA], mantendo o formato mas trocando o produto. Público: [AVATAR] no México.",criadoEm:now()-10*DAY},
@@ -632,30 +634,9 @@ function vKanban(){
     ${orcTiles.join("")}
   </div>`;
 
-  // Em veiculação table (Facebook style)
-  const rows=veic.map(c=>{
-    const o=OBJ[c.objetivo]||OBJETIVOS[0];
-    return `<tr data-row="${c.id}">
-      <td style="width:44px"><button class="tgl ${c.ativo?"on":""}" data-tgl="${c.id}" title="${c.ativo?"Ativo":"Pausado"}"><span></span></button></td>
-      <td><div class="nm">${esc(c.campanha||c.nome)}</div><div class="sub2">${esc(c.nome)}${c.formato?" · "+esc(c.formato):""}</div></td>
-      <td>${c.celularId?`<span class="tag">${esc(celName(c.celularId)||"?")}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
-      <td>${stageSelect(c)}</td>
-      <td><span class="pill" style="color:var(${o.c});background:color-mix(in srgb,var(${o.c}) 15%,transparent)"><span class="dot"></span>${o.l}</span></td>
-      <td class="mono" style="text-align:center">${num(c.qtdCampanhas)}</td>
-      <td class="mono" style="text-align:right">${fmtCur(c.orcamento,c.moeda)}<div class="sub2">Diário</div></td>
-      <td style="text-align:center">${c.roi?`<span class="pill" style="color:var(--good);background:var(--good-soft)"><span class="dot"></span>${esc(c.roi)}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
-      <td><div class="rowact">${c.postId?`<button class="iconbtn" data-copypost="${c.id}" title="Copiar Post ID">${svg("copy")}</button>`:""}<button class="iconbtn" data-edit="${c.id}">${svg("edit")}</button><button class="iconbtn" data-del="${c.id}">${svg("trash")}</button></div></td>
-    </tr>`;
-  }).join("");
-  const veicBlock=veic.length?`<div class="tblwrap"><table><thead><tr>
-      <th></th><th>Campanha</th><th>Celular</th><th>Estágio</th><th>Objetivo</th><th style="text-align:center">Nº camp.</th><th style="text-align:right">Orçamento</th><th style="text-align:center">ROI</th><th></th>
-    </tr></thead><tbody>${rows}</tbody>
-    <tfoot><tr>
-      <td></td><td style="font-weight:600">Resultados de ${veic.length} criativo${veic.length>1?"s":""}</td><td></td><td></td><td></td>
-      <td class="mono" style="text-align:center;font-weight:600">${num(totalCamps)}</td>
-      <td class="mono" style="text-align:right;font-weight:600">${orcSummary(orcBRL,orcUSD)}<div class="sub2">Diário ativo</div></td><td></td><td></td>
-    </tr></tfoot></table></div>`
-    :`<div class="card" style="padding:26px;text-align:center;color:var(--text-3);font-size:13px">Nenhum criativo em veiculação ainda. Suba um do funil abaixo com <b style="color:var(--text-2)">Avançar</b> quando ele validar.</div>`;
+  const veicBlock=veic.length?creativoTable(veic,false):`<div class="card" style="padding:26px;text-align:center;color:var(--text-3);font-size:13px">Nenhum criativo em veiculação ainda. Suba um da seção de teste ou do funil com <b style="color:var(--text-2)">Avançar</b>.</div>`;
+  const teste=all.filter(c=>c.estagio==="teste").sort((a,b)=>(+b.orcamento)-(+a.orcamento));
+  const testeBlock=teste.length?creativoTable(teste,true):`<div class="card" style="padding:26px;text-align:center;color:var(--text-3);font-size:13px">Nenhum criativo em teste. Coloque um criativo no estágio <b style="color:var(--text-2)">Testando</b> (com o botão "Avançar" no card ou no formulário) para acompanhar aqui com o chip que está testando.</div>`;
 
   // Pipeline (3 columns)
   const board=PIPELINE.map(id=>{
@@ -678,6 +659,8 @@ function vKanban(){
     ${kpi}
     <div class="sect-h" style="margin-top:6px"><h2>${svgInline("bolt")}Em veiculação · Pré-escala & Escala</h2><div class="line"></div></div>
     ${veicBlock}
+    <div class="sect-h"><h2 style="color:var(--st-teste)">${svgInline("film")}Em teste</h2><div class="line"></div><button class="btn sm" id="addteste">${svg("plus")}Criativo de teste</button></div>
+    ${testeBlock}
     <div class="sect-h"><h2>Funil de validação</h2><div class="line"></div><span class="tag">arraste entre as colunas</span></div>
     <div class="board tri">${board}</div>
     ${phonesSection(of)}`;
@@ -686,6 +669,7 @@ function vKanban(){
   $("#editof").onclick=()=>ofertaModal(of);
   $("#delof").onclick=()=>deleteOferta(of);
   $("#addcr").onclick=()=>criativoModal(null,{ofertaId:of.id,estagio:"modelado"});
+  const at2=$("#addteste");if(at2)at2.onclick=()=>criativoModal(null,{ofertaId:of.id,estagio:"teste"});
   $("#view").querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>criativoModal(null,{ofertaId:of.id,estagio:b.dataset.add}));
   $("#view").querySelectorAll(".ccard").forEach(el=>el.onclick=ev=>{if(el._dragging||ev.target.closest("[data-next]")||ev.target.closest("[data-copypost]"))return;criativoModal(byId(DB.criativos,el.dataset.id));});
   $("#view").querySelectorAll("[data-next]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.next);c.estagio=NEXT[c.estagio];if(isVeic(c)&&c.ativo===undefined)c.ativo=true;save();render();toast(`Avançou para ${ESTG[c.estagio].nome}`);});
@@ -700,6 +684,38 @@ function vKanban(){
   setupDnD();
 }
 function kpiTile(ico,k,v,foot,col){return `<div class="stat"><div class="k">${svg(ico)}${k}</div><div class="v" style="font-size:23px${col?`;color:var(${col})`:""}">${v}</div><div class="foot">${foot}</div></div>`;}
+function creativoTable(list,withChip){
+  const at=list.filter(c=>c.ativo);
+  const orcBRL=at.filter(c=>(c.moeda||"BRL")==="BRL").reduce((s,c)=>s+ +c.orcamento,0);
+  const orcUSD=at.filter(c=>c.moeda==="USD").reduce((s,c)=>s+ +c.orcamento,0);
+  const totalCamps=list.reduce((s,c)=>s+ (+c.qtdCampanhas||0),0);
+  const rows=list.map(c=>{
+    const o=OBJ[c.objetivo]||OBJETIVOS[0];
+    let chipCell="";
+    if(withChip){const cel=byId(DB.celulares,c.celularId);const chip=cel?byId(DB.chips,cel.chipId):null;
+      chipCell=`<td>${chip?`<span class="mono" style="font-size:12px">${esc(chip.numero)}</span> ${statusPill(CHIP_STATUS,chip.status)}`:'<span style="color:var(--text-3)">— sem chip</span>'}</td>`;}
+    return `<tr data-row="${c.id}">
+      <td style="width:44px"><button class="tgl ${c.ativo?"on":""}" data-tgl="${c.id}" title="${c.ativo?"Ativo":"Pausado"}"><span></span></button></td>
+      <td><div class="nm">${esc(c.campanha||c.nome)}</div><div class="sub2">${esc(c.nome)}${c.formato?" · "+esc(c.formato):""}</div></td>
+      <td>${c.celularId?`<span class="tag">${esc(celName(c.celularId)||"?")}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
+      ${chipCell}
+      <td>${stageSelect(c)}</td>
+      <td><span class="pill" style="color:var(${o.c});background:color-mix(in srgb,var(${o.c}) 15%,transparent)"><span class="dot"></span>${o.l}</span></td>
+      <td class="mono" style="text-align:center">${num(c.qtdCampanhas)}</td>
+      <td class="mono" style="text-align:right">${fmtCur(c.orcamento,c.moeda)}<div class="sub2">Diário</div></td>
+      <td style="text-align:center">${c.roi?`<span class="pill" style="color:var(--good);background:var(--good-soft)"><span class="dot"></span>${esc(c.roi)}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
+      <td><div class="rowact">${c.postId?`<button class="iconbtn" data-copypost="${c.id}" title="Copiar Post ID">${svg("copy")}</button>`:""}<button class="iconbtn" data-edit="${c.id}">${svg("edit")}</button><button class="iconbtn" data-del="${c.id}">${svg("trash")}</button></div></td>
+    </tr>`;
+  }).join("");
+  return `<div class="tblwrap"><table><thead><tr>
+      <th></th><th>Campanha</th><th>Celular</th>${withChip?"<th>Chip testado</th>":""}<th>Estágio</th><th>Objetivo</th><th style="text-align:center">Nº camp.</th><th style="text-align:right">Orçamento</th><th style="text-align:center">ROI</th><th></th>
+    </tr></thead><tbody>${rows}</tbody>
+    <tfoot><tr>
+      <td></td><td style="font-weight:600">Resultados de ${list.length} criativo${list.length>1?"s":""}</td><td></td>${withChip?"<td></td>":""}<td></td><td></td>
+      <td class="mono" style="text-align:center;font-weight:600">${num(totalCamps)}</td>
+      <td class="mono" style="text-align:right;font-weight:600">${orcSummary(orcBRL,orcUSD)}<div class="sub2">Diário ativo</div></td><td></td><td></td>
+    </tr></tfoot></table></div>`;
+}
 function phonesSection(of){
   const assigned=DB.celulares.filter(c=>c.ofertaId===of.id);
   const free=DB.celulares.filter(c=>!c.ofertaId);
@@ -906,7 +922,7 @@ function criativoModal(cr,preset={}){
     return h;
   };
   const ofOpts=DB.ofertas.map(o=>{const bm=byId(DB.bms,o.bmId);return {v:o.id,l:`${bm?bm.nome+" · ":""}${o.nome}`};});
-  const showV=EM_VEIC.includes(c.estagio||"modelado");
+  const showV=COM_DADOS.includes(c.estagio||"modelado");
   modal({wide:true,title:editing?"Editar criativo":"Novo criativo",ico:"film",body:`
     ${field("Nome do criativo","nome",c.nome||"",{ph:"Ex.: VSL — abuela ensina ponto"})}
     <div class="frow">${field("Oferta","ofertaId",c.ofertaId||DB.ofertas[0]?.id||"",{type:"select",options:ofOpts.length?ofOpts:[{v:"",l:"Crie uma oferta primeiro"}]})}
@@ -932,7 +948,7 @@ function criativoModal(cr,preset={}){
       if(!data.ofertaId)return toast("Crie uma oferta antes"),false;
       if(editing){Object.assign(cr,data);}else{DB.criativos.push({id:uid(),...data,criadoEm:now()});}
       save();render();close();toast(editing?"Criativo atualizado":"Criativo criado");}});
-  const stg=$('#modal-root [name="estagio"]');if(stg)stg.onchange=()=>{$("#veicblock").style.display=EM_VEIC.includes(stg.value)?"":"none";};
+  const stg=$('#modal-root [name="estagio"]');if(stg)stg.onchange=()=>{$("#veicblock").style.display=COM_DADOS.includes(stg.value)?"":"none";};
   const ofc=$('#modal-root [name="ofertaId"]');if(ofc)ofc.onchange=()=>{const cs=$("#crcelsel");if(cs)cs.innerHTML=celOptionsHTML(ofc.value,"");};
   const del=editing?`<button class="btn ghost danger" style="margin-right:auto" id="delcr">${svg("trash")}Excluir</button>`:"";
   if(editing){const f=$("#modal-root .modal-f");f.insertAdjacentHTML("afterbegin",del);$("#delcr").onclick=()=>{$("#modal-root").innerHTML="";confirmDel(`Excluir "${cr.nome}"?`,"",()=>{DB.criativos=DB.criativos.filter(x=>x.id!==cr.id);save();render();toast("Criativo excluído");});};}
