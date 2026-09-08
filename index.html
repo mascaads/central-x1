@@ -191,6 +191,7 @@ tbody tr:hover{background:var(--surface-2)}
 td .nm{font-weight:600}
 td .sub2{font-size:12px;color:var(--text-3);margin-top:1px}
 .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.fourtag{display:inline-block;font-family:var(--mono);font-weight:600;font-size:11.5px;color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);padding:1px 7px;border-radius:6px;letter-spacing:.05em}
 .rowact{display:flex;gap:2px;justify-content:flex-end}
 
 /* chip card grid alt */
@@ -748,7 +749,7 @@ function vCelulares(){
       const chip=DB.chips.find(k=>k.id===c.chipId);
       const crs=DB.criativos.filter(x=>x.celularId===c.id);
       const of=c.ofertaId&&byId(DB.ofertas,c.ofertaId);const ofbm=of&&byId(DB.bms,of.bmId);
-      return `<tr><td><div class="nm">${esc(c.nome)}</div><div class="sub2">${esc(c.modelo||"—")}${chip&&last4(chip.numero)?` · <span class="mono" style="color:var(--text-2)">•••• ${last4(chip.numero)}</span>`:""}</div></td>
+      return `<tr><td><div class="nm">${esc(c.nome)}</div><div class="sub2" style="display:flex;align-items:center;gap:7px">${esc(c.modelo||"—")}${chip&&last4(chip.numero)?`<span class="fourtag">${last4(chip.numero)}</span>`:""}</div></td>
         <td>${of?`<span class="pill" style="color:var(--text-2);background:var(--surface-2)"><span class="dot" style="background:${ofbm?.cor||'var(--accent)'}"></span>${esc(of.nome)}</span>`:'<span style="color:var(--text-3)">— sem oferta</span>'}</td>
         <td>${chip?`<span class="mono" style="font-size:12.5px">${esc(chip.numero)}</span><div class="sub2">${esc(chip.operadora)}</div>`:'<span style="color:var(--text-3)">Sem chip</span>'}</td>
         <td>${crs.length?crs.slice(0,3).map(x=>`<span class="tag" style="margin:1px 2px 1px 0">${esc(x.nome.slice(0,26))}${x.nome.length>26?"…":""}</span>`).join(""):'<span style="color:var(--text-3)">—</span>'}${crs.length>3?`<span class="tag">+${crs.length-3}</span>`:""}</td>
