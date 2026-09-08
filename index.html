@@ -198,7 +198,10 @@ td .sub2{font-size:12px;color:var(--text-3);margin-top:1px}
 .chipc{padding:16px 17px;position:relative;border-top:3px solid var(--good)}
 .chipc .ch-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
 .chipc .num{font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:.02em}
-.chipc .op{font-size:11.5px;color:var(--text-2);margin-top:1px}
+.chipc .celline{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:13.5px;font-weight:600;color:var(--accent)}
+.chipc .celline svg{width:15px;height:15px;flex:none}
+.chipc .celline span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chipc .celline.none{color:var(--text-3)}
 .chipc .gauge{display:flex;gap:10px;margin-top:15px}
 .chipc .g{flex:1;background:var(--surface-2);border-radius:9px;padding:9px 11px;border:1px solid var(--border)}
 .chipc .g .gl{font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--text-3);font-weight:600}
@@ -326,6 +329,7 @@ const daysBetween=(a,b=now())=>Math.floor((b-a)/DAY);
 const fmtDate=t=>t?new Date(t).toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"}):"—";
 const ago=t=>{if(!t)return"—";const d=daysBetween(t);return d===0?"hoje":d===1?"ontem":`há ${d} dias`;};
 const num=v=>(Number(v)||0).toLocaleString("pt-BR");
+const last4=s=>{const d=String(s||"").replace(/\D/g,"");return d.slice(-4);};
 const CUR={BRL:{s:"R$"},USD:{s:"US$"}};
 const fmtCur=(v,m)=>((CUR[m]||CUR.BRL).s)+" "+(Number(v)||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
 const orcSummary=(brl,usd)=>{const p=[];if(brl>0||usd<=0)p.push(fmtCur(brl,"BRL"));if(usd>0)p.push(fmtCur(usd,"USD"));return p.join(" · ");};
@@ -744,7 +748,7 @@ function vCelulares(){
       const chip=DB.chips.find(k=>k.id===c.chipId);
       const crs=DB.criativos.filter(x=>x.celularId===c.id);
       const of=c.ofertaId&&byId(DB.ofertas,c.ofertaId);const ofbm=of&&byId(DB.bms,of.bmId);
-      return `<tr><td><div class="nm">${esc(c.nome)}</div><div class="sub2">${esc(c.modelo||"—")}</div></td>
+      return `<tr><td><div class="nm">${esc(c.nome)}</div><div class="sub2">${esc(c.modelo||"—")}${chip&&last4(chip.numero)?` · <span class="mono" style="color:var(--text-2)">•••• ${last4(chip.numero)}</span>`:""}</div></td>
         <td>${of?`<span class="pill" style="color:var(--text-2);background:var(--surface-2)"><span class="dot" style="background:${ofbm?.cor||'var(--accent)'}"></span>${esc(of.nome)}</span>`:'<span style="color:var(--text-3)">— sem oferta</span>'}</td>
         <td>${chip?`<span class="mono" style="font-size:12.5px">${esc(chip.numero)}</span><div class="sub2">${esc(chip.operadora)}</div>`:'<span style="color:var(--text-3)">Sem chip</span>'}</td>
         <td>${crs.length?crs.slice(0,3).map(x=>`<span class="tag" style="margin:1px 2px 1px 0">${esc(x.nome.slice(0,26))}${x.nome.length>26?"…":""}</span>`).join(""):'<span style="color:var(--text-3)">—</span>'}${crs.length>3?`<span class="tag">+${crs.length-3}</span>`:""}</td>
@@ -766,14 +770,15 @@ function vChips(){
     const rec=daysBetween(k.ultimaRecargaEm);const vida=daysBetween(k.cadastradoEm);
     const col=k.status==="banido"?"--text-3":rec>=RECARGA_ALERTA?"--crit":rec>=RECARGA_ATENCAO?"--warn":"--good";
     return `<div class="card chipc" style="border-top-color:var(${col})">
-      <div class="ch-top"><div><div class="num">${esc(k.numero)}</div><div class="op">${esc(k.operadora||"—")}</div></div>${statusPill(CHIP_STATUS,k.status)}</div>
+      <div class="ch-top"><div style="min-width:0"><div class="num">${esc(k.numero)}</div>
+        <div class="celline ${k.celularId&&celName(k.celularId)?"":"none"}">${svg("phone")}<span>${esc(celName(k.celularId)||"Sem celular")}</span></div></div>${statusPill(CHIP_STATUS,k.status)}</div>
       <div class="gauge">
         <div class="g"><div class="gl">Sem recarga</div><div class="gv" style="color:var(${col})">${rec}<span class="gu"> dias</span></div></div>
         <div class="g"><div class="gl">Vida do chip</div><div class="gv">${vida}<span class="gu"> dias</span></div></div>
       </div>
-      <div class="ch-foot">${svg("phone")}<span>${celName(k.celularId)||"Sem celular"}</span>
-        <div style="flex:1"></div>
+      <div class="ch-foot">
         <button class="btn sm" data-rec="${k.id}">${svg("refresh")}Recarreguei</button>
+        <div style="flex:1"></div>
         <button class="iconbtn" data-edit="${k.id}">${svg("edit")}</button>
         <button class="iconbtn" data-del="${k.id}">${svg("trash")}</button></div>
       ${k.notas?`<div style="margin-top:11px;font-size:12px;color:var(--text-3);padding-top:10px;border-top:1px solid var(--border)">${esc(k.notas)}</div>`:""}
