@@ -678,9 +678,9 @@ function vKanban(){
     ${kpi}
     <div class="sect-h" style="margin-top:6px"><h2>${svgInline("bolt")}Em veiculação · Pré-escala & Escala</h2><div class="line"></div></div>
     ${veicBlock}
-    ${phonesSection(of)}
     <div class="sect-h"><h2>Funil de validação</h2><div class="line"></div><span class="tag">arraste entre as colunas</span></div>
-    <div class="board tri">${board}</div>`;
+    <div class="board tri">${board}</div>
+    ${phonesSection(of)}`;
 
   $("#back").onclick=()=>{openOferta=null;render();};
   $("#editof").onclick=()=>ofertaModal(of);
