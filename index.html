@@ -373,7 +373,8 @@ const ESTAGIOS=[
 ];
 const ESTG=Object.fromEntries(ESTAGIOS.map(e=>[e.id,e]));
 const BM_CORES=["#4f8cff","#26c281","#f0a830","#f2585f","#c9b8ff","#25d0c0","#ff8a5b","#a0d468"];
-const CEL_STATUS={rodando:{l:"Rodando",c:"--good"},descanso:{l:"Descanso",c:"--warn"},banido:{l:"Banido",c:"--crit"},reserva:{l:"Reserva",c:"--text-3"}};
+const CEL_STATUS={rodando:{l:"Rodando",c:"--good"},aquecido:{l:"Aquecido",c:"--warn"},banido:{l:"Banido",c:"--crit"}};
+const RECARGA_ATENCAO=60,RECARGA_ALERTA=90; // dias: 2 meses = atenção, 3 meses = alerta
 const CHIP_STATUS={aquecendo:{l:"Aquecendo",c:"--warn"},ativo:{l:"Ativo",c:"--good"},reserva:{l:"Reserva",c:"--text-3"},banido:{l:"Banido",c:"--crit"}};
 
 /* ---------- store ---------- */
@@ -391,7 +392,7 @@ function normalize(db){
     if(c.objetivo===undefined)c.objetivo="engj";
     if(c.qtdCampanhas===undefined)c.qtdCampanhas=1;
   });
-  (db.celulares||[]).forEach(c=>{if(c.ofertaId===undefined)c.ofertaId=null;});
+  (db.celulares||[]).forEach(c=>{if(c.ofertaId===undefined)c.ofertaId=null;if(!CEL_STATUS[c.status])c.status="aquecido";});
   return db;
 }
 function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(DB));}catch(e){}}
@@ -426,12 +427,12 @@ function seed(){
       {id:c1,nome:"iPhone Azul",modelo:"iPhone 11",chipId:"k1",status:"rodando",ofertaId:of1,notas:"",criadoEm:now()-35*DAY},
       {id:c2,nome:"Moto G #2",modelo:"Moto G73",chipId:"k2",status:"rodando",ofertaId:of1,notas:"",criadoEm:now()-22*DAY},
       {id:c3,nome:"Samsung A #3",modelo:"Galaxy A14",chipId:"k3",status:"rodando",ofertaId:of2,notas:"",criadoEm:now()-19*DAY},
-      {id:c4,nome:"iPhone Preto",modelo:"iPhone 12",chipId:null,status:"descanso",ofertaId:null,notas:"Sem oferta no momento.",criadoEm:now()-25*DAY},
+      {id:c4,nome:"iPhone Preto",modelo:"iPhone 12",chipId:null,status:"aquecido",ofertaId:null,notas:"Sem oferta no momento.",criadoEm:now()-25*DAY},
     ],
     chips:[
       {id:"k1",numero:"+52 55 1234 5678",operadora:"Telcel",celularId:c1,cadastradoEm:now()-34*DAY,ultimaRecargaEm:now()-3*DAY,status:"ativo",notas:""},
-      {id:"k2",numero:"+52 55 2345 6789",operadora:"AT&T",celularId:c2,cadastradoEm:now()-21*DAY,ultimaRecargaEm:now()-9*DAY,status:"ativo",notas:""},
-      {id:"k3",numero:"+52 55 3456 7890",operadora:"Movistar",celularId:c3,cadastradoEm:now()-18*DAY,ultimaRecargaEm:now()-16*DAY,status:"ativo",notas:"Recarga vencendo!"},
+      {id:"k2",numero:"+52 55 2345 6789",operadora:"AT&T",celularId:c2,cadastradoEm:now()-70*DAY,ultimaRecargaEm:now()-65*DAY,status:"ativo",notas:"Atenção: 2 meses sem recarga."},
+      {id:"k3",numero:"+52 55 3456 7890",operadora:"Movistar",celularId:c3,cadastradoEm:now()-100*DAY,ultimaRecargaEm:now()-95*DAY,status:"ativo",notas:"Alerta: 3+ meses sem recarga!"},
       {id:"k4",numero:"+52 55 4567 8901",operadora:"Telcel",celularId:null,cadastradoEm:now()-3*DAY,ultimaRecargaEm:now()-3*DAY,status:"aquecendo",notas:"Aquecendo há 3 dias."},
     ],
     prompts:[
@@ -490,7 +491,7 @@ function vOverview(){
   const c=DB.criativos;
   const emEscala=c.filter(x=>x.estagio==="escala").length;
   const rodando=DB.celulares.filter(x=>x.status==="rodando").length;
-  const chipAlerta=DB.chips.filter(x=>x.status!=="banido"&&daysBetween(x.ultimaRecargaEm)>=14).length;
+  const chipAlerta=DB.chips.filter(x=>x.status!=="banido"&&daysBetween(x.ultimaRecargaEm)>=RECARGA_ALERTA).length;
   const byStage=ESTAGIOS.map(e=>({e,n:c.filter(x=>x.estagio===e.id).length}));
   const totalC=c.length||1;
   const recent=[...c].sort((a,b)=>b.criadoEm-a.criadoEm).slice(0,5);
@@ -502,7 +503,7 @@ function vOverview(){
       ${stat("bolt","Criativos em escala",emEscala,`de ${c.length} criativos no total`)}
       ${stat("phone","Celulares rodando",rodando,`${DB.celulares.length} aparelhos cadastrados`)}
       ${stat("layers","Ofertas ativas",DB.ofertas.length,`em ${DB.bms.length} BMs`)}
-      ${stat("clock","Chips em alerta",chipAlerta,chipAlerta?"14+ dias sem recarga":"tudo em dia",chipAlerta?"--crit":"--good")}
+      ${stat("clock","Chips em alerta",chipAlerta,chipAlerta?"3+ meses sem recarga":"tudo em dia",chipAlerta?"--crit":"--good")}
     </div>
 
     <div class="grid" style="grid-template-columns:1.35fr 1fr;align-items:start;gap:22px">
@@ -520,7 +521,7 @@ function vOverview(){
 
       <div class="card" style="padding:20px 22px">
         <h2 style="font-size:15px;font-weight:600;margin-bottom:16px">Recarga dos chips</h2>
-        ${chipsSort.length?chipsSort.map(k=>{const d=daysBetween(k.ultimaRecargaEm);const col=d>=14?"--crit":d>=7?"--warn":"--good";return `
+        ${chipsSort.length?chipsSort.map(k=>{const d=daysBetween(k.ultimaRecargaEm);const col=d>=RECARGA_ALERTA?"--crit":d>=RECARGA_ATENCAO?"--warn":"--good";return `
           <div style="display:flex;align-items:center;gap:11px;margin-bottom:13px">
             <span class="pill" style="color:var(${col});background:color-mix(in srgb,var(${col}) 15%,transparent);min-width:74px;justify-content:center"><span class="dot"></span>${d}d</span>
             <div style="flex:1;min-width:0"><div class="mono" style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(k.numero)}</div><div style="font-size:11px;color:var(--text-3)">${esc(k.operadora)} · ${celName(k.celularId)||"sem celular"}</div></div>
@@ -763,7 +764,7 @@ function vChips(){
   const sorted=[...DB.chips].sort((a,b)=>daysBetween(b.ultimaRecargaEm)-daysBetween(a.ultimaRecargaEm));
   $("#view").innerHTML=`<div class="grid chips">${sorted.map(k=>{
     const rec=daysBetween(k.ultimaRecargaEm);const vida=daysBetween(k.cadastradoEm);
-    const col=k.status==="banido"?"--text-3":rec>=14?"--crit":rec>=7?"--warn":"--good";
+    const col=k.status==="banido"?"--text-3":rec>=RECARGA_ALERTA?"--crit":rec>=RECARGA_ATENCAO?"--warn":"--good";
     return `<div class="card chipc" style="border-top-color:var(${col})">
       <div class="ch-top"><div><div class="num">${esc(k.numero)}</div><div class="op">${esc(k.operadora||"—")}</div></div>${statusPill(CHIP_STATUS,k.status)}</div>
       <div class="gauge">
@@ -921,7 +922,7 @@ function celModal(cel){
     <div class="frow">${field("Apelido","nome",cel?.nome||"",{ph:"Ex.: iPhone Azul"})}
     ${field("Modelo","modelo",cel?.modelo||"",{optional:true,ph:"Ex.: iPhone 11"})}</div>
     <div class="frow">${field("Oferta","ofertaId",cel?.ofertaId||"",{type:"select",options:ofOpts})}
-    ${field("Status","status",cel?.status||"reserva",{type:"select",options:Object.entries(CEL_STATUS).map(([v,o])=>({v,l:o.l}))})}</div>
+    ${field("Status","status",cel?.status||"aquecido",{type:"select",options:Object.entries(CEL_STATUS).map(([v,o])=>({v,l:o.l}))})}</div>
     ${field("Chip vinculado","chipId",cel?.chipId||"",{type:"select",options:chipOpts})}
     ${field("Notas","notas",cel?.notas||"",{type:"textarea",optional:true})}`,
     onOk:close=>{const root=$("#modal-root");const nome=val(root,"nome");if(!nome)return toast("Dê um apelido ao celular"),false;
@@ -941,13 +942,21 @@ function chipModal(chip){
     ${field("Última recarga","recarga",dstr(chip?.ultimaRecargaEm??now()),{type:"date"})}</div>
     <div class="frow">${field("Celular","celularId",chip?.celularId||"",{type:"select",options:celOpts})}
     ${field("Status","status",chip?.status||"aquecendo",{type:"select",options:Object.entries(CHIP_STATUS).map(([v,o])=>({v,l:o.l}))})}</div>
+    ${!chip?.celularId?`<div class="field" style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px 13px;gap:0">
+      <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:600;color:var(--text)"><input type="checkbox" name="mkcel" id="mkcel" style="width:16px;height:16px;padding:0;flex:none;accent-color:var(--accent)"> Já criar um celular com este chip</label>
+      <input name="mkcelnome" id="mkcelnome" placeholder="Apelido do celular (ex.: iPhone Azul)" hidden style="margin-top:10px">
+    </div>`:""}
     ${field("Notas","notas",chip?.notas||"",{type:"textarea",optional:true})}`,
     onOk:close=>{const root=$("#modal-root");const numero=val(root,"numero");if(!numero)return toast("Informe o número"),false;
       const parseD=s=>s?new Date(s+"T12:00:00").getTime():now();
       const data={numero,operadora:val(root,"operadora"),cadastradoEm:parseD(val(root,"cadastro")),ultimaRecargaEm:parseD(val(root,"recarga")),celularId:val(root,"celularId")||null,status:val(root,"status"),notas:val(root,"notas")};
       if(editing){Object.assign(chip,data);}else{chip={id:uid(),...data};DB.chips.push(chip);}
-      if(data.celularId){const c=byId(DB.celulares,data.celularId);if(c)c.chipId=chip.id;}
-      save();render();close();toast(editing?"Chip atualizado":"Chip criado");}});
+      const mkCel=root.querySelector("#mkcel")?.checked;
+      let novoCel=false;
+      if(mkCel){const apelido=val(root,"mkcelnome")||`Celular ${numero}`;const cel={id:uid(),nome:apelido,modelo:"",chipId:chip.id,ofertaId:null,status:"aquecido",notas:"",criadoEm:now()};DB.celulares.push(cel);chip.celularId=cel.id;novoCel=true;}
+      else if(chip.celularId){const c=byId(DB.celulares,chip.celularId);if(c)c.chipId=chip.id;}
+      save();render();close();toast(novoCel?"Chip e celular criados ✓":(editing?"Chip atualizado":"Chip criado"));}});
+  const mk=$("#mkcel");if(mk)mk.onchange=()=>{const n=$("#mkcelnome");n.hidden=!mk.checked;if(mk.checked)n.focus();};
 }
 function promptModal(p){
   const editing=!!p;
