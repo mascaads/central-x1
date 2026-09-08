@@ -603,7 +603,7 @@ function ofertaCard(o,showBM){
 const PIPELINE=["modelado","validado","zona-branca"];
 function vKanban(){
   const of=byId(DB.ofertas,openOferta);const bm=byId(DB.bms,of.bmId);
-  topActions(`<button class="btn" id="editof">${svg("edit")}Editar oferta</button> <button class="btn pri" id="addcr">${svg("plus")}Criativo</button>`);
+  topActions(`<button class="btn danger" id="delof">${svg("trash")}Excluir</button> <button class="btn" id="editof">${svg("edit")}Editar oferta</button> <button class="btn pri" id="addcr">${svg("plus")}Criativo</button>`);
   const all=DB.criativos.filter(c=>c.ofertaId===of.id);
   const veic=all.filter(isVeic).sort((a,b)=>ESTAGIOS.findIndex(e=>e.id===b.estagio)-ESTAGIOS.findIndex(e=>e.id===a.estagio)||(+b.orcamento)-(+a.orcamento));
   // KPIs
@@ -661,7 +661,7 @@ function vKanban(){
   $("#view").innerHTML=`
     <div class="kbar">
       <button class="btn ghost sm" id="back">← BMs & Ofertas</button>
-      <div class="crumb"><span class="swatch" style="width:11px;height:11px;border-radius:4px;background:${bm.cor}"></span>${esc(bm.nome)}<span class="sep">/</span><b>${esc(of.nome)}</b></div>
+      <div class="crumb"><span class="swatch" style="width:11px;height:11px;border-radius:4px;background:${bm?.cor||"var(--text-3)"}"></span>${bm?esc(bm.nome):"Sem BM"}<span class="sep">/</span><b>${esc(of.nome)}</b></div>
       ${of.nicho?`<span class="tag">${esc(of.nicho)}</span>`:""}
     </div>
     ${kpi}
@@ -673,6 +673,7 @@ function vKanban(){
 
   $("#back").onclick=()=>{openOferta=null;render();};
   $("#editof").onclick=()=>ofertaModal(of);
+  $("#delof").onclick=()=>deleteOferta(of);
   $("#addcr").onclick=()=>criativoModal(null,{ofertaId:of.id,estagio:"modelado"});
   $("#view").querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>criativoModal(null,{ofertaId:of.id,estagio:b.dataset.add}));
   $("#view").querySelectorAll(".ccard").forEach(el=>el.onclick=ev=>{if(el._dragging||ev.target.closest("[data-next]"))return;criativoModal(byId(DB.criativos,el.dataset.id));});
@@ -858,16 +859,27 @@ function bmModal(bm){
       save();render();close();toast(editing?"BM atualizada":"BM criada");}});
   $("#sw").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{cor=b.dataset.c;$("#sw").querySelectorAll("[data-c]").forEach(x=>x.classList.toggle("on",x===b));});
 }
+function deleteOferta(of){
+  confirmDel(`Excluir a oferta "${of.nome}"?`,"Os criativos dela serão removidos e os celulares vinculados ficam sem oferta.",()=>{
+    DB.criativos=DB.criativos.filter(c=>c.ofertaId!==of.id);
+    DB.celulares.forEach(c=>{if(c.ofertaId===of.id)c.ofertaId=null;});
+    DB.ofertas=DB.ofertas.filter(o=>o.id!==of.id);
+    if(openOferta===of.id)openOferta=null;
+    save();render();toast("Oferta excluída");
+  });
+}
 function ofertaModal(of){
   const editing=!!of;
+  const bmOpts=DB.bms.length?DB.bms.map(b=>({v:b.id,l:b.nome})):[{v:"",l:"— Sem BM —"}];
   modal({title:editing?"Editar oferta":"Nova oferta",ico:"bolt",body:`
     ${field("Nome da oferta","nome",of?.nome||"",{ph:"Ex.: Crochê MX"})}
     ${field("Nicho / público","nicho",of?.nicho||"",{optional:true,ph:"Ex.: Artesanato / renda extra"})}
-    ${field("BM","bmId",of?.bmId||curBM||DB.bms[0]?.id||"",{type:"select",options:DB.bms.map(b=>({v:b.id,l:b.nome}))})}`,
+    ${field("BM","bmId",of?.bmId||curBM||DB.bms[0]?.id||"",{type:"select",options:bmOpts})}`,
     onOk:close=>{const root=$("#modal-root");const nome=val(root,"nome");if(!nome)return toast("Dê um nome à oferta"),false;
       const bmId=val(root,"bmId");const nicho=val(root,"nicho");
       if(editing){Object.assign(of,{nome,nicho,bmId});}else{DB.ofertas.push({id:uid(),bmId,nome,nicho,criadoEm:now()});}
       save();render();close();toast(editing?"Oferta atualizada":"Oferta criada");}});
+  if(editing){const f=$("#modal-root .modal-f");f.insertAdjacentHTML("afterbegin",`<button class="btn ghost danger" style="margin-right:auto" id="delof2">${svg("trash")}Excluir</button>`);$("#delof2").onclick=()=>{$("#modal-root").innerHTML="";deleteOferta(of);};}
 }
 function criativoModal(cr,preset={}){
   const editing=!!cr;const c=cr||preset;
