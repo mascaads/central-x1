@@ -396,6 +396,8 @@ function normalize(db){
     if(c.moeda===undefined)c.moeda="BRL";
     if(c.objetivo===undefined)c.objetivo="engj";
     if(c.qtdCampanhas===undefined)c.qtdCampanhas=1;
+    if(c.roi===undefined)c.roi="";
+    if(c.postId===undefined)c.postId="";
   });
   (db.celulares||[]).forEach(c=>{if(c.ofertaId===undefined)c.ofertaId=null;if(!CEL_STATUS[c.status])c.status="aquecido";});
   return db;
@@ -418,12 +420,12 @@ function seed(){
       {id:of3,bmId:bm2,nome:"Batata Recheada",nicho:"Renda extra / comida",criadoEm:now()-9*DAY},
     ],
     criativos:[
-      {id:uid(),ofertaId:of1,nome:"VSL — abuela ensina ponto",estagio:"escala",celularId:c1,campanha:"08.08 ESCALA ENGJ CELULAR 9",formato:"Depoimento POV",notas:"Melhor CPA da conta.",ativo:true,orcamento:50,moeda:"BRL",objetivo:"engj",qtdCampanhas:3,criadoEm:now()-30*DAY},
+      {id:uid(),ofertaId:of1,nome:"VSL — abuela ensina ponto",estagio:"escala",celularId:c1,campanha:"08.08 ESCALA ENGJ CELULAR 9",formato:"Depoimento POV",notas:"Melhor CPA da conta.",ativo:true,orcamento:50,moeda:"BRL",objetivo:"engj",qtdCampanhas:3,roi:"3.2x",postId:"120210998877665544",criadoEm:now()-30*DAY},
       {id:uid(),ofertaId:of1,nome:"Reel — mãos fazendo flor",estagio:"pre-escala",celularId:c2,campanha:"06.08 ESCALA ZAP 1",formato:"Tutorial silencioso",notas:"",ativo:true,orcamento:40,moeda:"BRL",objetivo:"conversas",qtdCampanhas:2,criadoEm:now()-14*DAY},
       {id:uid(),ofertaId:of1,nome:"Hook — 'sin salir de casa'",estagio:"validado",celularId:null,campanha:"CROCHE-TESTE-07",formato:"Texto na tela + b-roll",notas:"CTR bom, escalar com cuidado.",criadoEm:now()-6*DAY},
       {id:uid(),ofertaId:of1,nome:"Modelagem do criativo do concorrente",estagio:"modelado",celularId:null,campanha:"",formato:"UGC unboxing",notas:"Copiar estrutura, trocar oferta.",criadoEm:now()-2*DAY},
       {id:uid(),ofertaId:of1,nome:"VSL antiga v1",estagio:"zona-branca",celularId:null,campanha:"CROCHE-ESC-ANTIGO",formato:"Depoimento POV",notas:"Vencedor histórico, guardado.",criadoEm:now()-60*DAY},
-      {id:uid(),ofertaId:of2,nome:"Médico SUS explica glicemia",estagio:"escala",celularId:c3,campanha:"29.06 ESCALA ENGJ COMPRAS CELULAR 6",formato:"Autoridade / jaleco",notas:"'Fora do tema, dentro do contexto' — ROAS alto.",ativo:true,orcamento:52.15,moeda:"BRL",objetivo:"engj-compras",qtdCampanhas:1,criadoEm:now()-18*DAY},
+      {id:uid(),ofertaId:of2,nome:"Médico SUS explica glicemia",estagio:"escala",celularId:c3,campanha:"29.06 ESCALA ENGJ COMPRAS CELULAR 6",formato:"Autoridade / jaleco",notas:"'Fora do tema, dentro do contexto' — ROAS alto.",ativo:true,orcamento:52.15,moeda:"BRL",objetivo:"engj-compras",qtdCampanhas:1,roi:"4.1x",postId:"120211223344556677",criadoEm:now()-18*DAY},
       {id:uid(),ofertaId:of2,nome:"Dicas da nutri — café da manhã",estagio:"validado",celularId:c4,campanha:"GLI-TESTE-05",formato:"Lista rápida",notas:"",criadoEm:now()-5*DAY},
       {id:uid(),ofertaId:of2,nome:"POV glicose alta de manhã",estagio:"modelado",celularId:null,campanha:"",formato:"POV / susto",notas:"",criadoEm:now()-1*DAY},
       {id:uid(),ofertaId:of3,nome:"Vivendo de comida — delivery em casa",estagio:"pre-escala",celularId:null,campanha:"07.06 PRE CONVERSAS COMPRAS",formato:"Rotina / vlog",notas:"Testando conta em dólar.",ativo:false,orcamento:15,moeda:"USD",objetivo:"conversas-compras",qtdCampanhas:1,criadoEm:now()-4*DAY},
@@ -639,16 +641,17 @@ function vKanban(){
       <td><span class="pill" style="color:var(${o.c});background:color-mix(in srgb,var(${o.c}) 15%,transparent)"><span class="dot"></span>${o.l}</span></td>
       <td class="mono" style="text-align:center">${num(c.qtdCampanhas)}</td>
       <td class="mono" style="text-align:right">${fmtCur(c.orcamento,c.moeda)}<div class="sub2">Diário</div></td>
-      <td><div class="rowact"><button class="iconbtn" data-edit="${c.id}">${svg("edit")}</button><button class="iconbtn" data-del="${c.id}">${svg("trash")}</button></div></td>
+      <td style="text-align:center">${c.roi?`<span class="pill" style="color:var(--good);background:var(--good-soft)"><span class="dot"></span>${esc(c.roi)}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
+      <td><div class="rowact">${c.postId?`<button class="iconbtn" data-copypost="${c.id}" title="Copiar Post ID">${svg("copy")}</button>`:""}<button class="iconbtn" data-edit="${c.id}">${svg("edit")}</button><button class="iconbtn" data-del="${c.id}">${svg("trash")}</button></div></td>
     </tr>`;
   }).join("");
   const veicBlock=veic.length?`<div class="tblwrap"><table><thead><tr>
-      <th></th><th>Campanha</th><th>Celular</th><th>Estágio</th><th>Objetivo</th><th style="text-align:center">Nº camp.</th><th style="text-align:right">Orçamento</th><th></th>
+      <th></th><th>Campanha</th><th>Celular</th><th>Estágio</th><th>Objetivo</th><th style="text-align:center">Nº camp.</th><th style="text-align:right">Orçamento</th><th style="text-align:center">ROI</th><th></th>
     </tr></thead><tbody>${rows}</tbody>
     <tfoot><tr>
       <td></td><td style="font-weight:600">Resultados de ${veic.length} criativo${veic.length>1?"s":""}</td><td></td><td></td><td></td>
       <td class="mono" style="text-align:center;font-weight:600">${num(totalCamps)}</td>
-      <td class="mono" style="text-align:right;font-weight:600">${orcSummary(orcBRL,orcUSD)}<div class="sub2">Diário ativo</div></td><td></td>
+      <td class="mono" style="text-align:right;font-weight:600">${orcSummary(orcBRL,orcUSD)}<div class="sub2">Diário ativo</div></td><td></td><td></td>
     </tr></tfoot></table></div>`
     :`<div class="card" style="padding:26px;text-align:center;color:var(--text-3);font-size:13px">Nenhum criativo em veiculação ainda. Suba um do funil abaixo com <b style="color:var(--text-2)">Avançar</b> quando ele validar.</div>`;
 
@@ -685,6 +688,7 @@ function vKanban(){
   $("#view").querySelectorAll(".ccard").forEach(el=>el.onclick=ev=>{if(el._dragging||ev.target.closest("[data-next]"))return;criativoModal(byId(DB.criativos,el.dataset.id));});
   $("#view").querySelectorAll("[data-next]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.next);c.estagio=NEXT[c.estagio];if(isVeic(c)&&c.ativo===undefined)c.ativo=true;save();render();toast(`Avançou para ${ESTG[c.estagio].nome}`);});
   $("#view").querySelectorAll("[data-tgl]").forEach(b=>b.onclick=()=>{const c=byId(DB.criativos,b.dataset.tgl);c.ativo=!c.ativo;save();render();});
+  $("#view").querySelectorAll("[data-copypost]").forEach(b=>b.onclick=async()=>{const c=byId(DB.criativos,b.dataset.copypost);try{await navigator.clipboard.writeText(c.postId);toast("Post ID copiado ✓");}catch(e){toast("Não consegui copiar");}});
   $("#view").querySelectorAll("[data-assign]").forEach(b=>b.onclick=()=>{const c=byId(DB.celulares,b.dataset.assign);c.ofertaId=of.id;save();render();toast("Celular adicionado à oferta");});
   $("#view").querySelectorAll("[data-unassign]").forEach(b=>b.onclick=()=>{const c=byId(DB.celulares,b.dataset.unassign);c.ofertaId=null;save();render();toast("Celular tirado da oferta");});
   $("#view").querySelectorAll("[data-editcel]").forEach(b=>b.onclick=()=>celModal(byId(DB.celulares,b.dataset.editcel)));
@@ -907,6 +911,8 @@ function criativoModal(cr,preset={}){
     <div class="frow">${field("Formato","formato",c.formato||"",{optional:true,ph:"Ex.: Depoimento POV"})}
     <div class="field"><label>Celular rodando <span class="opt">(desta oferta)</span></label><select name="celularId" id="crcelsel">${celOptionsHTML(c.ofertaId||DB.ofertas[0]?.id||"",c.celularId||"")}</select></div></div>
     ${field("Nome da campanha","campanha",c.campanha||"",{optional:true,ph:"Ex.: 08.08 ESCALA CELULAR 9"})}
+    <div class="frow"><div class="field"><label>ROI <span class="opt">(destaque)</span></label><input name="roi" value="${esc(c.roi||"")}" placeholder="Ex.: 2.5x" style="border-color:color-mix(in srgb,var(--good) 45%,var(--border-2));font-weight:600"></div>
+    ${field("Post ID","postId",c.postId||"",{optional:true,ph:"Ex.: 122100000000"})}</div>
     <div id="veicblock" style="${showV?"":"display:none"}">
       <div style="display:flex;align-items:center;gap:8px;margin:4px 0 2px"><span class="pill stg" style="color:var(--st-escala);background:var(--good-soft)"><span class="dot"></span>Dados de veiculação</span><div style="flex:1;height:1px;background:var(--border)"></div></div>
       <div class="frow">${field("Status","ativo",c.ativo===false?"pausado":"ativo",{type:"select",options:[{v:"ativo",l:"Ativo"},{v:"pausado",l:"Pausado"}]})}
@@ -919,7 +925,7 @@ function criativoModal(cr,preset={}){
     ${field("Notas","notas",c.notas||"",{type:"textarea",optional:true,ph:"Anotações sobre performance, ângulo, etc."})}`,
     onOk:close=>{const root=$("#modal-root");const nome=val(root,"nome");if(!nome)return toast("Dê um nome ao criativo"),false;
       const data={nome,ofertaId:val(root,"ofertaId"),estagio:val(root,"estagio"),formato:val(root,"formato"),campanha:val(root,"campanha"),celularId:val(root,"celularId")||null,notas:val(root,"notas"),
-        ativo:val(root,"ativo")!=="pausado",objetivo:val(root,"objetivo")||"engj",moeda:val(root,"moeda")||"BRL",orcamento:parseFloat(val(root,"orcamento").replace(",","."))||0,qtdCampanhas:parseInt(val(root,"qtdCampanhas"))||1};
+        ativo:val(root,"ativo")!=="pausado",objetivo:val(root,"objetivo")||"engj",moeda:val(root,"moeda")||"BRL",orcamento:parseFloat(val(root,"orcamento").replace(",","."))||0,qtdCampanhas:parseInt(val(root,"qtdCampanhas"))||1,roi:val(root,"roi"),postId:val(root,"postId")};
       if(!data.ofertaId)return toast("Crie uma oferta antes"),false;
       if(editing){Object.assign(cr,data);}else{DB.criativos.push({id:uid(),...data,criadoEm:now()});}
       save();render();close();toast(editing?"Criativo atualizado":"Criativo criado");}});
