@@ -380,7 +380,7 @@ const ESTAGIOS=[
 ];
 const ESTG=Object.fromEntries(ESTAGIOS.map(e=>[e.id,e]));
 const BM_CORES=["#4f8cff","#26c281","#f0a830","#f2585f","#c9b8ff","#25d0c0","#ff8a5b","#a0d468"];
-const CEL_STATUS={rodando:{l:"Rodando",c:"--good"},aquecido:{l:"Aquecido",c:"--warn"},banido:{l:"Banido",c:"--crit"}};
+const CEL_STATUS={rodando:{l:"Rodando",c:"--good"},aquecido:{l:"Aquecido",c:"--accent"},aquecendo:{l:"Aquecendo",c:"--warn"},banido:{l:"Banido",c:"--crit"}};
 const RECARGA_ATENCAO=60,RECARGA_ALERTA=90; // dias: 2 meses = atenção, 3 meses = alerta
 const CHIP_STATUS={aquecendo:{l:"Aquecendo",c:"--warn"},ativo:{l:"Ativo",c:"--good"},reserva:{l:"Reserva",c:"--text-3"},banido:{l:"Banido",c:"--crit"}};
 
@@ -945,7 +945,7 @@ function celModal(cel){
     <div class="frow">${field("Apelido","nome",cel?.nome||"",{ph:"Ex.: iPhone Azul"})}
     ${field("Modelo","modelo",cel?.modelo||"",{optional:true,ph:"Ex.: iPhone 11"})}</div>
     <div class="frow">${field("Oferta","ofertaId",cel?.ofertaId||"",{type:"select",options:ofOpts})}
-    ${field("Status","status",cel?.status||"aquecido",{type:"select",options:Object.entries(CEL_STATUS).map(([v,o])=>({v,l:o.l}))})}</div>
+    ${field("Status","status",cel?.status||"aquecendo",{type:"select",options:Object.entries(CEL_STATUS).map(([v,o])=>({v,l:o.l}))})}</div>
     ${field("Chip vinculado","chipId",cel?.chipId||"",{type:"select",options:chipOpts})}
     ${field("Notas","notas",cel?.notas||"",{type:"textarea",optional:true})}`,
     onOk:close=>{const root=$("#modal-root");const nome=val(root,"nome");if(!nome)return toast("Dê um apelido ao celular"),false;
@@ -976,7 +976,7 @@ function chipModal(chip){
       if(editing){Object.assign(chip,data);}else{chip={id:uid(),...data};DB.chips.push(chip);}
       const mkCel=root.querySelector("#mkcel")?.checked;
       let novoCel=false;
-      if(mkCel){const apelido=val(root,"mkcelnome")||`Celular ${numero}`;const cel={id:uid(),nome:apelido,modelo:"",chipId:chip.id,ofertaId:null,status:"aquecido",notas:"",criadoEm:now()};DB.celulares.push(cel);chip.celularId=cel.id;novoCel=true;}
+      if(mkCel){const apelido=val(root,"mkcelnome")||`Celular ${numero}`;const cel={id:uid(),nome:apelido,modelo:"",chipId:chip.id,ofertaId:null,status:"aquecendo",notas:"",criadoEm:now()};DB.celulares.push(cel);chip.celularId=cel.id;novoCel=true;}
       else if(chip.celularId){const c=byId(DB.celulares,chip.celularId);if(c)c.chipId=chip.id;}
       save();render();close();toast(novoCel?"Chip e celular criados ✓":(editing?"Chip atualizado":"Chip criado"));}});
   const mk=$("#mkcel");if(mk)mk.onchange=()=>{const n=$("#mkcelnome");n.hidden=!mk.checked;if(mk.checked)n.focus();};
