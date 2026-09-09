@@ -695,7 +695,7 @@ function creativoTable(list,withChip){
     const o=OBJ[c.objetivo]||OBJETIVOS[0];
     let chipCell="";
     if(withChip){const cel=byId(DB.celulares,c.celularId);const chip=cel?byId(DB.chips,cel.chipId):null;
-      chipCell=`<td>${chip?`<span class="mono" style="font-size:12px">${esc(chip.numero)}</span> ${statusPill(CHIP_STATUS,chip.status)}`:'<span style="color:var(--text-3)">— sem chip</span>'}</td>`;}
+      chipCell=`<td>${chip?`<span class="mono" style="font-size:12px">${esc(chip.numero)}</span>`:'<span style="color:var(--text-3)">— sem chip</span>'}</td>`;}
     return `<tr data-row="${c.id}">
       <td style="width:44px"><button class="tgl ${c.ativo?"on":""}" data-tgl="${c.id}" title="${c.ativo?"Ativo":"Pausado"}"><span></span></button></td>
       <td><div class="nm">${esc(c.campanha||c.nome)}</div><div class="sub2">${esc(c.nome)}${c.formato?" · "+esc(c.formato):""}</div></td>
@@ -797,7 +797,7 @@ function vChips(){
     const col=k.status==="banido"?"--text-3":rec>=RECARGA_ALERTA?"--crit":rec>=RECARGA_ATENCAO?"--warn":"--good";
     return `<div class="card chipc" style="border-top-color:var(${col})">
       <div class="ch-top"><div style="min-width:0"><div class="num">${esc(k.numero)}</div>
-        <div class="celline ${k.celularId&&celName(k.celularId)?"":"none"}">${svg("phone")}<span>${esc(celName(k.celularId)||"Sem celular")}</span></div></div>${statusPill(CHIP_STATUS,k.status)}</div>
+        <div class="celline ${k.celularId&&celName(k.celularId)?"":"none"}">${svg("phone")}<span>${esc(celName(k.celularId)||"Sem celular")}</span></div></div></div>
       <div class="gauge">
         <div class="g"><div class="gl">Sem recarga</div><div class="gv" style="color:var(${col})">${rec}<span class="gu"> dias</span></div></div>
         <div class="g"><div class="gl">Vida do chip</div><div class="gv">${vida}<span class="gu"> dias</span></div></div>
@@ -988,8 +988,7 @@ function chipModal(chip){
     ${field("Operadora","operadora",chip?.operadora||"",{optional:true,ph:"Telcel, AT&T…"})}</div>
     <div class="frow">${field("Cadastrado em","cadastro",dstr(chip?.cadastradoEm??now()),{type:"date"})}
     ${field("Última recarga","recarga",dstr(chip?.ultimaRecargaEm??now()),{type:"date"})}</div>
-    <div class="frow">${field("Celular","celularId",chip?.celularId||"",{type:"select",options:celOpts})}
-    ${field("Status","status",chip?.status||"aquecendo",{type:"select",options:Object.entries(CHIP_STATUS).map(([v,o])=>({v,l:o.l}))})}</div>
+    ${field("Celular","celularId",chip?.celularId||"",{type:"select",options:celOpts})}
     ${!chip?.celularId?`<div class="field" style="background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px 13px;gap:0">
       <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:600;color:var(--text)"><input type="checkbox" name="mkcel" id="mkcel" style="width:16px;height:16px;padding:0;flex:none;accent-color:var(--accent)"> Já criar um celular com este chip</label>
       <input name="mkcelnome" id="mkcelnome" placeholder="Apelido do celular (ex.: iPhone Azul)" hidden style="margin-top:10px">
@@ -997,8 +996,8 @@ function chipModal(chip){
     ${field("Notas","notas",chip?.notas||"",{type:"textarea",optional:true})}`,
     onOk:close=>{const root=$("#modal-root");const numero=val(root,"numero");if(!numero)return toast("Informe o número"),false;
       const parseD=s=>s?new Date(s+"T12:00:00").getTime():now();
-      const data={numero,operadora:val(root,"operadora"),cadastradoEm:parseD(val(root,"cadastro")),ultimaRecargaEm:parseD(val(root,"recarga")),celularId:val(root,"celularId")||null,status:val(root,"status"),notas:val(root,"notas")};
-      if(editing){Object.assign(chip,data);}else{chip={id:uid(),...data};DB.chips.push(chip);}
+      const data={numero,operadora:val(root,"operadora"),cadastradoEm:parseD(val(root,"cadastro")),ultimaRecargaEm:parseD(val(root,"recarga")),celularId:val(root,"celularId")||null,notas:val(root,"notas")};
+      if(editing){Object.assign(chip,data);}else{chip={id:uid(),...data,status:"aquecendo"};DB.chips.push(chip);}
       const mkCel=root.querySelector("#mkcel")?.checked;
       let novoCel=false;
       if(mkCel){const apelido=val(root,"mkcelnome")||`Celular ${numero}`;const cel={id:uid(),nome:apelido,modelo:"",chipId:chip.id,ofertaId:null,status:"aquecendo",notas:"",criadoEm:now()};DB.celulares.push(cel);chip.celularId=cel.id;novoCel=true;}
