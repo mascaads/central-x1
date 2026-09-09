@@ -615,7 +615,7 @@ function ofertaCard(o,showBM){
     </div>
   </div>`;
 }
-const PIPELINE=["modelado","teste","validado","pre-escala","escala","zona-branca"];
+const PIPELINE=["modelado","validado","pre-escala","escala","zona-branca"];
 function vKanban(){
   const of=byId(DB.ofertas,openOferta);const bm=byId(DB.bms,of.bmId);
   topActions(`<button class="btn danger" id="delof">${svg("trash")}Excluir</button> <button class="btn" id="editof">${svg("edit")}Editar oferta</button> <button class="btn pri" id="addcr">${svg("plus")}Criativo</button>`);
@@ -701,7 +701,7 @@ function creativoTable(list,withChip){
       chipCell=`<td>${chip?`<span class="mono" style="font-size:12px">${esc(chip.numero)}</span>`:'<span style="color:var(--text-3)">— sem chip</span>'}</td>`;}
     return `<tr data-row="${c.id}">
       <td style="width:44px"><button class="tgl ${c.ativo?"on":""}" data-tgl="${c.id}" title="${c.ativo?"Ativo":"Pausado"}"><span></span></button></td>
-      <td><div class="nm">${esc(c.campanha||c.nome)}${c.dup?` <span class="tag" style="color:var(--st-teste);border-color:color-mix(in srgb,var(--st-teste) 40%,transparent)">cópia</span>`:""}</div><div class="sub2">${esc(c.nome)}${c.formato?" · "+esc(c.formato):""}</div></td>
+      <td><div class="nm">${esc(c.campanha||c.nome)}</div><div class="sub2">${esc(c.nome)}${c.formato?" · "+esc(c.formato):""}</div></td>
       <td>${c.celularId?`<span class="tag">${esc(celName(c.celularId)||"?")}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
       ${chipCell}
       <td>${stageSelect(c)}</td>
@@ -918,8 +918,7 @@ function ofertaModal(of){
 }
 function duplicarCriativo(c){
   if(!c)return;
-  const copy={...c};delete copy.id;delete copy.criadoEm;
-  copy.nome=(c.nome||"Criativo")+" (cópia)";
+  const copy={...c};delete copy.id;delete copy.criadoEm;delete copy.dup;
   criativoModal(null,copy,true);
 }
 function criativoModal(cr,preset={},dup=false){
