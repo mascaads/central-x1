@@ -86,6 +86,7 @@ a{color:inherit}
 .btn.danger:hover{border-color:var(--crit);color:var(--crit);background:var(--crit-soft)}
 .iconbtn{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;border:1px solid transparent;background:transparent;color:var(--text-3)}
 .iconbtn:hover{background:var(--surface-2);color:var(--text)}
+.iconbtn.arch:hover{color:var(--st-zona);background:color-mix(in srgb,var(--st-zona) 16%,transparent)}
 .iconbtn svg{width:16px;height:16px;stroke-width:2}
 
 /* ---------- Cards / grids ---------- */
@@ -346,7 +347,7 @@ const OBJ=Object.fromEntries(OBJETIVOS.map(o=>[o.v,o]));
 const EM_VEIC=["pre-escala","escala"];
 const COM_DADOS=["teste","pre-escala","escala"]; // estágios que mostram orçamento/objetivo/ROI
 const isVeic=c=>EM_VEIC.includes(c.estagio);
-const NEXT={modelado:"teste",teste:"validado",validado:"pre-escala"};
+const NEXT={modelado:"teste",teste:"validado",validado:"pre-escala","pre-escala":"escala",escala:"zona-branca"};
 
 /* icons */
 const I={
@@ -362,6 +363,7 @@ const I={
   trash:'<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>',
   copy:'<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
   dup:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>',
+  archive:'<path d="M21 8v12H3V8"/><rect x="1" y="4" width="22" height="4" rx="1"/><path d="M10 12h4"/>',
   film:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 4v16M17 4v16M2 9h5M2 15h5M17 9h5M17 15h5"/>',
   clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   bolt:'<path d="M13 2 3 14h7l-1 8 10-12h-7z"/>',
@@ -613,7 +615,7 @@ function ofertaCard(o,showBM){
     </div>
   </div>`;
 }
-const PIPELINE=["modelado","validado","zona-branca"];
+const PIPELINE=["modelado","teste","validado","pre-escala","escala","zona-branca"];
 function vKanban(){
   const of=byId(DB.ofertas,openOferta);const bm=byId(DB.bms,of.bmId);
   topActions(`<button class="btn danger" id="delof">${svg("trash")}Excluir</button> <button class="btn" id="editof">${svg("edit")}Editar oferta</button> <button class="btn pri" id="addcr">${svg("plus")}Criativo</button>`);
@@ -677,6 +679,7 @@ function vKanban(){
   $("#view").querySelectorAll("[data-tgl]").forEach(b=>b.onclick=()=>{const c=byId(DB.criativos,b.dataset.tgl);c.ativo=!c.ativo;save();render();});
   $("#view").querySelectorAll("[data-copypost]").forEach(b=>b.onclick=async(ev)=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.copypost);try{await navigator.clipboard.writeText(c.postId);toast("Post ID copiado ✓");}catch(e){toast("Não consegui copiar");}});
   $("#view").querySelectorAll("[data-dup]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();duplicarCriativo(byId(DB.criativos,b.dataset.dup));});
+  $("#view").querySelectorAll("[data-arch]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.arch);c.estagio="zona-branca";c.ativo=false;save();render();toast("Arquivado na Zona Branca ✓");});
   $("#view").querySelectorAll("[data-assign]").forEach(b=>b.onclick=()=>{const c=byId(DB.celulares,b.dataset.assign);c.ofertaId=of.id;save();render();toast("Celular adicionado à oferta");});
   $("#view").querySelectorAll("[data-unassign]").forEach(b=>b.onclick=()=>{const c=byId(DB.celulares,b.dataset.unassign);c.ofertaId=null;save();render();toast("Celular tirado da oferta");});
   $("#view").querySelectorAll("[data-editcel]").forEach(b=>b.onclick=()=>celModal(byId(DB.celulares,b.dataset.editcel)));
@@ -706,7 +709,7 @@ function creativoTable(list,withChip){
       <td class="mono" style="text-align:center">${num(c.qtdCampanhas)}</td>
       <td class="mono" style="text-align:right">${fmtCur(c.orcamento,c.moeda)}<div class="sub2">Diário</div></td>
       <td style="text-align:center">${c.roi?`<span class="pill" style="color:var(--good);background:var(--good-soft)"><span class="dot"></span>${esc(c.roi)}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
-      <td><div class="rowact">${c.postId?`<button class="iconbtn" data-copypost="${c.id}" title="Copiar Post ID">${svg("copy")}</button>`:""}<button class="iconbtn" data-dup="${c.id}" title="Duplicar campanha">${svg("dup")}</button><button class="iconbtn" data-edit="${c.id}">${svg("edit")}</button><button class="iconbtn" data-del="${c.id}">${svg("trash")}</button></div></td>
+      <td><div class="rowact">${c.postId?`<button class="iconbtn" data-copypost="${c.id}" title="Copiar Post ID">${svg("copy")}</button>`:""}<button class="iconbtn" data-dup="${c.id}" title="Duplicar campanha">${svg("dup")}</button><button class="iconbtn arch" data-arch="${c.id}" title="Arquivar na Zona Branca (mata a campanha sem excluir)">${svg("archive")}</button><button class="iconbtn" data-edit="${c.id}">${svg("edit")}</button><button class="iconbtn" data-del="${c.id}">${svg("trash")}</button></div></td>
     </tr>`;
   }).join("");
   return `<div class="tblwrap"><table><thead><tr>
