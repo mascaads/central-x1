@@ -150,6 +150,10 @@ a{color:inherit}
 .col-h .cc{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--text-3);background:var(--surface);padding:1px 8px;border-radius:20px}
 .col-body{display:flex;flex-direction:column;gap:9px;padding:2px 10px 12px;min-height:40px}
 .kadd{margin:0 10px 12px;padding:8px;border:1px dashed var(--border-2);border-radius:9px;color:var(--text-3);background:transparent;font-size:12.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px}
+.vermais{margin:0 10px 10px;padding:7px;border:1px dashed var(--border-2);border-radius:9px;color:var(--accent);background:transparent;font-size:12px;font-weight:600;display:block;width:calc(100% - 20px)}
+.vermais:hover{border-color:var(--accent);background:var(--accent-soft)}
+.funilsearch{background:var(--bg-2);border:1px solid var(--border-2);color:var(--text);border-radius:9px;padding:7px 11px;font-size:12.5px;width:230px;max-width:48vw}
+.funilsearch:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .kadd:hover{border-color:var(--accent);color:var(--accent)}
 .ccard{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:12px 13px;cursor:grab;transition:.12s;border-top:2px solid var(--accent)}
 .ccard:hover{border-color:var(--border-2);box-shadow:var(--shadow)}
@@ -512,6 +516,9 @@ let route="overview";
 let curBM=null; // null = todas as BMs
 let openOferta=null;
 let promptFilter="Todos";
+let funilSearch="";
+let funilExpand={};
+const FUNIL_LIMIT=10;
 
 function go(r){route=r;openOferta=null;render();window.scrollTo(0,0);}
 
@@ -635,7 +642,7 @@ function vOfertas(){
     DB.criativos=DB.criativos.filter(c=>!ofIds.includes(c.ofertaId));
     DB.ofertas=DB.ofertas.filter(o=>o.bmId!==bm.id);
     DB.bms=DB.bms.filter(b=>b.id!==bm.id);curBM=null;save();render();toast("BM excluída");});};
-  $("#view").querySelectorAll("[data-open]").forEach(el=>el.onclick=()=>{openOferta=el.dataset.open;render();window.scrollTo(0,0);});
+  $("#view").querySelectorAll("[data-open]").forEach(el=>el.onclick=()=>{openOferta=el.dataset.open;funilSearch="";funilExpand={};render();window.scrollTo(0,0);});
 }
 function ofertaCard(o,showBM){
   const cs=DB.criativos.filter(c=>c.ofertaId===o.id);
@@ -684,13 +691,18 @@ function vKanban(){
   const testeBlock=teste.length?creativoTable(teste,true):`<div class="card" style="padding:26px;text-align:center;color:var(--text-3);font-size:13px">Nenhuma campanha em teste. Use <b style="color:var(--text-2)">Adicionar campanha de teste</b> para começar a testar um criativo com um celular/chip.</div>`;
 
   // Funil = criativos sólidos (sem campanhas)
+  const fq=funilSearch.trim().toLowerCase();
   const board=PIPELINE.map(id=>{
-    const e=ESTG[id];const cards=all.filter(c=>c.estagio===id&&!c.dup&&!c.noFunil);
+    const e=ESTG[id];let cards=all.filter(c=>c.estagio===id&&!c.dup&&!c.noFunil);
+    if(fq)cards=cards.filter(c=>((c.sigla||"")+" "+(c.nome||"")).toLowerCase().includes(fq));
+    const total=cards.length;const key=openOferta+":"+id;const expanded=funilExpand[key];
+    const shown=expanded?cards:cards.slice(0,FUNIL_LIMIT);const hidden=total-shown.length;
     return `<div class="col" data-col="${id}">
-      <div class="col-h"><span class="cdot" style="background:var(${e.cor})"></span><span class="cn">${e.nome}</span><span class="cc">${cards.length}</span></div>
+      <div class="col-h"><span class="cdot" style="background:var(${e.cor})"></span><span class="cn">${e.nome}</span><span class="cc">${total}</span></div>
       <div class="col-body" data-body="${id}">
-        ${cards.map(cCard).join("")||`<div class="emptycol">Vazio</div>`}
+        ${shown.map(cCard).join("")||`<div class="emptycol">${fq?"Nenhum resultado":"Vazio"}</div>`}
       </div>
+      ${hidden>0?`<button class="vermais" data-vermais="${id}">Ver mais (+${hidden})</button>`:(expanded&&total>FUNIL_LIMIT?`<button class="vermais" data-vermenos="${id}">Ver menos</button>`:"")}
       <button class="kadd" data-add="${id}">${svg("plus")}Criativo</button>
     </div>`;
   }).join("");
@@ -706,11 +718,11 @@ function vKanban(){
     ${veicBlock}
     <div class="sect-h"><h2 style="color:var(--st-teste)">${svgInline("film")}Em teste</h2><div class="line"></div><button class="btn sm" id="addteste">${svg("plus")}Adicionar campanha de teste</button></div>
     ${testeBlock}
-    <div class="sect-h"><h2>Funil de validação · criativos</h2><div class="line"></div><span class="tag">arraste entre as colunas</span></div>
+    <div class="sect-h"><h2>Funil de validação · criativos</h2><div class="line"></div><input id="funilsearch" class="funilsearch" placeholder="Buscar sigla ou nome…" value="${esc(funilSearch)}" autocomplete="off"></div>
     <div class="board tri">${board}</div>
     ${phonesSection(of)}`;
 
-  $("#back").onclick=()=>{openOferta=null;render();};
+  $("#back").onclick=()=>{openOferta=null;funilSearch="";funilExpand={};render();};
   $("#editof").onclick=()=>ofertaModal(of);
   $("#delof").onclick=()=>deleteOferta(of);
   $("#addcr").onclick=()=>criativoModal(null,{ofertaId:of.id,estagio:"modelado"});
@@ -725,6 +737,9 @@ function vKanban(){
   $("#view").querySelectorAll("[data-tofunil]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();const cr=byId(DB.criativos,b.dataset.tofunil);if(cr){cr.noFunil=false;cr.estagio="validado";save();render();toast("Criativo colocado no funil (Validado) ✓");}});
   $("#view").querySelectorAll("[data-qtdplus]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.qtdplus);c.qtdCampanhas=(+c.qtdCampanhas||0)+1;save();render();});
   $("#view").querySelectorAll("[data-qtdminus]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.qtdminus);c.qtdCampanhas=Math.max(1,(+c.qtdCampanhas||1)-1);save();render();});
+  const fs=$("#funilsearch");if(fs)fs.oninput=()=>{funilSearch=fs.value;render();const n=$("#funilsearch");if(n){n.focus();try{n.setSelectionRange(n.value.length,n.value.length);}catch(e){}}};
+  $("#view").querySelectorAll("[data-vermais]").forEach(b=>b.onclick=()=>{funilExpand[openOferta+":"+b.dataset.vermais]=true;render();});
+  $("#view").querySelectorAll("[data-vermenos]").forEach(b=>b.onclick=()=>{delete funilExpand[openOferta+":"+b.dataset.vermenos];render();});
   $("#view").querySelectorAll("[data-assign]").forEach(b=>b.onclick=()=>{const c=byId(DB.celulares,b.dataset.assign);c.ofertaId=of.id;save();render();toast("Celular adicionado à oferta");});
   $("#view").querySelectorAll("[data-unassign]").forEach(b=>b.onclick=()=>{const c=byId(DB.celulares,b.dataset.unassign);c.ofertaId=null;save();render();toast("Celular tirado da oferta");});
   $("#view").querySelectorAll("[data-editcel]").forEach(b=>b.onclick=()=>celModal(byId(DB.celulares,b.dataset.editcel)));
