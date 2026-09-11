@@ -401,12 +401,27 @@ const CHIP_STATUS={aquecendo:{l:"Aquecendo",c:"--warn"},testando:{l:"Testando",c
 
 /* ---------- store ---------- */
 const KEY="central_x1_v1";
+let _migrated=false;
 let DB=load();
+if(_migrated){try{localStorage.setItem(KEY,JSON.stringify(DB));}catch(e){}}
 function load(){
   try{const r=localStorage.getItem(KEY);if(r)return normalize(JSON.parse(r));}catch(e){}
   return normalize(seed());
 }
 function normalize(db){
+  // migração v2: separa criativo (funil) de campanha. Um criativo antigo que carregava
+  // celular/campanha/orçamento vira criativo sólido + uma campanha ligada.
+  if(!db._migCampV2){
+    const novos=[];
+    (db.criativos||[]).forEach(c=>{
+      if(!c.dup&&(c.celularId||(c.campanha&&String(c.campanha).trim())||(+c.orcamento>0))){
+        novos.push({id:uid(),dup:true,criativoId:c.id,ofertaId:c.ofertaId,nome:c.nome,campanha:c.campanha||c.nome,celularId:c.celularId||null,estagio:CAMP_STAGES.includes(c.estagio)?c.estagio:"pre-escala",ativo:c.ativo!==false,orcamento:+c.orcamento||0,moeda:c.moeda||"BRL",objetivo:c.objetivo||"engj",qtdCampanhas:+c.qtdCampanhas||1,criadoEm:c.criadoEm||now()});
+        c.celularId=null;c.campanha="";
+      }
+    });
+    db.criativos=(db.criativos||[]).concat(novos);
+    db._migCampV2=true;_migrated=true;
+  }
   (db.criativos||[]).forEach(c=>{
     if(c.ativo===undefined)c.ativo=true;
     if(c.orcamento===undefined)c.orcamento=0;
@@ -1104,7 +1119,8 @@ function initCloud(){
           if(snap.metadata.hasPendingWrites){syncBadge("ok");return;}
           if(snap.exists&&snap.data().payload){
             try{DB=normalize(JSON.parse(snap.data().payload));}catch(e){}
-            saveLocal();if(!$("#modal-root").innerHTML)render();
+            saveLocal();if(_migrated){_migrated=false;pushCloud();}
+            if(!$("#modal-root").innerHTML)render();
           }else{pushCloud();}
           cloudOn=true;syncBadge("ok");
         },e=>{syncBadge("err");});
