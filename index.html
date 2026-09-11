@@ -87,6 +87,8 @@ a{color:inherit}
 .iconbtn{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;border:1px solid transparent;background:transparent;color:var(--text-3)}
 .iconbtn:hover{background:var(--surface-2);color:var(--text)}
 .iconbtn.arch:hover{color:var(--st-zona);background:color-mix(in srgb,var(--st-zona) 16%,transparent)}
+.iconbtn.tofunil{color:var(--accent)}
+.iconbtn.tofunil:hover{background:var(--accent-soft)}
 .iconbtn svg{width:16px;height:16px;stroke-width:2}
 
 /* ---------- Cards / grids ---------- */
@@ -459,7 +461,7 @@ function seed(){
       // criativos sólidos (funil de validação)
       {id:r1,ofertaId:of1,nome:"VSL — abuela ensina ponto",estagio:"escala",formato:"Depoimento POV",roi:"3.2x",postId:"120210998877665544",notas:"Melhor CPA da conta.",criadoEm:now()-30*DAY},
       {id:r2,ofertaId:of1,nome:"Reel — mãos fazendo flor",estagio:"pre-escala",formato:"Tutorial silencioso",roi:"",postId:"",notas:"",criadoEm:now()-14*DAY},
-      {id:r3,ofertaId:of1,nome:"Modelagem do criativo do concorrente",estagio:"modelado",formato:"UGC unboxing",roi:"",postId:"",notas:"Copiar estrutura, trocar oferta.",criadoEm:now()-2*DAY},
+      {id:r3,ofertaId:of1,nome:"Modelagem do criativo do concorrente",estagio:"modelado",formato:"UGC unboxing",roi:"",postId:"",notas:"Copiar estrutura, trocar oferta.",noFunil:true,criadoEm:now()-2*DAY},
       {id:r4,ofertaId:of1,nome:"VSL antiga v1",estagio:"zona-branca",formato:"Depoimento POV",roi:"5.0x",postId:"120210111222333444",notas:"Vencedor histórico, guardado.",criadoEm:now()-60*DAY},
       {id:r5,ofertaId:of2,nome:"Médico SUS explica glicemia",estagio:"escala",formato:"Autoridade / jaleco",roi:"4.1x",postId:"120211223344556677",notas:"'Fora do tema, dentro do contexto' — ROAS alto.",criadoEm:now()-18*DAY},
       {id:r6,ofertaId:of2,nome:"Dicas da nutri — café da manhã",estagio:"validado",formato:"Lista rápida",roi:"",postId:"",notas:"",criadoEm:now()-5*DAY},
@@ -678,7 +680,7 @@ function vKanban(){
 
   // Funil = criativos sólidos (sem campanhas)
   const board=PIPELINE.map(id=>{
-    const e=ESTG[id];const cards=all.filter(c=>c.estagio===id&&!c.dup);
+    const e=ESTG[id];const cards=all.filter(c=>c.estagio===id&&!c.dup&&!c.noFunil);
     return `<div class="col" data-col="${id}">
       <div class="col-h"><span class="cdot" style="background:var(${e.cor})"></span><span class="cn">${e.nome}</span><span class="cc">${cards.length}</span></div>
       <div class="col-body" data-body="${id}">
@@ -715,6 +717,7 @@ function vKanban(){
   $("#view").querySelectorAll("[data-tgl]").forEach(b=>b.onclick=()=>{const c=byId(DB.criativos,b.dataset.tgl);c.ativo=!c.ativo;save();render();});
   $("#view").querySelectorAll("[data-copypost]").forEach(b=>b.onclick=async(ev)=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.copypost);const pid=c.dup?(byId(DB.criativos,c.criativoId)||{}).postId:c.postId;try{await navigator.clipboard.writeText(pid||"");toast("Post ID copiado ✓");}catch(e){toast("Não consegui copiar");}});
   $("#view").querySelectorAll("[data-dup]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();duplicarCampanha(byId(DB.criativos,b.dataset.dup));});
+  $("#view").querySelectorAll("[data-tofunil]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();const cr=byId(DB.criativos,b.dataset.tofunil);if(cr){cr.noFunil=false;cr.estagio="validado";save();render();toast("Criativo colocado no funil (Validado) ✓");}});
   $("#view").querySelectorAll("[data-assign]").forEach(b=>b.onclick=()=>{const c=byId(DB.celulares,b.dataset.assign);c.ofertaId=of.id;save();render();toast("Celular adicionado à oferta");});
   $("#view").querySelectorAll("[data-unassign]").forEach(b=>b.onclick=()=>{const c=byId(DB.celulares,b.dataset.unassign);c.ofertaId=null;save();render();toast("Celular tirado da oferta");});
   $("#view").querySelectorAll("[data-editcel]").forEach(b=>b.onclick=()=>celModal(byId(DB.celulares,b.dataset.editcel)));
@@ -749,7 +752,7 @@ function creativoTable(list,withChip){
       <td class="mono" style="text-align:center">${num(c.qtdCampanhas)}</td>
       <td class="mono" style="text-align:right">${fmtCur(c.orcamento,c.moeda)}<div class="sub2">Diário</div></td>
       <td style="text-align:center">${roi?`<span class="pill" style="color:var(--good);background:var(--good-soft)"><span class="dot"></span>${esc(roi)}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
-      <td><div class="rowact">${postId?`<button class="iconbtn" data-copypost="${c.id}" title="Copiar Post ID">${svg("copy")}</button>`:""}<button class="iconbtn" data-dup="${c.id}" title="Duplicar campanha">${svg("dup")}</button><button class="iconbtn" data-edit="${c.id}" title="Editar campanha">${svg("edit")}</button><button class="iconbtn" data-del="${c.id}" title="Excluir campanha">${svg("trash")}</button></div></td>
+      <td><div class="rowact">${parent.noFunil?`<button class="iconbtn tofunil" data-tofunil="${c.criativoId}" title="Colocar o criativo no funil de validação">${svg("layers")}</button>`:""}${postId?`<button class="iconbtn" data-copypost="${c.id}" title="Copiar Post ID">${svg("copy")}</button>`:""}<button class="iconbtn" data-dup="${c.id}" title="Duplicar campanha">${svg("dup")}</button><button class="iconbtn" data-edit="${c.id}" title="Editar campanha">${svg("edit")}</button><button class="iconbtn" data-del="${c.id}" title="Excluir campanha">${svg("trash")}</button></div></td>
     </tr>`;
   }).join("");
   return `<div class="tblwrap"><table><thead><tr>
@@ -992,12 +995,13 @@ function campanhaModal(camp,preset={},dup=false){
   const editing=!!camp;const c=camp||preset;
   const ofId=c.ofertaId||openOferta||DB.ofertas[0]?.id||"";
   const criativos=DB.criativos.filter(x=>!x.dup&&x.ofertaId===ofId);
-  const crOpts=criativos.length?criativos.map(x=>({v:x.id,l:x.nome})):[{v:"",l:"Crie um criativo primeiro"}];
+  const crOpts=[...criativos.map(x=>({v:x.id,l:x.nome})),{v:"__novo__",l:"➕ Novo criativo (só teste — fora do funil)"}];
   const celList=DB.celulares.filter(x=>x.ofertaId===ofId);
   if(c.celularId&&!celList.some(x=>x.id===c.celularId)){const s=byId(DB.celulares,c.celularId);if(s)celList.push(s);}
   const celOpts=[{v:"",l:"— Sem celular —"},...celList.map(x=>({v:x.id,l:`${x.nome}${x.modelo?" ("+x.modelo+")":""}`}))];
   modal({wide:true,title:dup?"Duplicar campanha":(editing?"Editar campanha":"Nova campanha"),okText:dup?"Criar cópia":"Salvar",ico:"bolt",body:`
-    ${field("Criativo","criativoId",c.criativoId||criativos[0]?.id||"",{type:"select",options:crOpts})}
+    ${field("Criativo","criativoId",c.criativoId||criativos[0]?.id||"__novo__",{type:"select",options:crOpts})}
+    <div class="field" id="novocrwrap" hidden><label>Nome do novo criativo <span class="opt">(entra só na tabela de teste)</span></label><input name="novocrnome" placeholder="Ex.: VSL nova ideia"></div>
     <div class="frow">${field("Nome da campanha","campanha",c.campanha||"",{ph:"Ex.: 08.08 ESCALA CELULAR 9"})}
     ${field("Celular","celularId",c.celularId||"",{type:"select",options:celOpts})}</div>
     <div class="frow">${field("Estágio","estagio",CAMP_STAGES.includes(c.estagio)?c.estagio:"pre-escala",{type:"select",options:CAMP_STAGES.map(id=>({v:id,l:ESTG[id].nome}))})}
@@ -1007,12 +1011,15 @@ function campanhaModal(camp,preset={},dup=false){
       <select name="moeda" style="width:88px;background:var(--bg-2);border:1px solid var(--border-2);color:var(--text);border-radius:10px;padding:10px 8px">${[["BRL","R$"],["USD","US$"]].map(([v,l])=>`<option value="${v}" ${(c.moeda||"BRL")===v?"selected":""}>${l}</option>`).join("")}</select></div></div>
     ${field("Objetivo","objetivo",c.objetivo||"engj",{type:"select",options:OBJETIVOS.map(o=>({v:o.v,l:o.l}))})}</div>
     ${field("Nº de campanhas","qtdCampanhas",c.qtdCampanhas||"1",{type:"number",ph:"1"})}`,
-    onOk:close=>{const root=$("#modal-root");const criativoId=val(root,"criativoId");if(!criativoId)return toast("Escolha o criativo desta campanha"),false;
+    onOk:close=>{const root=$("#modal-root");let criativoId=val(root,"criativoId");
       const campanha=val(root,"campanha");if(!campanha)return toast("Dê um nome à campanha"),false;
+      if(criativoId==="__novo__"){const nn=val(root,"novocrnome");if(!nn)return toast("Dê um nome ao novo criativo"),false;const ncr={id:uid(),ofertaId:ofId,nome:nn,estagio:"modelado",formato:"",roi:"",postId:"",notas:"",noFunil:true,criadoEm:now()};DB.criativos.push(ncr);criativoId=ncr.id;}
+      if(!criativoId)return toast("Escolha o criativo desta campanha"),false;
       const parent=byId(DB.criativos,criativoId);
       const data={criativoId,ofertaId:parent?parent.ofertaId:ofId,nome:parent?parent.nome:campanha,campanha,celularId:val(root,"celularId")||null,estagio:val(root,"estagio")||"pre-escala",ativo:val(root,"ativo")!=="pausado",orcamento:parseFloat(val(root,"orcamento").replace(",","."))||0,moeda:val(root,"moeda")||"BRL",objetivo:val(root,"objetivo")||"engj",qtdCampanhas:parseInt(val(root,"qtdCampanhas"))||1};
       if(editing){Object.assign(camp,data);}else{DB.criativos.push({id:uid(),dup:true,...data,criadoEm:now()});}
       save();render();close();toast(editing?"Campanha atualizada":(dup?"Cópia criada":"Campanha criada"));}});
+  const crSel=$('#modal-root [name="criativoId"]');if(crSel){const tog=()=>{const w=$("#novocrwrap");if(w)w.hidden=crSel.value!=="__novo__";};crSel.onchange=tog;tog();}
   if(editing){const f=$("#modal-root .modal-f");f.insertAdjacentHTML("afterbegin",`<button class="btn ghost danger" id="delcamp2">${svg("trash")}Excluir</button><button class="btn ghost" style="margin-right:auto" id="dupcamp2">${svg("dup")}Duplicar</button>`);
     $("#delcamp2").onclick=()=>{$("#modal-root").innerHTML="";confirmDel(`Excluir a campanha "${esc(camp.campanha||camp.nome)}"?`,"Remove só esta rodada. O criativo continua no funil.",()=>{DB.criativos=DB.criativos.filter(x=>x.id!==camp.id);save();render();toast("Campanha excluída");});};
     $("#dupcamp2").onclick=()=>{$("#modal-root").innerHTML="";duplicarCampanha(camp);};}
