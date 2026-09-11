@@ -159,6 +159,8 @@ a{color:inherit}
 .ccard .cfoot>:first-child{display:inline-flex;align-items:center;gap:7px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .nextbtn{margin-left:auto;flex:none;border:1px solid var(--border-2);background:var(--surface-2);color:var(--text-2);font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;font-family:var(--sans)}
 .nextbtn:hover{border-color:var(--accent);color:var(--accent)}
+.ccels{display:flex;flex-wrap:wrap;gap:5px;min-width:0}
+.celtag{display:inline-flex;align-items:center;font-size:11px;color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 25%,transparent);padding:2px 7px;border-radius:6px;white-space:nowrap}
 .postidbtn{cursor:pointer;display:inline-flex;align-items:center;gap:4px;max-width:100%}
 .postidbtn:hover{border-color:var(--accent);color:var(--accent)}
 .emptycol{text-align:center;color:var(--text-3);font-size:12px;padding:14px 8px}
@@ -349,9 +351,13 @@ const OBJETIVOS=[
 ];
 const OBJ=Object.fromEntries(OBJETIVOS.map(o=>[o.v,o]));
 const EM_VEIC=["pre-escala","escala"];
-const COM_DADOS=["teste","pre-escala","escala"]; // estágios que mostram orçamento/objetivo/ROI
+const FUNIL_STAGES=["modelado","validado","pre-escala","escala","zona-branca"]; // estágios do criativo (funil)
+const CAMP_STAGES=["teste","pre-escala","escala"]; // estágios da campanha (rodada)
 const isVeic=c=>EM_VEIC.includes(c.estagio);
-const NEXT={modelado:"teste",teste:"validado",validado:"pre-escala","pre-escala":"escala",escala:"zona-branca"};
+const NEXT={modelado:"validado",validado:"pre-escala","pre-escala":"escala",escala:"zona-branca"};
+// campanha = criativo com dup:true e criativoId (pai). Criativo sólido (funil) não tem dup.
+const campsDe=cid=>DB.criativos.filter(c=>c.dup&&c.criativoId===cid);
+const celularesAtivosDe=cid=>{const ids=[...new Set(campsDe(cid).filter(c=>c.ativo&&c.celularId).map(c=>c.celularId))];return ids.map(id=>byId(DB.celulares,id)).filter(Boolean);};
 
 /* icons */
 const I={
@@ -409,6 +415,9 @@ function normalize(db){
     if(c.qtdCampanhas===undefined)c.qtdCampanhas=1;
     if(c.roi===undefined)c.roi="";
     if(c.postId===undefined)c.postId="";
+    if(c.criativoId===undefined)c.criativoId=null;
+    if(c.dup){if(!CAMP_STAGES.includes(c.estagio))c.estagio="escala";}
+    else{if(!FUNIL_STAGES.includes(c.estagio))c.estagio="validado";}
   });
   (db.celulares||[]).forEach(c=>{if(c.ofertaId===undefined)c.ofertaId=null;if(!CEL_STATUS[c.status])c.status="aquecido";});
   return db;
@@ -419,6 +428,7 @@ function seed(){
   const bm1=uid(),bm2=uid();
   const of1=uid(),of2=uid(),of3=uid();
   const c1=uid(),c2=uid(),c3=uid(),c4=uid();
+  const r1=uid(),r2=uid(),r3=uid(),r4=uid(),r5=uid(),r6=uid(),r7=uid(),r8=uid();
   return {
     _seed:true,
     bms:[
@@ -431,21 +441,28 @@ function seed(){
       {id:of3,bmId:bm2,nome:"Batata Recheada",nicho:"Renda extra / comida",criadoEm:now()-9*DAY},
     ],
     criativos:[
-      {id:uid(),ofertaId:of1,nome:"VSL — abuela ensina ponto",estagio:"escala",celularId:c1,campanha:"08.08 ESCALA ENGJ CELULAR 9",formato:"Depoimento POV",notas:"Melhor CPA da conta.",ativo:true,orcamento:50,moeda:"BRL",objetivo:"engj",qtdCampanhas:3,roi:"3.2x",postId:"120210998877665544",criadoEm:now()-30*DAY},
-      {id:uid(),ofertaId:of1,nome:"Reel — mãos fazendo flor",estagio:"pre-escala",celularId:c2,campanha:"06.08 ESCALA ZAP 1",formato:"Tutorial silencioso",notas:"",ativo:true,orcamento:40,moeda:"BRL",objetivo:"conversas",qtdCampanhas:2,criadoEm:now()-14*DAY},
-      {id:uid(),ofertaId:of1,nome:"Hook — 'sin salir de casa'",estagio:"teste",celularId:c4,campanha:"CROCHE-TESTE-07",formato:"Texto na tela + b-roll",notas:"Testando hook novo.",ativo:true,orcamento:10,moeda:"BRL",objetivo:"conversas",qtdCampanhas:1,criadoEm:now()-6*DAY},
-      {id:uid(),ofertaId:of1,nome:"Modelagem do criativo do concorrente",estagio:"modelado",celularId:null,campanha:"",formato:"UGC unboxing",notas:"Copiar estrutura, trocar oferta.",criadoEm:now()-2*DAY},
-      {id:uid(),ofertaId:of1,nome:"VSL antiga v1",estagio:"zona-branca",celularId:null,campanha:"CROCHE-ESC-ANTIGO",formato:"Depoimento POV",notas:"Vencedor histórico, guardado.",roi:"5.0x",postId:"120210111222333444",criadoEm:now()-60*DAY},
-      {id:uid(),ofertaId:of2,nome:"Médico SUS explica glicemia",estagio:"escala",celularId:c3,campanha:"29.06 ESCALA ENGJ COMPRAS CELULAR 6",formato:"Autoridade / jaleco",notas:"'Fora do tema, dentro do contexto' — ROAS alto.",ativo:true,orcamento:52.15,moeda:"BRL",objetivo:"engj-compras",qtdCampanhas:1,roi:"4.1x",postId:"120211223344556677",criadoEm:now()-18*DAY},
-      {id:uid(),ofertaId:of2,nome:"Dicas da nutri — café da manhã",estagio:"validado",celularId:c4,campanha:"GLI-TESTE-05",formato:"Lista rápida",notas:"",criadoEm:now()-5*DAY},
-      {id:uid(),ofertaId:of2,nome:"POV glicose alta de manhã",estagio:"modelado",celularId:null,campanha:"",formato:"POV / susto",notas:"",criadoEm:now()-1*DAY},
-      {id:uid(),ofertaId:of3,nome:"Vivendo de comida — delivery em casa",estagio:"pre-escala",celularId:null,campanha:"07.06 PRE CONVERSAS COMPRAS",formato:"Rotina / vlog",notas:"Testando conta em dólar.",ativo:false,orcamento:15,moeda:"USD",objetivo:"conversas-compras",qtdCampanhas:1,criadoEm:now()-4*DAY},
+      // criativos sólidos (funil de validação)
+      {id:r1,ofertaId:of1,nome:"VSL — abuela ensina ponto",estagio:"escala",formato:"Depoimento POV",roi:"3.2x",postId:"120210998877665544",notas:"Melhor CPA da conta.",criadoEm:now()-30*DAY},
+      {id:r2,ofertaId:of1,nome:"Reel — mãos fazendo flor",estagio:"pre-escala",formato:"Tutorial silencioso",roi:"",postId:"",notas:"",criadoEm:now()-14*DAY},
+      {id:r3,ofertaId:of1,nome:"Modelagem do criativo do concorrente",estagio:"modelado",formato:"UGC unboxing",roi:"",postId:"",notas:"Copiar estrutura, trocar oferta.",criadoEm:now()-2*DAY},
+      {id:r4,ofertaId:of1,nome:"VSL antiga v1",estagio:"zona-branca",formato:"Depoimento POV",roi:"5.0x",postId:"120210111222333444",notas:"Vencedor histórico, guardado.",criadoEm:now()-60*DAY},
+      {id:r5,ofertaId:of2,nome:"Médico SUS explica glicemia",estagio:"escala",formato:"Autoridade / jaleco",roi:"4.1x",postId:"120211223344556677",notas:"'Fora do tema, dentro do contexto' — ROAS alto.",criadoEm:now()-18*DAY},
+      {id:r6,ofertaId:of2,nome:"Dicas da nutri — café da manhã",estagio:"validado",formato:"Lista rápida",roi:"",postId:"",notas:"",criadoEm:now()-5*DAY},
+      {id:r7,ofertaId:of2,nome:"POV glicose alta de manhã",estagio:"modelado",formato:"POV / susto",roi:"",postId:"",notas:"",criadoEm:now()-1*DAY},
+      {id:r8,ofertaId:of3,nome:"Vivendo de comida — delivery em casa",estagio:"pre-escala",formato:"Rotina / vlog",roi:"",postId:"",notas:"Testando conta em dólar.",criadoEm:now()-4*DAY},
+      // campanhas (rodadas — cada uma num celular)
+      {id:uid(),dup:true,criativoId:r1,ofertaId:of1,nome:"VSL — abuela ensina ponto",campanha:"08.08 ESCALA ENGJ CELULAR 9",celularId:c1,estagio:"escala",ativo:true,orcamento:50,moeda:"BRL",objetivo:"engj",qtdCampanhas:3,criadoEm:now()-28*DAY},
+      {id:uid(),dup:true,criativoId:r1,ofertaId:of1,nome:"VSL — abuela ensina ponto",campanha:"09.08 ESCALA MOTO",celularId:c2,estagio:"escala",ativo:true,orcamento:40,moeda:"BRL",objetivo:"engj",qtdCampanhas:1,criadoEm:now()-20*DAY},
+      {id:uid(),dup:true,criativoId:r2,ofertaId:of1,nome:"Reel — mãos fazendo flor",campanha:"06.08 PRE ZAP 1",celularId:c2,estagio:"pre-escala",ativo:true,orcamento:40,moeda:"BRL",objetivo:"conversas",qtdCampanhas:2,criadoEm:now()-12*DAY},
+      {id:uid(),dup:true,criativoId:r3,ofertaId:of1,nome:"Modelagem do criativo do concorrente",campanha:"CROCHE-TESTE-07",celularId:c4,estagio:"teste",ativo:true,orcamento:10,moeda:"BRL",objetivo:"conversas",qtdCampanhas:1,criadoEm:now()-3*DAY},
+      {id:uid(),dup:true,criativoId:r5,ofertaId:of2,nome:"Médico SUS explica glicemia",campanha:"29.06 ESCALA ENGJ COMPRAS",celularId:c3,estagio:"escala",ativo:true,orcamento:52.15,moeda:"BRL",objetivo:"engj-compras",qtdCampanhas:1,criadoEm:now()-16*DAY},
+      {id:uid(),dup:true,criativoId:r8,ofertaId:of3,nome:"Vivendo de comida — delivery em casa",campanha:"07.06 PRE CONVERSAS COMPRAS",celularId:null,estagio:"pre-escala",ativo:false,orcamento:15,moeda:"USD",objetivo:"conversas-compras",qtdCampanhas:1,criadoEm:now()-4*DAY},
     ],
     celulares:[
       {id:c1,nome:"iPhone Azul",modelo:"iPhone 11",chipId:"k1",status:"rodando",ofertaId:of1,notas:"",criadoEm:now()-35*DAY},
       {id:c2,nome:"Moto G #2",modelo:"Moto G73",chipId:"k2",status:"rodando",ofertaId:of1,notas:"",criadoEm:now()-22*DAY},
       {id:c3,nome:"Samsung A #3",modelo:"Galaxy A14",chipId:"k3",status:"rodando",ofertaId:of2,notas:"",criadoEm:now()-19*DAY},
-      {id:c4,nome:"iPhone Preto",modelo:"iPhone 12",chipId:"k4",status:"rodando",ofertaId:of1,notas:"Rodando criativo de teste.",criadoEm:now()-25*DAY},
+      {id:c4,nome:"iPhone Preto",modelo:"iPhone 12",chipId:"k4",status:"testando",ofertaId:of1,notas:"Rodando campanha de teste.",criadoEm:now()-25*DAY},
     ],
     chips:[
       {id:"k1",numero:"+52 55 1234 5678",operadora:"Telcel",celularId:c1,cadastradoEm:now()-34*DAY,ultimaRecargaEm:now()-3*DAY,status:"ativo",notas:""},
@@ -506,11 +523,11 @@ function topActions(html){$("#topact").innerHTML=html;}
 /* ======================= OVERVIEW ======================= */
 function vOverview(){
   topActions(`<button class="btn pri" id="qa">${svg("plus")}Novo criativo</button>`);
-  const c=DB.criativos;
+  const c=DB.criativos.filter(x=>!x.dup);
   const emEscala=c.filter(x=>x.estagio==="escala").length;
   const rodando=DB.celulares.filter(x=>x.status==="rodando").length;
   const chipAlerta=DB.chips.filter(x=>x.status!=="banido"&&daysBetween(x.ultimaRecargaEm)>=RECARGA_ALERTA).length;
-  const byStage=ESTAGIOS.map(e=>({e,n:c.filter(x=>x.estagio===e.id).length}));
+  const byStage=FUNIL_STAGES.map(id=>({e:ESTG[id],n:c.filter(x=>x.estagio===id).length}));
   const totalC=c.length||1;
   const recent=[...c].sort((a,b)=>b.criadoEm-a.criadoEm).slice(0,5);
   const chipsSort=[...DB.chips].filter(x=>x.status!=="banido").sort((a,b)=>daysBetween(b.ultimaRecargaEm)-daysBetween(a.ultimaRecargaEm)).slice(0,4);
@@ -552,7 +569,7 @@ function vOverview(){
       ${recent.map(x=>{const of=byId(DB.ofertas,x.ofertaId);return `<tr style="cursor:pointer" data-open-of="${x.ofertaId}">
         <td><div class="nm">${esc(x.nome)}</div>${x.formato?`<div class="sub2">${esc(x.formato)}</div>`:""}</td>
         <td>${of?esc(of.nome):"—"}</td><td>${stagePill(x.estagio)}</td>
-        <td>${x.celularId?`<span class="tag">${esc(celName(x.celularId)||"?")}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
+        <td>${(()=>{const cels=celularesAtivosDe(x.id);return cels.length?cels.map(cl=>`<span class="tag" style="margin:1px 2px 1px 0">${esc(cl.nome)}</span>`).join(""):'<span style="color:var(--text-3)">—</span>';})()}</td>
         <td class="mono" style="color:var(--text-2)">${ago(x.criadoEm)}</td></tr>`;}).join("")}
     </tbody></table></div>`;
 
@@ -600,21 +617,20 @@ function vOfertas(){
 }
 function ofertaCard(o,showBM){
   const cs=DB.criativos.filter(c=>c.ofertaId===o.id);
-  const veic=cs.filter(isVeic);
+  const criativos=cs.filter(c=>!c.dup);const camps=cs.filter(c=>c.dup);
   const bm=byId(DB.bms,o.bmId);
-  const at=veic.filter(c=>c.ativo);
+  const at=camps.filter(c=>c.ativo);
   const orcBRL=at.filter(c=>(c.moeda||"BRL")==="BRL").reduce((s,c)=>s+ +c.orcamento,0);
   const orcUSD=at.filter(c=>c.moeda==="USD").reduce((s,c)=>s+ +c.orcamento,0);
-  const camps=veic.reduce((s,c)=>s+ (+c.qtdCampanhas||0),0);
-  const segs=ESTAGIOS.map(e=>{const n=cs.filter(c=>c.estagio===e.id).length;return n?`<i style="flex:${n};background:var(${e.cor})"></i>`:"";}).join("");
+  const segs=FUNIL_STAGES.map(id=>{const n=criativos.filter(c=>c.estagio===id).length;return n?`<i style="flex:${n};background:var(${ESTG[id].cor})"></i>`:"";}).join("");
   return `<div class="card oferta" data-open="${o.id}" style="border-left-color:${bm?.cor||"var(--accent)"}">
     <div class="top"><div><h3>${esc(o.nome)}</h3><div class="nicho">${esc(o.nicho||"—")}</div>
       ${showBM&&bm?`<span class="pill" style="color:var(--text-2);background:var(--surface-2);margin-top:8px"><span class="dot" style="background:${bm.cor}"></span>${esc(bm.nome)}</span>`:""}</div>
       ${at.length?`<span class="pill" style="color:var(--good);background:var(--good-soft)"><span class="dot"></span>${at.length} no ar</span>`:""}</div>
     <div class="bar">${segs||'<i style="flex:1;background:var(--surface-3)"></i>'}</div>
     <div class="mini">
-      <div class="m"><b>${cs.length}</b>Criativos</div>
-      <div class="m"><b>${camps}</b>Campanhas</div>
+      <div class="m"><b>${criativos.length}</b>Criativos</div>
+      <div class="m"><b>${camps.length}</b>Campanhas</div>
       <div class="m" style="grid-column:span 2"><b class="mono" style="font-size:15px">${orcSummary(orcBRL,orcUSD)}</b>Orçamento / dia</div>
     </div>
   </div>`;
@@ -624,7 +640,7 @@ function vKanban(){
   const of=byId(DB.ofertas,openOferta);const bm=byId(DB.bms,of.bmId);
   topActions(`<button class="btn danger" id="delof">${svg("trash")}Excluir</button> <button class="btn" id="editof">${svg("edit")}Editar oferta</button> <button class="btn pri" id="addcr">${svg("plus")}Criativo</button>`);
   const all=DB.criativos.filter(c=>c.ofertaId===of.id);
-  const veic=all.filter(isVeic).sort((a,b)=>ESTAGIOS.findIndex(e=>e.id===b.estagio)-ESTAGIOS.findIndex(e=>e.id===a.estagio)||(+b.orcamento)-(+a.orcamento));
+  const veic=all.filter(c=>c.dup&&isVeic(c)).sort((a,b)=>ESTAGIOS.findIndex(e=>e.id===b.estagio)-ESTAGIOS.findIndex(e=>e.id===a.estagio)||(+b.orcamento)-(+a.orcamento));
   // KPIs
   const at=veic.filter(c=>c.ativo);
   const orcBRL=at.filter(c=>(c.moeda||"BRL")==="BRL").reduce((s,c)=>s+ +c.orcamento,0);
@@ -641,13 +657,13 @@ function vKanban(){
     ${orcTiles.join("")}
   </div>`;
 
-  const veicBlock=veic.length?creativoTable(veic,false):`<div class="card" style="padding:26px;text-align:center;color:var(--text-3);font-size:13px">Nenhum criativo em veiculação ainda. Suba um da seção de teste ou do funil com <b style="color:var(--text-2)">Avançar</b>.</div>`;
-  const teste=all.filter(c=>c.estagio==="teste").sort((a,b)=>(+b.orcamento)-(+a.orcamento));
-  const testeBlock=teste.length?creativoTable(teste,true):`<div class="card" style="padding:26px;text-align:center;color:var(--text-3);font-size:13px">Nenhum criativo em teste. Coloque um criativo no estágio <b style="color:var(--text-2)">Testando</b> (com o botão "Avançar" no card ou no formulário) para acompanhar aqui com o chip que está testando.</div>`;
+  const veicBlock=veic.length?creativoTable(veic,false):`<div class="card" style="padding:26px;text-align:center;color:var(--text-3);font-size:13px">Nenhuma campanha em veiculação. Use <b style="color:var(--text-2)">Adicionar campanha</b> para colocar um criativo pra rodar num celular.</div>`;
+  const teste=all.filter(c=>c.dup&&c.estagio==="teste").sort((a,b)=>(+b.orcamento)-(+a.orcamento));
+  const testeBlock=teste.length?creativoTable(teste,true):`<div class="card" style="padding:26px;text-align:center;color:var(--text-3);font-size:13px">Nenhuma campanha em teste. Use <b style="color:var(--text-2)">Adicionar campanha de teste</b> para começar a testar um criativo com um celular/chip.</div>`;
 
-  // Pipeline (3 columns)
+  // Funil = criativos sólidos (sem campanhas)
   const board=PIPELINE.map(id=>{
-    const e=ESTG[id];const cards=all.filter(c=>c.estagio===id&&!(c.dup&&["teste","pre-escala","escala"].includes(id)));
+    const e=ESTG[id];const cards=all.filter(c=>c.estagio===id&&!c.dup);
     return `<div class="col" data-col="${id}">
       <div class="col-h"><span class="cdot" style="background:var(${e.cor})"></span><span class="cn">${e.nome}</span><span class="cc">${cards.length}</span></div>
       <div class="col-body" data-body="${id}">
@@ -664,11 +680,11 @@ function vKanban(){
       ${of.nicho?`<span class="tag">${esc(of.nicho)}</span>`:""}
     </div>
     ${kpi}
-    <div class="sect-h" style="margin-top:6px"><h2>${svgInline("bolt")}Em veiculação · Pré-escala & Escala</h2><div class="line"></div></div>
+    <div class="sect-h" style="margin-top:6px"><h2>${svgInline("bolt")}Em veiculação · Pré-escala & Escala</h2><div class="line"></div><button class="btn sm pri" id="addcamp">${svg("plus")}Adicionar campanha</button></div>
     ${veicBlock}
-    <div class="sect-h"><h2 style="color:var(--st-teste)">${svgInline("film")}Em teste</h2><div class="line"></div><button class="btn sm" id="addteste">${svg("plus")}Criativo de teste</button></div>
+    <div class="sect-h"><h2 style="color:var(--st-teste)">${svgInline("film")}Em teste</h2><div class="line"></div><button class="btn sm" id="addteste">${svg("plus")}Adicionar campanha de teste</button></div>
     ${testeBlock}
-    <div class="sect-h"><h2>Funil de validação</h2><div class="line"></div><span class="tag">arraste entre as colunas</span></div>
+    <div class="sect-h"><h2>Funil de validação · criativos</h2><div class="line"></div><span class="tag">arraste entre as colunas</span></div>
     <div class="board tri">${board}</div>
     ${phonesSection(of)}`;
 
@@ -676,20 +692,22 @@ function vKanban(){
   $("#editof").onclick=()=>ofertaModal(of);
   $("#delof").onclick=()=>deleteOferta(of);
   $("#addcr").onclick=()=>criativoModal(null,{ofertaId:of.id,estagio:"modelado"});
-  const at2=$("#addteste");if(at2)at2.onclick=()=>criativoModal(null,{ofertaId:of.id,estagio:"teste"});
+  const at2=$("#addteste");if(at2)at2.onclick=()=>campanhaModal(null,{ofertaId:of.id,estagio:"teste"});
+  const ac=$("#addcamp");if(ac)ac.onclick=()=>campanhaModal(null,{ofertaId:of.id,estagio:"pre-escala"});
   $("#view").querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>criativoModal(null,{ofertaId:of.id,estagio:b.dataset.add}));
   $("#view").querySelectorAll(".ccard").forEach(el=>el.onclick=ev=>{if(el._dragging||ev.target.closest("[data-next]")||ev.target.closest("[data-copypost]"))return;criativoModal(byId(DB.criativos,el.dataset.id));});
-  $("#view").querySelectorAll("[data-next]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.next);c.estagio=NEXT[c.estagio];if(isVeic(c)&&c.ativo===undefined)c.ativo=true;save();render();toast(`Avançou para ${ESTG[c.estagio].nome}`);});
+  $("#view").querySelectorAll("[data-next]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.next);if(NEXT[c.estagio]){c.estagio=NEXT[c.estagio];save();render();toast(`Avançou para ${ESTG[c.estagio].nome}`);}});
   $("#view").querySelectorAll("[data-tgl]").forEach(b=>b.onclick=()=>{const c=byId(DB.criativos,b.dataset.tgl);c.ativo=!c.ativo;save();render();});
-  $("#view").querySelectorAll("[data-copypost]").forEach(b=>b.onclick=async(ev)=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.copypost);try{await navigator.clipboard.writeText(c.postId);toast("Post ID copiado ✓");}catch(e){toast("Não consegui copiar");}});
-  $("#view").querySelectorAll("[data-dup]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();duplicarCriativo(byId(DB.criativos,b.dataset.dup));});
-  $("#view").querySelectorAll("[data-arch]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.arch);c.estagio="zona-branca";c.ativo=false;save();render();toast("Arquivado na Zona Branca ✓");});
+  $("#view").querySelectorAll("[data-copypost]").forEach(b=>b.onclick=async(ev)=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.copypost);const pid=c.dup?(byId(DB.criativos,c.criativoId)||{}).postId:c.postId;try{await navigator.clipboard.writeText(pid||"");toast("Post ID copiado ✓");}catch(e){toast("Não consegui copiar");}});
+  $("#view").querySelectorAll("[data-dup]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();duplicarCampanha(byId(DB.criativos,b.dataset.dup));});
   $("#view").querySelectorAll("[data-assign]").forEach(b=>b.onclick=()=>{const c=byId(DB.celulares,b.dataset.assign);c.ofertaId=of.id;save();render();toast("Celular adicionado à oferta");});
   $("#view").querySelectorAll("[data-unassign]").forEach(b=>b.onclick=()=>{const c=byId(DB.celulares,b.dataset.unassign);c.ofertaId=null;save();render();toast("Celular tirado da oferta");});
   $("#view").querySelectorAll("[data-editcel]").forEach(b=>b.onclick=()=>celModal(byId(DB.celulares,b.dataset.editcel)));
   $("#view").querySelectorAll("[data-stage]").forEach(s=>s.onchange=()=>{const c=byId(DB.criativos,s.dataset.stage);c.estagio=s.value;save();render();toast(`Movido para ${ESTG[s.value].nome}`);});
-  $("#view").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>criativoModal(byId(DB.criativos,b.dataset.edit)));
-  $("#view").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const c=byId(DB.criativos,b.dataset.del);confirmDel(`Excluir "${c.nome}"?`,"Isso apaga o criativo <b>de vez</b>. Se você só quer tirá-lo da campanha sem perder, cancele e use o botão <b>Arquivar</b> 🗄️ — ele guarda na Zona Branca.",()=>{DB.criativos=DB.criativos.filter(x=>x.id!==c.id);save();render();toast("Criativo excluído");});});
+  $("#view").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{const c=byId(DB.criativos,b.dataset.edit);c.dup?campanhaModal(c):criativoModal(c);});
+  $("#view").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const c=byId(DB.criativos,b.dataset.del);
+    if(c.dup){confirmDel(`Excluir a campanha "${esc(c.campanha||c.nome)}"?`,"Remove só esta rodada. O criativo continua no funil.",()=>{DB.criativos=DB.criativos.filter(x=>x.id!==c.id);save();render();toast("Campanha excluída");});}
+    else{const nc=campsDe(c.id).length;confirmDel(`Excluir o criativo "${esc(c.nome)}"?`,`Apaga o criativo <b>de vez</b>${nc?` e as <b>${nc}</b> campanha(s) dele`:""}. Se ele é vencedor, prefira arrastar pra <b>Zona Branca</b>.`,()=>{DB.criativos=DB.criativos.filter(x=>x.id!==c.id&&x.criativoId!==c.id);save();render();toast("Criativo excluído");});}});
   setupDnD();
 }
 function kpiTile(ico,k,v,foot,col){return `<div class="stat"><div class="k">${svg(ico)}${k}</div><div class="v" style="font-size:23px${col?`;color:var(${col})`:""}">${v}</div><div class="foot">${foot}</div></div>`;}
@@ -701,27 +719,29 @@ function creativoTable(list,withChip){
   const sorted=[...list].sort((a,b)=>{const na=(celName(a.celularId)||"~~~").toLowerCase(),nb=(celName(b.celularId)||"~~~").toLowerCase();return na!==nb?(na<nb?-1:1):(+b.orcamento)-(+a.orcamento);});
   const rows=sorted.map(c=>{
     const o=OBJ[c.objetivo]||OBJETIVOS[0];
+    const parent=byId(DB.criativos,c.criativoId)||{};
+    const roi=parent.roi||c.roi;const postId=parent.postId||c.postId;
     let chipCell="";
     if(withChip){const cel=byId(DB.celulares,c.celularId);const chip=cel?byId(DB.chips,cel.chipId):null;
       chipCell=`<td>${chip?`<span class="mono" style="font-size:12px">${esc(chip.numero)}</span>`:'<span style="color:var(--text-3)">— sem chip</span>'}</td>`;}
     return `<tr data-row="${c.id}">
       <td style="width:44px"><button class="tgl ${c.ativo?"on":""}" data-tgl="${c.id}" title="${c.ativo?"Ativo":"Pausado"}"><span></span></button></td>
-      <td><div class="nm">${esc(c.campanha||c.nome)}</div><div class="sub2">${esc(c.nome)}${c.formato?" · "+esc(c.formato):""}</div></td>
+      <td><div class="nm">${esc(c.campanha||parent.nome||c.nome)}</div><div class="sub2">${esc(parent.nome||c.nome)}${parent.formato?" · "+esc(parent.formato):""}</div></td>
       <td>${c.celularId?`<span class="tag">${esc(celName(c.celularId)||"?")}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
       ${chipCell}
       <td>${stageSelect(c)}</td>
       <td><span class="pill" style="color:var(${o.c});background:color-mix(in srgb,var(${o.c}) 15%,transparent)"><span class="dot"></span>${o.l}</span></td>
       <td class="mono" style="text-align:center">${num(c.qtdCampanhas)}</td>
       <td class="mono" style="text-align:right">${fmtCur(c.orcamento,c.moeda)}<div class="sub2">Diário</div></td>
-      <td style="text-align:center">${c.roi?`<span class="pill" style="color:var(--good);background:var(--good-soft)"><span class="dot"></span>${esc(c.roi)}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
-      <td><div class="rowact">${c.postId?`<button class="iconbtn" data-copypost="${c.id}" title="Copiar Post ID">${svg("copy")}</button>`:""}<button class="iconbtn" data-dup="${c.id}" title="Duplicar campanha">${svg("dup")}</button><button class="iconbtn arch" data-arch="${c.id}" title="Arquivar na Zona Branca (mata a campanha sem excluir)">${svg("archive")}</button><button class="iconbtn" data-edit="${c.id}">${svg("edit")}</button><button class="iconbtn" data-del="${c.id}">${svg("trash")}</button></div></td>
+      <td style="text-align:center">${roi?`<span class="pill" style="color:var(--good);background:var(--good-soft)"><span class="dot"></span>${esc(roi)}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
+      <td><div class="rowact">${postId?`<button class="iconbtn" data-copypost="${c.id}" title="Copiar Post ID">${svg("copy")}</button>`:""}<button class="iconbtn" data-dup="${c.id}" title="Duplicar campanha">${svg("dup")}</button><button class="iconbtn" data-edit="${c.id}" title="Editar campanha">${svg("edit")}</button><button class="iconbtn" data-del="${c.id}" title="Excluir campanha">${svg("trash")}</button></div></td>
     </tr>`;
   }).join("");
   return `<div class="tblwrap"><table><thead><tr>
       <th></th><th>Campanha</th><th>Celular</th>${withChip?"<th>Chip testado</th>":""}<th>Estágio</th><th>Objetivo</th><th style="text-align:center">Nº camp.</th><th style="text-align:right">Orçamento</th><th style="text-align:center">ROI</th><th></th>
     </tr></thead><tbody>${rows}</tbody>
     <tfoot><tr>
-      <td></td><td style="font-weight:600">Resultados de ${list.length} criativo${list.length>1?"s":""}</td><td></td>${withChip?"<td></td>":""}<td></td><td></td>
+      <td></td><td style="font-weight:600">Resultados de ${list.length} campanha${list.length>1?"s":""}</td><td></td>${withChip?"<td></td>":""}<td></td><td></td>
       <td class="mono" style="text-align:center;font-weight:600">${num(totalCamps)}</td>
       <td class="mono" style="text-align:right;font-weight:600">${orcSummary(orcBRL,orcUSD)}<div class="sub2">Diário ativo</div></td><td></td><td></td>
     </tr></tfoot></table></div>`;
@@ -734,7 +754,7 @@ function phonesSection(of){
     const chip=byId(DB.chips,c.chipId);
     return `<div class="card phonecard">
       <div class="ph-top">${svg("phone")}<div class="ph-i"><b>${esc(c.nome)}</b><span>${esc(c.modelo||"—")}${chip?" · "+esc(chip.numero):""}</span></div></div>
-      <div class="ph-foot"><span>${runs} criativo${runs!==1?"s":""} rodando aqui</span><div style="display:flex;gap:2px"><button class="iconbtn" data-editcel="${c.id}" title="Editar">${svg("edit")}</button><button class="iconbtn" data-unassign="${c.id}" title="Tirar da oferta">${svg("trash")}</button></div></div>
+      <div class="ph-foot"><span>${runs} campanha${runs!==1?"s":""} aqui</span><div style="display:flex;gap:2px"><button class="iconbtn" data-editcel="${c.id}" title="Editar">${svg("edit")}</button><button class="iconbtn" data-unassign="${c.id}" title="Tirar da oferta">${svg("trash")}</button></div></div>
     </div>`;
   };
   const freeCard=c=>`<div class="card phonecard free">
@@ -752,16 +772,18 @@ function phonesSection(of){
     ${blocks}${empty}`;
 }
 function stageSelect(c){
-  return `<select class="ministage" data-stage="${c.id}" style="color:var(${ESTG[c.estagio].cor})">${ESTAGIOS.map(e=>`<option value="${e.id}" ${e.id===c.estagio?"selected":""}>${e.nome}</option>`).join("")}</select>`;
+  const stages=(c.dup?CAMP_STAGES:FUNIL_STAGES).map(id=>ESTG[id]);
+  return `<select class="ministage" data-stage="${c.id}" style="color:var(${ESTG[c.estagio].cor})">${stages.map(e=>`<option value="${e.id}" ${e.id===c.estagio?"selected":""}>${e.nome}</option>`).join("")}</select>`;
 }
 function cCard(c){
   const canNext=NEXT[c.estagio];
+  const cels=celularesAtivosDe(c.id);const nCamps=campsDe(c.id).length;
+  const celsHTML=cels.length?`<div class="ccels">${cels.map(cel=>`<span class="celtag">${svgInline("phone")}${esc(cel.nome)}</span>`).join("")}</div>`:`<div class="ccels none" style="display:inline-flex;align-items:center;gap:5px">${svgInline("phone")}Sem campanha ativa</div>`;
   return `<div class="ccard" draggable="true" data-id="${c.id}" style="border-top-color:var(${ESTG[c.estagio].cor})">
     <div class="cname">${esc(c.nome)}</div>
-    <div class="cmeta">${c.formato?`<span class="tag">${svgInline("film")}${esc(c.formato)}</span>`:""}${c.campanha?`<span class="tag">${esc(c.campanha)}</span>`:""}</div>
+    <div class="cmeta">${c.formato?`<span class="tag">${svgInline("film")}${esc(c.formato)}</span>`:""}${nCamps?`<span class="tag">${nCamps} campanha${nCamps>1?"s":""}</span>`:""}</div>
     ${(c.roi||c.postId)?`<div class="cmeta">${c.roi?`<span class="pill" style="color:var(--good);background:var(--good-soft);font-size:11px"><span class="dot"></span>ROI ${esc(c.roi)}</span>`:""}${c.postId?`<button class="tag postidbtn" data-copypost="${c.id}" title="Copiar Post ID: ${esc(c.postId)}">${svgInline("copy")}${esc(c.postId.length>14?c.postId.slice(0,14)+"…":c.postId)}</button>`:""}</div>`:""}
-    <div class="cfoot">${c.celularId?`${svg("phone")}${esc(celName(c.celularId)||"?")}`:`<span style="color:var(--text-3);display:inline-flex;align-items:center;gap:7px">${svg("phone")}Sem celular</span>`}
-      ${canNext?`<button class="nextbtn" data-next="${c.id}" title="Avançar para ${ESTG[canNext].nome}">Avançar ↗</button>`:""}</div>
+    <div class="cfoot" style="align-items:flex-start">${celsHTML}${canNext?`<button class="nextbtn" data-next="${c.id}" title="Avançar para ${ESTG[canNext].nome}">Avançar ↗</button>`:""}</div>
   </div>`;
 }
 function svgInline(k){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" style="width:11px;height:11px;vertical-align:-1px;margin-right:3px">${I[k]}</svg>`;}
@@ -927,53 +949,58 @@ function ofertaModal(of){
       save();render();close();toast(editing?"Oferta atualizada":"Oferta criada");}});
   if(editing){const f=$("#modal-root .modal-f");f.insertAdjacentHTML("afterbegin",`<button class="btn ghost danger" style="margin-right:auto" id="delof2">${svg("trash")}Excluir</button>`);$("#delof2").onclick=()=>{$("#modal-root").innerHTML="";deleteOferta(of);};}
 }
-function duplicarCriativo(c){
+function duplicarCampanha(c){
   if(!c)return;
-  const copy={...c};delete copy.id;delete copy.criadoEm;delete copy.dup;
-  criativoModal(null,copy,true);
+  const copy={...c};delete copy.id;delete copy.criadoEm;
+  campanhaModal(null,copy,true);
 }
-function criativoModal(cr,preset={},dup=false){
+function criativoModal(cr,preset={}){
   const editing=!!cr;const c=cr||preset;
-  const celOptionsHTML=(ofId,sel)=>{
-    const list=DB.celulares.filter(x=>x.ofertaId&&x.ofertaId===ofId);
-    if(sel&&!list.some(x=>x.id===sel)){const s=byId(DB.celulares,sel);if(s)list.push(s);}
-    let h=`<option value="" ${!sel?"selected":""}>— Sem celular —</option>`;
-    h+=list.map(x=>`<option value="${x.id}" ${x.id===sel?"selected":""}>${esc(x.nome)}${x.modelo?" ("+esc(x.modelo)+")":""}${x.ofertaId!==ofId?" · outra oferta":""}</option>`).join("");
-    if(!list.length)h+=`<option value="" disabled>Nenhum celular nesta oferta — cadastre um</option>`;
-    return h;
-  };
   const ofOpts=DB.ofertas.map(o=>{const bm=byId(DB.bms,o.bmId);return {v:o.id,l:`${bm?bm.nome+" · ":""}${o.nome}`};});
-  const showV=COM_DADOS.includes(c.estagio||"modelado");
-  modal({wide:true,title:dup?"Duplicar campanha":(editing?"Editar criativo":"Novo criativo"),okText:dup?"Criar cópia":"Salvar",ico:"film",body:`
+  modal({wide:true,title:editing?"Editar criativo":"Novo criativo",ico:"film",body:`
     ${field("Nome do criativo","nome",c.nome||"",{ph:"Ex.: VSL — abuela ensina ponto"})}
     <div class="frow">${field("Oferta","ofertaId",c.ofertaId||DB.ofertas[0]?.id||"",{type:"select",options:ofOpts.length?ofOpts:[{v:"",l:"Crie uma oferta primeiro"}]})}
-    ${field("Estágio","estagio",c.estagio||"modelado",{type:"select",options:ESTAGIOS.map(e=>({v:e.id,l:e.nome}))})}</div>
-    <div class="frow">${field("Formato","formato",c.formato||"",{optional:true,ph:"Ex.: Depoimento POV"})}
-    <div class="field"><label>Celular rodando <span class="opt">(desta oferta)</span></label><select name="celularId" id="crcelsel">${celOptionsHTML(c.ofertaId||DB.ofertas[0]?.id||"",c.celularId||"")}</select></div></div>
-    ${field("Nome da campanha","campanha",c.campanha||"",{optional:true,ph:"Ex.: 08.08 ESCALA CELULAR 9"})}
+    ${field("Estágio","estagio",FUNIL_STAGES.includes(c.estagio)?c.estagio:"modelado",{type:"select",options:FUNIL_STAGES.map(id=>({v:id,l:ESTG[id].nome}))})}</div>
+    ${field("Formato","formato",c.formato||"",{optional:true,ph:"Ex.: Depoimento POV"})}
     <div class="frow"><div class="field"><label>ROI <span class="opt">(destaque)</span></label><input name="roi" value="${esc(c.roi||"")}" placeholder="Ex.: 2.5x" style="border-color:color-mix(in srgb,var(--good) 45%,var(--border-2));font-weight:600"></div>
     ${field("Post ID","postId",c.postId||"",{optional:true,ph:"Ex.: 122100000000"})}</div>
-    <div id="veicblock" style="${showV?"":"display:none"}">
-      <div style="display:flex;align-items:center;gap:8px;margin:4px 0 2px"><span class="pill stg" style="color:var(--st-escala);background:var(--good-soft)"><span class="dot"></span>Dados de veiculação</span><div style="flex:1;height:1px;background:var(--border)"></div></div>
-      <div class="frow">${field("Status","ativo",c.ativo===false?"pausado":"ativo",{type:"select",options:[{v:"ativo",l:"Ativo"},{v:"pausado",l:"Pausado"}]})}
-      ${field("Objetivo","objetivo",c.objetivo||"engj",{type:"select",options:OBJETIVOS.map(o=>({v:o.v,l:o.l}))})}</div>
-      <div class="frow"><div class="field"><label>Orçamento diário</label>
-        <div style="display:flex;gap:8px"><input name="orcamento" type="number" step="0.01" value="${esc(c.orcamento||"")}" placeholder="40,00" style="flex:1">
-        <select name="moeda" style="width:88px;background:var(--bg-2);border:1px solid var(--border-2);color:var(--text);border-radius:10px;padding:10px 8px">${[["BRL","R$"],["USD","US$"]].map(([v,l])=>`<option value="${v}" ${(c.moeda||"BRL")===v?"selected":""}>${l}</option>`).join("")}</select></div></div>
-      ${field("Nº de campanhas","qtdCampanhas",c.qtdCampanhas||"1",{type:"number",ph:"1"})}</div>
-    </div>
-    ${field("Notas","notas",c.notas||"",{type:"textarea",optional:true,ph:"Anotações sobre performance, ângulo, etc."})}`,
+    ${field("Notas","notas",c.notas||"",{type:"textarea",optional:true,ph:"Anotações sobre o criativo, ângulo, etc."})}`,
     onOk:close=>{const root=$("#modal-root");const nome=val(root,"nome");if(!nome)return toast("Dê um nome ao criativo"),false;
-      const data={nome,ofertaId:val(root,"ofertaId"),estagio:val(root,"estagio"),formato:val(root,"formato"),campanha:val(root,"campanha"),celularId:val(root,"celularId")||null,notas:val(root,"notas"),
-        ativo:val(root,"ativo")!=="pausado",objetivo:val(root,"objetivo")||"engj",moeda:val(root,"moeda")||"BRL",orcamento:parseFloat(val(root,"orcamento").replace(",","."))||0,qtdCampanhas:parseInt(val(root,"qtdCampanhas"))||1,roi:val(root,"roi"),postId:val(root,"postId")};
+      const data={nome,ofertaId:val(root,"ofertaId"),estagio:val(root,"estagio"),formato:val(root,"formato"),roi:val(root,"roi"),postId:val(root,"postId"),notas:val(root,"notas")};
       if(!data.ofertaId)return toast("Crie uma oferta antes"),false;
-      if(editing){Object.assign(cr,data);}else{DB.criativos.push({id:uid(),...data,dup:!!dup,criadoEm:now()});}
-      save();render();close();toast(editing?"Criativo atualizado":(dup?"Cópia criada":"Criativo criado"));}});
-  const stg=$('#modal-root [name="estagio"]');if(stg)stg.onchange=()=>{$("#veicblock").style.display=COM_DADOS.includes(stg.value)?"":"none";};
-  const ofc=$('#modal-root [name="ofertaId"]');if(ofc)ofc.onchange=()=>{const cs=$("#crcelsel");if(cs)cs.innerHTML=celOptionsHTML(ofc.value,"");};
-  if(editing){const f=$("#modal-root .modal-f");f.insertAdjacentHTML("afterbegin",`<button class="btn ghost danger" id="delcr">${svg("trash")}Excluir</button><button class="btn ghost" style="margin-right:auto" id="dupcr">${svg("dup")}Duplicar</button>`);
-    $("#delcr").onclick=()=>{$("#modal-root").innerHTML="";confirmDel(`Excluir "${cr.nome}"?`,"Isso apaga o criativo <b>de vez</b>. Se você só quer tirá-lo da campanha sem perder, cancele e use o botão <b>Arquivar</b> 🗄️ — ele guarda na Zona Branca.",()=>{DB.criativos=DB.criativos.filter(x=>x.id!==cr.id);save();render();toast("Criativo excluído");});};
-    $("#dupcr").onclick=()=>{$("#modal-root").innerHTML="";duplicarCriativo(cr);};}
+      if(editing){Object.assign(cr,data);}else{DB.criativos.push({id:uid(),...data,criadoEm:now()});}
+      save();render();close();toast(editing?"Criativo atualizado":"Criativo criado");}});
+  if(editing){const f=$("#modal-root .modal-f");f.insertAdjacentHTML("afterbegin",`<button class="btn ghost danger" style="margin-right:auto" id="delcr">${svg("trash")}Excluir</button>`);
+    $("#delcr").onclick=()=>{$("#modal-root").innerHTML="";const nc=campsDe(cr.id).length;confirmDel(`Excluir o criativo "${esc(cr.nome)}"?`,`Apaga o criativo <b>de vez</b>${nc?` e as <b>${nc}</b> campanha(s) dele`:""}. Se ele é vencedor, prefira arrastar pra <b>Zona Branca</b>.`,()=>{DB.criativos=DB.criativos.filter(x=>x.id!==cr.id&&x.criativoId!==cr.id);save();render();toast("Criativo excluído");});};}
+}
+function campanhaModal(camp,preset={},dup=false){
+  const editing=!!camp;const c=camp||preset;
+  const ofId=c.ofertaId||openOferta||DB.ofertas[0]?.id||"";
+  const criativos=DB.criativos.filter(x=>!x.dup&&x.ofertaId===ofId);
+  const crOpts=criativos.length?criativos.map(x=>({v:x.id,l:x.nome})):[{v:"",l:"Crie um criativo primeiro"}];
+  const celList=DB.celulares.filter(x=>x.ofertaId===ofId);
+  if(c.celularId&&!celList.some(x=>x.id===c.celularId)){const s=byId(DB.celulares,c.celularId);if(s)celList.push(s);}
+  const celOpts=[{v:"",l:"— Sem celular —"},...celList.map(x=>({v:x.id,l:`${x.nome}${x.modelo?" ("+x.modelo+")":""}`}))];
+  modal({wide:true,title:dup?"Duplicar campanha":(editing?"Editar campanha":"Nova campanha"),okText:dup?"Criar cópia":"Salvar",ico:"bolt",body:`
+    ${field("Criativo","criativoId",c.criativoId||criativos[0]?.id||"",{type:"select",options:crOpts})}
+    <div class="frow">${field("Nome da campanha","campanha",c.campanha||"",{ph:"Ex.: 08.08 ESCALA CELULAR 9"})}
+    ${field("Celular","celularId",c.celularId||"",{type:"select",options:celOpts})}</div>
+    <div class="frow">${field("Estágio","estagio",CAMP_STAGES.includes(c.estagio)?c.estagio:"pre-escala",{type:"select",options:CAMP_STAGES.map(id=>({v:id,l:ESTG[id].nome}))})}
+    ${field("Status","ativo",c.ativo===false?"pausado":"ativo",{type:"select",options:[{v:"ativo",l:"Ativo"},{v:"pausado",l:"Pausado"}]})}</div>
+    <div class="frow"><div class="field"><label>Orçamento diário</label>
+      <div style="display:flex;gap:8px"><input name="orcamento" type="number" step="0.01" value="${esc(c.orcamento||"")}" placeholder="40,00" style="flex:1">
+      <select name="moeda" style="width:88px;background:var(--bg-2);border:1px solid var(--border-2);color:var(--text);border-radius:10px;padding:10px 8px">${[["BRL","R$"],["USD","US$"]].map(([v,l])=>`<option value="${v}" ${(c.moeda||"BRL")===v?"selected":""}>${l}</option>`).join("")}</select></div></div>
+    ${field("Objetivo","objetivo",c.objetivo||"engj",{type:"select",options:OBJETIVOS.map(o=>({v:o.v,l:o.l}))})}</div>
+    ${field("Nº de campanhas","qtdCampanhas",c.qtdCampanhas||"1",{type:"number",ph:"1"})}`,
+    onOk:close=>{const root=$("#modal-root");const criativoId=val(root,"criativoId");if(!criativoId)return toast("Escolha o criativo desta campanha"),false;
+      const campanha=val(root,"campanha");if(!campanha)return toast("Dê um nome à campanha"),false;
+      const parent=byId(DB.criativos,criativoId);
+      const data={criativoId,ofertaId:parent?parent.ofertaId:ofId,nome:parent?parent.nome:campanha,campanha,celularId:val(root,"celularId")||null,estagio:val(root,"estagio")||"pre-escala",ativo:val(root,"ativo")!=="pausado",orcamento:parseFloat(val(root,"orcamento").replace(",","."))||0,moeda:val(root,"moeda")||"BRL",objetivo:val(root,"objetivo")||"engj",qtdCampanhas:parseInt(val(root,"qtdCampanhas"))||1};
+      if(editing){Object.assign(camp,data);}else{DB.criativos.push({id:uid(),dup:true,...data,criadoEm:now()});}
+      save();render();close();toast(editing?"Campanha atualizada":(dup?"Cópia criada":"Campanha criada"));}});
+  if(editing){const f=$("#modal-root .modal-f");f.insertAdjacentHTML("afterbegin",`<button class="btn ghost danger" id="delcamp2">${svg("trash")}Excluir</button><button class="btn ghost" style="margin-right:auto" id="dupcamp2">${svg("dup")}Duplicar</button>`);
+    $("#delcamp2").onclick=()=>{$("#modal-root").innerHTML="";confirmDel(`Excluir a campanha "${esc(camp.campanha||camp.nome)}"?`,"Remove só esta rodada. O criativo continua no funil.",()=>{DB.criativos=DB.criativos.filter(x=>x.id!==camp.id);save();render();toast("Campanha excluída");});};
+    $("#dupcamp2").onclick=()=>{$("#modal-root").innerHTML="";duplicarCampanha(camp);};}
 }
 function celModal(cel){
   const editing=!!cel;
