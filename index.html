@@ -188,6 +188,9 @@ a{color:inherit}
 .tgl.on{background:var(--good);border-color:var(--good)}
 .tgl.on span{left:18px;background:#fff}
 .ministage{background:transparent;border:1px solid var(--border);border-radius:7px;padding:4px 6px;font-size:12px;font-weight:600;font-family:var(--sans);cursor:pointer}
+.qtdstep{display:inline-flex;align-items:center;gap:6px}
+.qbtn{width:22px;height:22px;border-radius:6px;border:1px solid var(--border-2);background:var(--surface-2);color:var(--text-2);font-size:15px;font-weight:700;line-height:1;display:grid;place-items:center;padding:0}
+.qbtn:hover{border-color:var(--accent);color:var(--accent)}
 .ministage:hover{border-color:var(--border-2)}
 tfoot td{border-top:2px solid var(--border-2);border-bottom:0;background:var(--surface-2);padding:12px 16px}
 .sect-h h2 svg{width:15px;height:15px;vertical-align:-2px;margin-right:5px;color:var(--st-escala)}
@@ -398,7 +401,7 @@ const ESTAGIOS=[
 ];
 const ESTG=Object.fromEntries(ESTAGIOS.map(e=>[e.id,e]));
 const BM_CORES=["#4f8cff","#26c281","#f0a830","#f2585f","#c9b8ff","#25d0c0","#ff8a5b","#a0d468"];
-const CEL_STATUS={rodando:{l:"Rodando",c:"--good"},testando:{l:"Testando",c:"--st-teste"},aquecido:{l:"Aquecido",c:"--accent"},aquecendo:{l:"Aquecendo",c:"--warn"},banido:{l:"Banido",c:"--crit"}};
+const CEL_STATUS={rodando:{l:"Rodando",c:"--good"},testando:{l:"Testando",c:"--st-teste"},aquecido:{l:"Aquecido",c:"--accent"},aquecendo:{l:"Aquecendo",c:"--warn"},banido:{l:"Caiu",c:"--crit"}};
 const RECARGA_ATENCAO=60,RECARGA_ALERTA=90; // dias: 2 meses = atenção, 3 meses = alerta
 const CHIP_STATUS={aquecendo:{l:"Aquecendo",c:"--warn"},testando:{l:"Testando",c:"--st-teste"},ativo:{l:"Ativo",c:"--good"},reserva:{l:"Reserva",c:"--text-3"},banido:{l:"Banido",c:"--crit"}};
 
@@ -720,6 +723,8 @@ function vKanban(){
   $("#view").querySelectorAll("[data-copypost]").forEach(b=>b.onclick=async(ev)=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.copypost);const pid=c.dup?(byId(DB.criativos,c.criativoId)||{}).postId:c.postId;try{await navigator.clipboard.writeText(pid||"");toast("Post ID copiado ✓");}catch(e){toast("Não consegui copiar");}});
   $("#view").querySelectorAll("[data-dup]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();duplicarCampanha(byId(DB.criativos,b.dataset.dup));});
   $("#view").querySelectorAll("[data-tofunil]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();const cr=byId(DB.criativos,b.dataset.tofunil);if(cr){cr.noFunil=false;cr.estagio="validado";save();render();toast("Criativo colocado no funil (Validado) ✓");}});
+  $("#view").querySelectorAll("[data-qtdplus]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.qtdplus);c.qtdCampanhas=(+c.qtdCampanhas||0)+1;save();render();});
+  $("#view").querySelectorAll("[data-qtdminus]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.qtdminus);c.qtdCampanhas=Math.max(1,(+c.qtdCampanhas||1)-1);save();render();});
   $("#view").querySelectorAll("[data-assign]").forEach(b=>b.onclick=()=>{const c=byId(DB.celulares,b.dataset.assign);c.ofertaId=of.id;save();render();toast("Celular adicionado à oferta");});
   $("#view").querySelectorAll("[data-unassign]").forEach(b=>b.onclick=()=>{const c=byId(DB.celulares,b.dataset.unassign);c.ofertaId=null;save();render();toast("Celular tirado da oferta");});
   $("#view").querySelectorAll("[data-editcel]").forEach(b=>b.onclick=()=>celModal(byId(DB.celulares,b.dataset.editcel)));
@@ -751,7 +756,7 @@ function creativoTable(list,withChip){
       ${chipCell}
       <td>${stageSelect(c)}</td>
       <td><span class="pill" style="color:var(${o.c});background:color-mix(in srgb,var(${o.c}) 15%,transparent)"><span class="dot"></span>${o.l}</span></td>
-      <td class="mono" style="text-align:center">${num(c.qtdCampanhas)}</td>
+      <td style="text-align:center"><div class="qtdstep"><button class="qbtn" data-qtdminus="${c.id}" title="Menos uma campanha">−</button><span class="mono" style="min-width:16px;text-align:center">${num(c.qtdCampanhas)}</span><button class="qbtn" data-qtdplus="${c.id}" title="Mais uma campanha">+</button></div></td>
       <td class="mono" style="text-align:right">${fmtCur(c.orcamento,c.moeda)}<div class="sub2">Diário</div></td>
       <td style="text-align:center">${roi?`<span class="pill" style="color:var(--good);background:var(--good-soft)"><span class="dot"></span>${esc(roi)}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
       <td><div class="rowact">${parent.noFunil?`<button class="iconbtn tofunil" data-tofunil="${c.criativoId}" title="Colocar o criativo no funil de validação">${svg("layers")}</button>`:""}${postId?`<button class="iconbtn" data-copypost="${c.id}" title="Copiar Post ID">${svg("copy")}</button>`:""}<button class="iconbtn" data-dup="${c.id}" title="Duplicar campanha">${svg("dup")}</button><button class="iconbtn" data-edit="${c.id}" title="Editar campanha">${svg("edit")}</button><button class="iconbtn" data-del="${c.id}" title="Excluir campanha">${svg("trash")}</button></div></td>
