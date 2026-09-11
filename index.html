@@ -643,7 +643,7 @@ function vKanban(){
 
   // Pipeline (3 columns)
   const board=PIPELINE.map(id=>{
-    const e=ESTG[id];const cards=all.filter(c=>c.estagio===id&&(id==="zona-branca"||!c.dup));
+    const e=ESTG[id];const cards=all.filter(c=>c.estagio===id&&!(c.dup&&["teste","pre-escala","escala"].includes(id)));
     return `<div class="col" data-col="${id}">
       <div class="col-h"><span class="cdot" style="background:var(${e.cor})"></span><span class="cn">${e.nome}</span><span class="cc">${cards.length}</span></div>
       <div class="col-body" data-body="${id}">
@@ -685,7 +685,7 @@ function vKanban(){
   $("#view").querySelectorAll("[data-editcel]").forEach(b=>b.onclick=()=>celModal(byId(DB.celulares,b.dataset.editcel)));
   $("#view").querySelectorAll("[data-stage]").forEach(s=>s.onchange=()=>{const c=byId(DB.criativos,s.dataset.stage);c.estagio=s.value;save();render();toast(`Movido para ${ESTG[s.value].nome}`);});
   $("#view").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>criativoModal(byId(DB.criativos,b.dataset.edit)));
-  $("#view").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const c=byId(DB.criativos,b.dataset.del);confirmDel(`Excluir "${c.nome}"?`,"",()=>{DB.criativos=DB.criativos.filter(x=>x.id!==c.id);save();render();toast("Criativo excluído");});});
+  $("#view").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const c=byId(DB.criativos,b.dataset.del);confirmDel(`Excluir "${c.nome}"?`,"Isso apaga o criativo <b>de vez</b>. Se você só quer tirá-lo da campanha sem perder, cancele e use o botão <b>Arquivar</b> 🗄️ — ele guarda na Zona Branca.",()=>{DB.criativos=DB.criativos.filter(x=>x.id!==c.id);save();render();toast("Criativo excluído");});});
   setupDnD();
 }
 function kpiTile(ico,k,v,foot,col){return `<div class="stat"><div class="k">${svg(ico)}${k}</div><div class="v" style="font-size:23px${col?`;color:var(${col})`:""}">${v}</div><div class="foot">${foot}</div></div>`;}
@@ -961,7 +961,7 @@ function criativoModal(cr,preset={},dup=false){
   const stg=$('#modal-root [name="estagio"]');if(stg)stg.onchange=()=>{$("#veicblock").style.display=COM_DADOS.includes(stg.value)?"":"none";};
   const ofc=$('#modal-root [name="ofertaId"]');if(ofc)ofc.onchange=()=>{const cs=$("#crcelsel");if(cs)cs.innerHTML=celOptionsHTML(ofc.value,"");};
   if(editing){const f=$("#modal-root .modal-f");f.insertAdjacentHTML("afterbegin",`<button class="btn ghost danger" id="delcr">${svg("trash")}Excluir</button><button class="btn ghost" style="margin-right:auto" id="dupcr">${svg("dup")}Duplicar</button>`);
-    $("#delcr").onclick=()=>{$("#modal-root").innerHTML="";confirmDel(`Excluir "${cr.nome}"?`,"",()=>{DB.criativos=DB.criativos.filter(x=>x.id!==cr.id);save();render();toast("Criativo excluído");});};
+    $("#delcr").onclick=()=>{$("#modal-root").innerHTML="";confirmDel(`Excluir "${cr.nome}"?`,"Isso apaga o criativo <b>de vez</b>. Se você só quer tirá-lo da campanha sem perder, cancele e use o botão <b>Arquivar</b> 🗄️ — ele guarda na Zona Branca.",()=>{DB.criativos=DB.criativos.filter(x=>x.id!==cr.id);save();render();toast("Criativo excluído");});};
     $("#dupcr").onclick=()=>{$("#modal-root").innerHTML="";duplicarCriativo(cr);};}
 }
 function celModal(cel){
