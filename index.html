@@ -163,6 +163,7 @@ a{color:inherit}
 .nextbtn:hover{border-color:var(--accent);color:var(--accent)}
 .ccels{display:flex;flex-wrap:wrap;gap:5px;min-width:0}
 .celtag{display:inline-flex;align-items:center;font-size:11px;color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 25%,transparent);padding:2px 7px;border-radius:6px;white-space:nowrap}
+.sigtag{display:inline-block;font-family:var(--mono);font-weight:700;font-size:11px;color:var(--accent);background:var(--accent-soft);padding:0 6px;border-radius:5px;vertical-align:1px}
 .postidbtn{cursor:pointer;display:inline-flex;align-items:center;gap:4px;max-width:100%}
 .postidbtn:hover{border-color:var(--accent);color:var(--accent)}
 .emptycol{text-align:center;color:var(--text-3);font-size:12px;padding:14px 8px}
@@ -433,6 +434,7 @@ function normalize(db){
     if(c.roi===undefined)c.roi="";
     if(c.postId===undefined)c.postId="";
     if(c.criativoId===undefined)c.criativoId=null;
+    if(c.sigla===undefined)c.sigla="";
     if(c.dup){if(!CAMP_STAGES.includes(c.estagio))c.estagio="escala";}
     else{if(!FUNIL_STAGES.includes(c.estagio))c.estagio="validado";}
   });
@@ -459,14 +461,14 @@ function seed(){
     ],
     criativos:[
       // criativos sólidos (funil de validação)
-      {id:r1,ofertaId:of1,nome:"VSL — abuela ensina ponto",estagio:"escala",formato:"Depoimento POV",roi:"3.2x",postId:"120210998877665544",notas:"Melhor CPA da conta.",criadoEm:now()-30*DAY},
-      {id:r2,ofertaId:of1,nome:"Reel — mãos fazendo flor",estagio:"pre-escala",formato:"Tutorial silencioso",roi:"",postId:"",notas:"",criadoEm:now()-14*DAY},
-      {id:r3,ofertaId:of1,nome:"Modelagem do criativo do concorrente",estagio:"modelado",formato:"UGC unboxing",roi:"",postId:"",notas:"Copiar estrutura, trocar oferta.",noFunil:true,criadoEm:now()-2*DAY},
-      {id:r4,ofertaId:of1,nome:"VSL antiga v1",estagio:"zona-branca",formato:"Depoimento POV",roi:"5.0x",postId:"120210111222333444",notas:"Vencedor histórico, guardado.",criadoEm:now()-60*DAY},
-      {id:r5,ofertaId:of2,nome:"Médico SUS explica glicemia",estagio:"escala",formato:"Autoridade / jaleco",roi:"4.1x",postId:"120211223344556677",notas:"'Fora do tema, dentro do contexto' — ROAS alto.",criadoEm:now()-18*DAY},
-      {id:r6,ofertaId:of2,nome:"Dicas da nutri — café da manhã",estagio:"validado",formato:"Lista rápida",roi:"",postId:"",notas:"",criadoEm:now()-5*DAY},
-      {id:r7,ofertaId:of2,nome:"POV glicose alta de manhã",estagio:"modelado",formato:"POV / susto",roi:"",postId:"",notas:"",criadoEm:now()-1*DAY},
-      {id:r8,ofertaId:of3,nome:"Vivendo de comida — delivery em casa",estagio:"pre-escala",formato:"Rotina / vlog",roi:"",postId:"",notas:"Testando conta em dólar.",criadoEm:now()-4*DAY},
+      {id:r1,ofertaId:of1,sigla:"C01",nome:"VSL — abuela ensina ponto",estagio:"escala",formato:"Depoimento POV",roi:"3.2x",postId:"120210998877665544",notas:"Melhor CPA da conta.",criadoEm:now()-30*DAY},
+      {id:r2,ofertaId:of1,sigla:"C02",nome:"Reel — mãos fazendo flor",estagio:"pre-escala",formato:"Tutorial silencioso",roi:"",postId:"",notas:"",criadoEm:now()-14*DAY},
+      {id:r3,ofertaId:of1,sigla:"C03",nome:"Modelagem do criativo do concorrente",estagio:"modelado",formato:"UGC unboxing",roi:"",postId:"",notas:"Copiar estrutura, trocar oferta.",noFunil:true,criadoEm:now()-2*DAY},
+      {id:r4,ofertaId:of1,sigla:"C04",nome:"VSL antiga v1",estagio:"zona-branca",formato:"Depoimento POV",roi:"5.0x",postId:"120210111222333444",notas:"Vencedor histórico, guardado.",criadoEm:now()-60*DAY},
+      {id:r5,ofertaId:of2,sigla:"G01",nome:"Médico SUS explica glicemia",estagio:"escala",formato:"Autoridade / jaleco",roi:"4.1x",postId:"120211223344556677",notas:"'Fora do tema, dentro do contexto' — ROAS alto.",criadoEm:now()-18*DAY},
+      {id:r6,ofertaId:of2,sigla:"G02",nome:"Dicas da nutri — café da manhã",estagio:"validado",formato:"Lista rápida",roi:"",postId:"",notas:"",criadoEm:now()-5*DAY},
+      {id:r7,ofertaId:of2,sigla:"G03",nome:"POV glicose alta de manhã",estagio:"modelado",formato:"POV / susto",roi:"",postId:"",notas:"",criadoEm:now()-1*DAY},
+      {id:r8,ofertaId:of3,sigla:"B01",nome:"Vivendo de comida — delivery em casa",estagio:"pre-escala",formato:"Rotina / vlog",roi:"",postId:"",notas:"Testando conta em dólar.",criadoEm:now()-4*DAY},
       // campanhas (rodadas — cada uma num celular)
       {id:uid(),dup:true,criativoId:r1,ofertaId:of1,nome:"VSL — abuela ensina ponto",campanha:"08.08 ESCALA ENGJ CELULAR 9",celularId:c1,estagio:"escala",ativo:true,orcamento:50,moeda:"BRL",objetivo:"engj",qtdCampanhas:3,criadoEm:now()-28*DAY},
       {id:uid(),dup:true,criativoId:r1,ofertaId:of1,nome:"VSL — abuela ensina ponto",campanha:"09.08 ESCALA MOTO",celularId:c2,estagio:"escala",ativo:true,orcamento:40,moeda:"BRL",objetivo:"engj",qtdCampanhas:1,criadoEm:now()-20*DAY},
@@ -744,7 +746,7 @@ function creativoTable(list,withChip){
       chipCell=`<td>${chip?`<span class="mono" style="font-size:12px">${esc(chip.numero)}</span>`:'<span style="color:var(--text-3)">— sem chip</span>'}</td>`;}
     return `<tr data-row="${c.id}">
       <td style="width:44px"><button class="tgl ${c.ativo?"on":""}" data-tgl="${c.id}" title="${c.ativo?"Ativo":"Pausado"}"><span></span></button></td>
-      <td><div class="nm">${esc(c.campanha||parent.nome||c.nome)}</div><div class="sub2">${esc(parent.nome||c.nome)}${parent.formato?" · "+esc(parent.formato):""}</div></td>
+      <td><div class="nm">${esc(c.campanha||parent.nome||c.nome)}</div><div class="sub2">${parent.sigla?`<b style="color:var(--accent)">${esc(parent.sigla)}</b> · `:""}${esc(parent.nome||c.nome)}${parent.formato?" · "+esc(parent.formato):""}</div></td>
       <td>${c.celularId?`<span class="tag">${esc(celName(c.celularId)||"?")}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
       ${chipCell}
       <td>${stageSelect(c)}</td>
@@ -798,7 +800,7 @@ function cCard(c){
   const cels=celularesAtivosDe(c.id);const nCamps=campsDe(c.id).length;
   const celsHTML=cels.length?`<div class="ccels">${cels.map(cel=>`<span class="celtag">${svgInline("phone")}${esc(cel.nome)}</span>`).join("")}</div>`:`<div class="ccels none" style="display:inline-flex;align-items:center;gap:5px">${svgInline("phone")}Sem campanha ativa</div>`;
   return `<div class="ccard" draggable="true" data-id="${c.id}" style="border-top-color:var(${ESTG[c.estagio].cor})">
-    <div class="cname">${esc(c.nome)}</div>
+    <div class="cname">${c.sigla?`<span class="sigtag">${esc(c.sigla)}</span> `:""}${esc(c.nome)}</div>
     <div class="cmeta">${c.formato?`<span class="tag">${svgInline("film")}${esc(c.formato)}</span>`:""}${nCamps?`<span class="tag">${nCamps} campanha${nCamps>1?"s":""}</span>`:""}</div>
     ${(c.roi||c.postId)?`<div class="cmeta">${c.roi?`<span class="pill" style="color:var(--good);background:var(--good-soft);font-size:11px"><span class="dot"></span>ROI ${esc(c.roi)}</span>`:""}${c.postId?`<button class="tag postidbtn" data-copypost="${c.id}" title="Copiar Post ID: ${esc(c.postId)}">${svgInline("copy")}${esc(c.postId.length>14?c.postId.slice(0,14)+"…":c.postId)}</button>`:""}</div>`:""}
     <div class="cfoot" style="align-items:flex-start">${celsHTML}${canNext?`<button class="nextbtn" data-next="${c.id}" title="Avançar para ${ESTG[canNext].nome}">Avançar ↗</button>`:""}</div>
@@ -979,12 +981,13 @@ function criativoModal(cr,preset={}){
     ${field("Nome do criativo","nome",c.nome||"",{ph:"Ex.: VSL — abuela ensina ponto"})}
     <div class="frow">${field("Oferta","ofertaId",c.ofertaId||DB.ofertas[0]?.id||"",{type:"select",options:ofOpts.length?ofOpts:[{v:"",l:"Crie uma oferta primeiro"}]})}
     ${field("Estágio","estagio",FUNIL_STAGES.includes(c.estagio)?c.estagio:"modelado",{type:"select",options:FUNIL_STAGES.map(id=>({v:id,l:ESTG[id].nome}))})}</div>
-    ${field("Formato","formato",c.formato||"",{optional:true,ph:"Ex.: Depoimento POV"})}
+    <div class="frow">${field("Sigla","sigla",c.sigla||"",{ph:"Ex.: C04"})}
+    ${field("Formato","formato",c.formato||"",{optional:true,ph:"Ex.: Depoimento POV"})}</div>
     <div class="frow"><div class="field"><label>ROI <span class="opt">(destaque)</span></label><input name="roi" value="${esc(c.roi||"")}" placeholder="Ex.: 2.5x" style="border-color:color-mix(in srgb,var(--good) 45%,var(--border-2));font-weight:600"></div>
     ${field("Post ID","postId",c.postId||"",{optional:true,ph:"Ex.: 122100000000"})}</div>
     ${field("Notas","notas",c.notas||"",{type:"textarea",optional:true,ph:"Anotações sobre o criativo, ângulo, etc."})}`,
     onOk:close=>{const root=$("#modal-root");const nome=val(root,"nome");if(!nome)return toast("Dê um nome ao criativo"),false;
-      const data={nome,ofertaId:val(root,"ofertaId"),estagio:val(root,"estagio"),formato:val(root,"formato"),roi:val(root,"roi"),postId:val(root,"postId"),notas:val(root,"notas")};
+      const data={nome,sigla:val(root,"sigla"),ofertaId:val(root,"ofertaId"),estagio:val(root,"estagio"),formato:val(root,"formato"),roi:val(root,"roi"),postId:val(root,"postId"),notas:val(root,"notas")};
       if(!data.ofertaId)return toast("Crie uma oferta antes"),false;
       if(editing){Object.assign(cr,data);}else{DB.criativos.push({id:uid(),...data,criadoEm:now()});}
       save();render();close();toast(editing?"Criativo atualizado":"Criativo criado");}});
@@ -995,13 +998,12 @@ function campanhaModal(camp,preset={},dup=false){
   const editing=!!camp;const c=camp||preset;
   const ofId=c.ofertaId||openOferta||DB.ofertas[0]?.id||"";
   const criativos=DB.criativos.filter(x=>!x.dup&&x.ofertaId===ofId);
-  const crOpts=[...criativos.map(x=>({v:x.id,l:x.nome})),{v:"__novo__",l:"➕ Novo criativo (só teste — fora do funil)"}];
+  const curSigla=c.criativoId?((byId(DB.criativos,c.criativoId)||{}).sigla||""):(c.sigla||"");
   const celList=DB.celulares.filter(x=>x.ofertaId===ofId);
   if(c.celularId&&!celList.some(x=>x.id===c.celularId)){const s=byId(DB.celulares,c.celularId);if(s)celList.push(s);}
   const celOpts=[{v:"",l:"— Sem celular —"},...celList.map(x=>({v:x.id,l:`${x.nome}${x.modelo?" ("+x.modelo+")":""}`}))];
   modal({wide:true,title:dup?"Duplicar campanha":(editing?"Editar campanha":"Nova campanha"),okText:dup?"Criar cópia":"Salvar",ico:"bolt",body:`
-    ${field("Criativo","criativoId",c.criativoId||criativos[0]?.id||"__novo__",{type:"select",options:crOpts})}
-    <div class="field" id="novocrwrap" hidden><label>Nome do novo criativo <span class="opt">(entra só na tabela de teste)</span></label><input name="novocrnome" placeholder="Ex.: VSL nova ideia"></div>
+    <div class="field"><label>Sigla do criativo <span class="opt">(faz a ligação sozinha)</span></label><input name="sigla" list="siglalist" value="${esc(curSigla)}" placeholder="Ex.: C04" autocomplete="off" style="text-transform:uppercase"><datalist id="siglalist">${criativos.filter(x=>x.sigla).map(x=>`<option value="${esc(x.sigla)}">${esc(x.nome)}</option>`).join("")}</datalist><div id="siglahint" style="font-size:11.5px;margin-top:6px;color:var(--text-3)"></div></div>
     <div class="frow">${field("Nome da campanha","campanha",c.campanha||"",{ph:"Ex.: 08.08 ESCALA CELULAR 9"})}
     ${field("Celular","celularId",c.celularId||"",{type:"select",options:celOpts})}</div>
     <div class="frow">${field("Estágio","estagio",CAMP_STAGES.includes(c.estagio)?c.estagio:"pre-escala",{type:"select",options:CAMP_STAGES.map(id=>({v:id,l:ESTG[id].nome}))})}
@@ -1011,15 +1013,17 @@ function campanhaModal(camp,preset={},dup=false){
       <select name="moeda" style="width:88px;background:var(--bg-2);border:1px solid var(--border-2);color:var(--text);border-radius:10px;padding:10px 8px">${[["BRL","R$"],["USD","US$"]].map(([v,l])=>`<option value="${v}" ${(c.moeda||"BRL")===v?"selected":""}>${l}</option>`).join("")}</select></div></div>
     ${field("Objetivo","objetivo",c.objetivo||"engj",{type:"select",options:OBJETIVOS.map(o=>({v:o.v,l:o.l}))})}</div>
     ${field("Nº de campanhas","qtdCampanhas",c.qtdCampanhas||"1",{type:"number",ph:"1"})}`,
-    onOk:close=>{const root=$("#modal-root");let criativoId=val(root,"criativoId");
+    onOk:close=>{const root=$("#modal-root");
       const campanha=val(root,"campanha");if(!campanha)return toast("Dê um nome à campanha"),false;
-      if(criativoId==="__novo__"){const nn=val(root,"novocrnome");if(!nn)return toast("Dê um nome ao novo criativo"),false;const ncr={id:uid(),ofertaId:ofId,nome:nn,estagio:"modelado",formato:"",roi:"",postId:"",notas:"",noFunil:true,criadoEm:now()};DB.criativos.push(ncr);criativoId=ncr.id;}
-      if(!criativoId)return toast("Escolha o criativo desta campanha"),false;
-      const parent=byId(DB.criativos,criativoId);
+      const sigla=val(root,"sigla").trim();if(!sigla)return toast("Informe a sigla do criativo (ex.: C04)"),false;
+      let parent=DB.criativos.find(x=>!x.dup&&x.ofertaId===ofId&&(x.sigla||"").toLowerCase()===sigla.toLowerCase());
+      let novoCr=false;
+      if(!parent){parent={id:uid(),ofertaId:ofId,sigla:sigla.toUpperCase(),nome:sigla.toUpperCase(),estagio:"modelado",formato:"",roi:"",postId:"",notas:"",noFunil:true,criadoEm:now()};DB.criativos.push(parent);novoCr=true;}
+      const criativoId=parent.id;
       const data={criativoId,ofertaId:parent?parent.ofertaId:ofId,nome:parent?parent.nome:campanha,campanha,celularId:val(root,"celularId")||null,estagio:val(root,"estagio")||"pre-escala",ativo:val(root,"ativo")!=="pausado",orcamento:parseFloat(val(root,"orcamento").replace(",","."))||0,moeda:val(root,"moeda")||"BRL",objetivo:val(root,"objetivo")||"engj",qtdCampanhas:parseInt(val(root,"qtdCampanhas"))||1};
       if(editing){Object.assign(camp,data);}else{DB.criativos.push({id:uid(),dup:true,...data,criadoEm:now()});}
-      save();render();close();toast(editing?"Campanha atualizada":(dup?"Cópia criada":"Campanha criada"));}});
-  const crSel=$('#modal-root [name="criativoId"]');if(crSel){const tog=()=>{const w=$("#novocrwrap");if(w)w.hidden=crSel.value!=="__novo__";};crSel.onchange=tog;tog();}
+      save();render();close();toast(editing?"Campanha atualizada":(novoCr?`Campanha + criativo ${parent.sigla} criados`:(dup?"Cópia criada":"Campanha criada")));}});
+  const sigIn=$('#modal-root [name="sigla"]');if(sigIn){const hint=()=>{const v=sigIn.value.trim().toLowerCase();const h=$("#siglahint");if(!h)return;if(!v){h.textContent="";return;}const m=DB.criativos.find(x=>!x.dup&&x.ofertaId===ofId&&(x.sigla||"").toLowerCase()===v);if(m){h.innerHTML=`✓ Liga em: <b style="color:var(--text)">${esc(m.nome)}</b>`;h.style.color="var(--good)";}else{h.innerHTML=`Sigla nova — vai criar o criativo <b style="color:var(--text-2)">${esc(sigIn.value.trim().toUpperCase())}</b> (fora do funil, só teste)`;h.style.color="var(--text-3)";}};sigIn.oninput=hint;hint();}
   if(editing){const f=$("#modal-root .modal-f");f.insertAdjacentHTML("afterbegin",`<button class="btn ghost danger" id="delcamp2">${svg("trash")}Excluir</button><button class="btn ghost" style="margin-right:auto" id="dupcamp2">${svg("dup")}Duplicar</button>`);
     $("#delcamp2").onclick=()=>{$("#modal-root").innerHTML="";confirmDel(`Excluir a campanha "${esc(camp.campanha||camp.nome)}"?`,"Remove só esta rodada. O criativo continua no funil.",()=>{DB.criativos=DB.criativos.filter(x=>x.id!==camp.id);save();render();toast("Campanha excluída");});};
     $("#dupcamp2").onclick=()=>{$("#modal-root").innerHTML="";duplicarCampanha(camp);};}
