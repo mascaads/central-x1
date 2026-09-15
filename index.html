@@ -186,6 +186,17 @@ a{color:inherit}
 .phonecard .ph-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:var(--text-2);border-top:1px solid var(--border);padding-top:11px}
 .phonecard.free{border-style:dashed;border-color:var(--border-2)}
 .phonecard.free .ph-i span{color:var(--warn)}
+.board.pkb{grid-auto-columns:minmax(195px,1fr)}
+.pkb .col-body{min-height:60px}
+.pcard{background:var(--surface);border:1px solid var(--border);border-top:2px solid var(--text-3);border-radius:11px;padding:11px 12px;margin-bottom:9px;cursor:grab;display:flex;flex-direction:column;gap:9px}
+.pcard:hover{border-color:var(--border-2);box-shadow:var(--shadow)}
+.pcard.drag{opacity:.4}
+.pcard .ph-top{display:flex;align-items:center;gap:9px}
+.pcard .ph-top>svg{width:18px;height:18px;color:var(--text-2);flex:none}
+.pcard .ph-i{min-width:0;flex:1}
+.pcard .ph-i b{display:block;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pcard .ph-i span{font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.pcard .ph-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:11px;color:var(--text-2);border-top:1px solid var(--border);padding-top:8px}
 /* toggle switch */
 .tgl{width:38px;height:22px;border-radius:20px;background:var(--surface-3);border:1px solid var(--border-2);position:relative;padding:0;transition:.15s}
 .tgl span{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--text-3);transition:.15s}
@@ -688,7 +699,7 @@ function vKanban(){
 
   const veicBlock=veic.length?creativoTable(veic,false):`<div class="card" style="padding:26px;text-align:center;color:var(--text-3);font-size:13px">Nenhuma campanha em veiculação. Use <b style="color:var(--text-2)">Adicionar campanha</b> para colocar um criativo pra rodar num celular.</div>`;
   const teste=all.filter(c=>c.dup&&c.estagio==="teste").sort((a,b)=>(+b.orcamento)-(+a.orcamento));
-  const testeBlock=teste.length?creativoTable(teste,true):`<div class="card" style="padding:26px;text-align:center;color:var(--text-3);font-size:13px">Nenhuma campanha em teste. Use <b style="color:var(--text-2)">Adicionar campanha de teste</b> para começar a testar um criativo com um celular/chip.</div>`;
+  const testeBlock=teste.length?creativoTable(teste,true,true):`<div class="card" style="padding:26px;text-align:center;color:var(--text-3);font-size:13px">Nenhuma campanha em teste. Use <b style="color:var(--text-2)">Adicionar campanha de teste</b> para começar a testar um criativo com um celular/chip.</div>`;
 
   // Funil = criativos sólidos (sem campanhas)
   const fq=funilSearch.trim().toLowerCase();
@@ -748,10 +759,10 @@ function vKanban(){
   $("#view").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const c=byId(DB.criativos,b.dataset.del);
     if(c.dup){confirmDel(`Excluir a campanha "${esc(c.campanha||c.nome)}"?`,"Remove só esta rodada. O criativo continua no funil.",()=>{DB.criativos=DB.criativos.filter(x=>x.id!==c.id);save();render();toast("Campanha excluída");});}
     else{const nc=campsDe(c.id).length;confirmDel(`Excluir o criativo "${esc(c.nome)}"?`,`Apaga o criativo <b>de vez</b>${nc?` e as <b>${nc}</b> campanha(s) dele`:""}. Se ele é vencedor, prefira arrastar pra <b>Zona Branca</b>.`,()=>{DB.criativos=DB.criativos.filter(x=>x.id!==c.id&&x.criativoId!==c.id);save();render();toast("Criativo excluído");});}});
-  setupDnD();
+  setupDnD();setupPhoneDnD();
 }
 function kpiTile(ico,k,v,foot,col){return `<div class="stat"><div class="k">${svg(ico)}${k}</div><div class="v" style="font-size:23px${col?`;color:var(${col})`:""}">${v}</div><div class="foot">${foot}</div></div>`;}
-function creativoTable(list,withChip){
+function creativoTable(list,withChip,simple){
   const at=list.filter(c=>c.ativo);
   const orcBRL=at.filter(c=>(c.moeda||"BRL")==="BRL").reduce((s,c)=>s+ +c.orcamento,0);
   const orcUSD=at.filter(c=>c.moeda==="USD").reduce((s,c)=>s+ +c.orcamento,0);
@@ -770,46 +781,50 @@ function creativoTable(list,withChip){
       <td>${c.celularId?`<span class="tag">${esc(celName(c.celularId)||"?")}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
       ${chipCell}
       <td>${stageSelect(c)}</td>
-      <td><span class="pill" style="color:var(${o.c});background:color-mix(in srgb,var(${o.c}) 15%,transparent)"><span class="dot"></span>${o.l}</span></td>
+      ${simple?"":`<td><span class="pill" style="color:var(${o.c});background:color-mix(in srgb,var(${o.c}) 15%,transparent)"><span class="dot"></span>${o.l}</span></td>
       <td style="text-align:center"><div class="qtdstep"><button class="qbtn" data-qtdminus="${c.id}" title="Menos uma campanha">−</button><span class="mono" style="min-width:16px;text-align:center">${num(c.qtdCampanhas)}</span><button class="qbtn" data-qtdplus="${c.id}" title="Mais uma campanha">+</button></div></td>
-      <td class="mono" style="text-align:right">${fmtCur(c.orcamento,c.moeda)}<div class="sub2">Diário</div></td>
+      <td class="mono" style="text-align:right">${fmtCur(c.orcamento,c.moeda)}<div class="sub2">Diário</div></td>`}
       <td style="text-align:center">${roi?`<span class="pill" style="color:var(--good);background:var(--good-soft)"><span class="dot"></span>${esc(roi)}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
       <td><div class="rowact">${parent.noFunil?`<button class="iconbtn tofunil" data-tofunil="${c.criativoId}" title="Colocar o criativo no funil de validação">${svg("layers")}</button>`:""}${postId?`<button class="iconbtn" data-copypost="${c.id}" title="Copiar Post ID">${svg("copy")}</button>`:""}<button class="iconbtn" data-dup="${c.id}" title="Duplicar campanha">${svg("dup")}</button><button class="iconbtn" data-edit="${c.id}" title="Editar campanha">${svg("edit")}</button><button class="iconbtn" data-del="${c.id}" title="Excluir campanha">${svg("trash")}</button></div></td>
     </tr>`;
   }).join("");
   return `<div class="tblwrap"><table><thead><tr>
-      <th></th><th>Campanha</th><th>Celular</th>${withChip?"<th>Chip testado</th>":""}<th>Estágio</th><th>Objetivo</th><th style="text-align:center">Nº camp.</th><th style="text-align:right">Orçamento</th><th style="text-align:center">ROI</th><th></th>
+      <th></th><th>Campanha</th><th>Celular</th>${withChip?"<th>Chip testado</th>":""}<th>Estágio</th>${simple?"":`<th>Objetivo</th><th style="text-align:center">Nº camp.</th><th style="text-align:right">Orçamento</th>`}<th style="text-align:center">ROI</th><th></th>
     </tr></thead><tbody>${rows}</tbody>
     <tfoot><tr>
-      <td></td><td style="font-weight:600">Resultados de ${list.length} campanha${list.length>1?"s":""}</td><td></td>${withChip?"<td></td>":""}<td></td><td></td>
-      <td class="mono" style="text-align:center;font-weight:600">${num(totalCamps)}</td>
-      <td class="mono" style="text-align:right;font-weight:600">${orcSummary(orcBRL,orcUSD)}<div class="sub2">Diário ativo</div></td><td></td><td></td>
+      <td></td><td style="font-weight:600">Resultados de ${list.length} campanha${list.length>1?"s":""}</td><td></td>${withChip?"<td></td>":""}<td></td>
+      ${simple?"":`<td></td><td class="mono" style="text-align:center;font-weight:600">${num(totalCamps)}</td><td class="mono" style="text-align:right;font-weight:600">${orcSummary(orcBRL,orcUSD)}<div class="sub2">Diário ativo</div></td>`}
+      <td></td><td></td>
     </tr></tfoot></table></div>`;
 }
 function phonesSection(of){
   const assigned=DB.celulares.filter(c=>c.ofertaId===of.id);
   const free=DB.celulares.filter(c=>!c.ofertaId);
   const card=c=>{
-    const runs=DB.criativos.filter(x=>x.celularId===c.id&&x.ofertaId===of.id).length;
-    const chip=byId(DB.chips,c.chipId);
-    return `<div class="card phonecard">
+    const runs=DB.criativos.filter(x=>x.dup&&x.celularId===c.id&&x.ofertaId===of.id).length;
+    const chip=byId(DB.chips,c.chipId);const s=CEL_STATUS[c.status]||{c:"--text-3"};
+    return `<div class="pcard" draggable="true" data-pid="${c.id}" style="border-top-color:var(${s.c})">
       <div class="ph-top">${svg("phone")}<div class="ph-i"><b>${esc(c.nome)}</b><span>${esc(c.modelo||"—")}${chip?" · "+esc(chip.numero):""}</span></div></div>
-      <div class="ph-foot"><span>${runs} campanha${runs!==1?"s":""} aqui</span><div style="display:flex;gap:2px"><button class="iconbtn" data-editcel="${c.id}" title="Editar">${svg("edit")}</button><button class="iconbtn" data-unassign="${c.id}" title="Tirar da oferta">${svg("trash")}</button></div></div>
+      <div class="ph-foot"><span>${runs} camp.</span><div style="display:flex;gap:2px"><button class="iconbtn" data-editcel="${c.id}" title="Editar">${svg("edit")}</button><button class="iconbtn" data-unassign="${c.id}" title="Tirar da oferta">${svg("trash")}</button></div></div>
     </div>`;
   };
   const freeCard=c=>`<div class="card phonecard free">
       <div class="ph-top">${svg("phone")}<div class="ph-i"><b>${esc(c.nome)}</b><span>${esc(c.modelo||"sem oferta")}</span></div></div>
       <button class="btn sm pri" data-assign="${c.id}" style="justify-content:center">${svg("plus")}Adicionar a esta oferta</button>
     </div>`;
-  const pgBlock=(label,cor,items,html)=>`<div class="phonegroup"><div class="pg-label"><span class="dot" style="background:var(${cor})"></span>${label}<span class="pg-count">${items}</span></div><div class="grid phonesgrid">${html}</div></div>`;
-  let blocks="";
-  Object.entries(CEL_STATUS).forEach(([st,s])=>{const group=assigned.filter(c=>c.status===st);if(group.length)blocks+=pgBlock(s.l,s.c,group.length,group.map(card).join(""));});
+  const board=Object.entries(CEL_STATUS).map(([st,s])=>{
+    const group=assigned.filter(c=>c.status===st);
+    return `<div class="col pcol" data-pcol="${st}">
+      <div class="col-h"><span class="cdot" style="background:var(${s.c})"></span><span class="cn">${s.l}</span><span class="cc">${group.length}</span></div>
+      <div class="col-body" data-pbody="${st}">${group.map(card).join("")||`<div class="emptycol">—</div>`}</div>
+    </div>`;
+  }).join("");
   const known=Object.keys(CEL_STATUS);const other=assigned.filter(c=>!known.includes(c.status));
-  if(other.length)blocks+=pgBlock("Sem status","--text-3",other.length,other.map(card).join(""));
-  if(free.length)blocks+=pgBlock("Sem oferta","--warn",free.length,free.map(freeCard).join(""));
+  const otherBlock=other.length?`<div class="phonegroup" style="margin-top:16px"><div class="pg-label"><span class="dot" style="background:var(--text-3)"></span>Sem status<span class="pg-count">${other.length}</span></div><div class="grid phonesgrid">${other.map(card).join("")}</div></div>`:"";
+  const freeBlock=free.length?`<div class="phonegroup" style="margin-top:16px"><div class="pg-label" style="color:var(--warn)"><span class="dot" style="background:var(--warn)"></span>Sem oferta<span class="pg-count">${free.length}</span></div><div class="grid phonesgrid">${free.map(freeCard).join("")}</div></div>`:"";
   const empty=(!assigned.length&&!free.length)?`<div class="card" style="padding:20px;color:var(--text-3);font-size:13px;text-align:center">Nenhum celular ainda. Cadastre em <b style="color:var(--text-2)">Celulares</b> e escolha esta oferta — ou eles aparecem aqui com um <b style="color:var(--text-2)">+</b> para adicionar.</div>`:"";
-  return `<div class="sect-h"><h2>${svgInline("phone")}Celulares nesta oferta</h2><div class="line"></div>${assigned.length?`<span class="tag">${assigned.length} vinculado${assigned.length>1?"s":""}</span>`:""}${free.length?`<span class="tag" style="color:var(--warn)">${free.length} sem oferta</span>`:""}</div>
-    ${blocks}${empty}`;
+  return `<div class="sect-h"><h2>${svgInline("phone")}Celulares nesta oferta</h2><div class="line"></div>${assigned.length?`<span class="tag">arraste entre os status</span>`:""}${free.length?`<span class="tag" style="color:var(--warn)">${free.length} sem oferta</span>`:""}</div>
+    ${assigned.length?`<div class="board pkb">${board}</div>`:""}${otherBlock}${freeBlock}${empty}`;
 }
 function stageSelect(c){
   const stages=(c.dup?CAMP_STAGES:FUNIL_STAGES).map(id=>ESTG[id]);
@@ -834,10 +849,22 @@ function setupDnD(){
     card.addEventListener("dragstart",e=>{dragId=card.dataset.id;card._dragging=true;card.classList.add("drag");e.dataTransfer.effectAllowed="move";});
     card.addEventListener("dragend",()=>{card.classList.remove("drag");setTimeout(()=>card._dragging=false,50);dragId=null;$("#view").querySelectorAll(".col").forEach(c=>c.classList.remove("drop"));});
   });
-  $("#view").querySelectorAll(".col").forEach(col=>{
+  $("#view").querySelectorAll(".col:not(.pcol)").forEach(col=>{
     col.addEventListener("dragover",e=>{e.preventDefault();col.classList.add("drop");});
     col.addEventListener("dragleave",e=>{if(!col.contains(e.relatedTarget))col.classList.remove("drop");});
     col.addEventListener("drop",e=>{e.preventDefault();col.classList.remove("drop");if(!dragId)return;const c=byId(DB.criativos,dragId);const st=col.dataset.col;if(c&&c.estagio!==st){c.estagio=st;save();render();toast(`Movido para ${ESTG[st].nome}`);}});
+  });
+}
+let dragPid=null;
+function setupPhoneDnD(){
+  $("#view").querySelectorAll(".pcard").forEach(card=>{
+    card.addEventListener("dragstart",e=>{dragPid=card.dataset.pid;card._dragging=true;card.classList.add("drag");e.dataTransfer.effectAllowed="move";});
+    card.addEventListener("dragend",()=>{card.classList.remove("drag");setTimeout(()=>card._dragging=false,50);dragPid=null;$("#view").querySelectorAll(".pcol").forEach(c=>c.classList.remove("drop"));});
+  });
+  $("#view").querySelectorAll(".pcol").forEach(col=>{
+    col.addEventListener("dragover",e=>{e.preventDefault();col.classList.add("drop");});
+    col.addEventListener("dragleave",e=>{if(!col.contains(e.relatedTarget))col.classList.remove("drop");});
+    col.addEventListener("drop",e=>{e.preventDefault();col.classList.remove("drop");if(!dragPid)return;const c=byId(DB.celulares,dragPid);const st=col.dataset.pcol;if(c&&c.status!==st){c.status=st;save();render();toast(`${c.nome} → ${CEL_STATUS[st].l}`);}});
   });
 }
 
@@ -1028,22 +1055,25 @@ function campanhaModal(camp,preset={},dup=false){
     ${field("Celular","celularId",c.celularId||"",{type:"select",options:celOpts})}</div>
     <div class="frow">${field("Estágio","estagio",CAMP_STAGES.includes(c.estagio)?c.estagio:"pre-escala",{type:"select",options:CAMP_STAGES.map(id=>({v:id,l:ESTG[id].nome}))})}
     ${field("Status","ativo",c.ativo===false?"pausado":"ativo",{type:"select",options:[{v:"ativo",l:"Ativo"},{v:"pausado",l:"Pausado"}]})}</div>
-    <div class="frow"><div class="field"><label>Orçamento diário</label>
+    <div id="campmetrics"><div class="frow"><div class="field"><label>Orçamento diário</label>
       <div style="display:flex;gap:8px"><input name="orcamento" type="number" step="0.01" value="${esc(c.orcamento||"")}" placeholder="40,00" style="flex:1">
       <select name="moeda" style="width:88px;background:var(--bg-2);border:1px solid var(--border-2);color:var(--text);border-radius:10px;padding:10px 8px">${[["BRL","R$"],["USD","US$"]].map(([v,l])=>`<option value="${v}" ${(c.moeda||"BRL")===v?"selected":""}>${l}</option>`).join("")}</select></div></div>
     ${field("Objetivo","objetivo",c.objetivo||"engj",{type:"select",options:OBJETIVOS.map(o=>({v:o.v,l:o.l}))})}</div>
-    ${field("Nº de campanhas","qtdCampanhas",c.qtdCampanhas||"1",{type:"number",ph:"1"})}`,
+    ${field("Nº de campanhas","qtdCampanhas",c.qtdCampanhas||"1",{type:"number",ph:"1"})}</div>`,
     onOk:close=>{const root=$("#modal-root");
       const campanha=val(root,"campanha");if(!campanha)return toast("Dê um nome à campanha"),false;
       const sigla=val(root,"sigla").trim();if(!sigla)return toast("Informe a sigla do criativo (ex.: C04)"),false;
-      let parent=DB.criativos.find(x=>!x.dup&&x.ofertaId===ofId&&(x.sigla||"").toLowerCase()===sigla.toLowerCase());
+      const q=sigla.toLowerCase();
+      let parent=DB.criativos.find(x=>!x.dup&&x.ofertaId===ofId&&((x.sigla||"").trim().toLowerCase()===q||(x.nome||"").trim().toLowerCase()===q));
       let novoCr=false;
       if(!parent){parent={id:uid(),ofertaId:ofId,sigla:sigla.toUpperCase(),nome:sigla.toUpperCase(),estagio:"modelado",formato:"",roi:"",postId:"",notas:"",noFunil:true,criadoEm:now()};DB.criativos.push(parent);novoCr=true;}
+      else if(!parent.sigla){parent.sigla=sigla.toUpperCase();}
       const criativoId=parent.id;
       const data={criativoId,ofertaId:parent?parent.ofertaId:ofId,nome:parent?parent.nome:campanha,campanha,celularId:val(root,"celularId")||null,estagio:val(root,"estagio")||"pre-escala",ativo:val(root,"ativo")!=="pausado",orcamento:parseFloat(val(root,"orcamento").replace(",","."))||0,moeda:val(root,"moeda")||"BRL",objetivo:val(root,"objetivo")||"engj",qtdCampanhas:parseInt(val(root,"qtdCampanhas"))||1};
       if(editing){Object.assign(camp,data);}else{DB.criativos.push({id:uid(),dup:true,...data,criadoEm:now()});}
       save();render();close();toast(editing?"Campanha atualizada":(novoCr?`Campanha + criativo ${parent.sigla} criados`:(dup?"Cópia criada":"Campanha criada")));}});
-  const sigIn=$('#modal-root [name="sigla"]');if(sigIn){const hint=()=>{const v=sigIn.value.trim().toLowerCase();const h=$("#siglahint");if(!h)return;if(!v){h.textContent="";return;}const m=DB.criativos.find(x=>!x.dup&&x.ofertaId===ofId&&(x.sigla||"").toLowerCase()===v);if(m){h.innerHTML=`✓ Liga em: <b style="color:var(--text)">${esc(m.nome)}</b>`;h.style.color="var(--good)";}else{h.innerHTML=`Sigla nova — vai criar o criativo <b style="color:var(--text-2)">${esc(sigIn.value.trim().toUpperCase())}</b> (fora do funil, só teste)`;h.style.color="var(--text-3)";}};sigIn.oninput=hint;hint();}
+  const stgSel=$('#modal-root [name="estagio"]');if(stgSel){const tg=()=>{const m=$("#campmetrics");if(m)m.style.display=stgSel.value==="teste"?"none":"";};stgSel.onchange=tg;tg();}
+  const sigIn=$('#modal-root [name="sigla"]');if(sigIn){const hint=()=>{const v=sigIn.value.trim().toLowerCase();const h=$("#siglahint");if(!h)return;if(!v){h.textContent="";return;}const m=DB.criativos.find(x=>!x.dup&&x.ofertaId===ofId&&((x.sigla||"").trim().toLowerCase()===v||(x.nome||"").trim().toLowerCase()===v));if(m){h.innerHTML=`✓ Liga em: <b style="color:var(--text)">${esc(m.nome)}</b>`;h.style.color="var(--good)";}else{h.innerHTML=`Sigla nova — vai criar o criativo <b style="color:var(--text-2)">${esc(sigIn.value.trim().toUpperCase())}</b> (fora do funil, só teste)`;h.style.color="var(--text-3)";}};sigIn.oninput=hint;hint();}
   if(editing){const f=$("#modal-root .modal-f");f.insertAdjacentHTML("afterbegin",`<button class="btn ghost danger" id="delcamp2">${svg("trash")}Excluir</button><button class="btn ghost" style="margin-right:auto" id="dupcamp2">${svg("dup")}Duplicar</button>`);
     $("#delcamp2").onclick=()=>{$("#modal-root").innerHTML="";confirmDel(`Excluir a campanha "${esc(camp.campanha||camp.nome)}"?`,"Remove só esta rodada. O criativo continua no funil.",()=>{DB.criativos=DB.criativos.filter(x=>x.id!==camp.id);save();render();toast("Campanha excluída");});};
     $("#dupcamp2").onclick=()=>{$("#modal-root").innerHTML="";duplicarCampanha(camp);};}
