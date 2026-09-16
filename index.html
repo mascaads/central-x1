@@ -16,7 +16,7 @@
   --good:#26c281; --good-soft:rgba(38,194,129,.15);
   --warn:#f0a830; --warn-soft:rgba(240,168,48,.15);
   --crit:#f2585f; --crit-soft:rgba(242,88,95,.15);
-  --st-modelado:#8b93a7; --st-teste:#22c9d8; --st-validado:#4f8cff; --st-pre:#f0a830; --st-escala:#26c281; --st-zona:#c9b8ff;
+  --st-modelado:#8b93a7; --st-teste:#22c9d8; --st-validado:#4f8cff; --st-pre:#ec4899; --st-escala:#14b8a6; --st-zona:#c9b8ff;
   --shadow:0 8px 30px -12px rgba(0,0,0,.6);
   --r:14px; --r-sm:10px;
   --sans:"IBM Plex Sans",system-ui,sans-serif;
@@ -31,7 +31,7 @@
   --good:#12996a; --good-soft:rgba(18,153,106,.12);
   --warn:#c8801a; --warn-soft:rgba(200,128,26,.12);
   --crit:#d83b43; --crit-soft:rgba(216,59,67,.1);
-  --st-modelado:#7a8298; --st-teste:#0e9aab; --st-validado:#2f6fe0; --st-pre:#c8801a; --st-escala:#12996a; --st-zona:#7c5ff0;
+  --st-modelado:#7a8298; --st-teste:#0e9aab; --st-validado:#2f6fe0; --st-pre:#db2777; --st-escala:#0d9488; --st-zona:#7c5ff0;
   --shadow:0 8px 24px -14px rgba(30,45,80,.35);
 }
 *{box-sizing:border-box}
@@ -154,6 +154,9 @@ a{color:inherit}
 .vermais:hover{border-color:var(--accent);background:var(--accent-soft)}
 .funilsearch{background:var(--bg-2);border:1px solid var(--border-2);color:var(--text);border-radius:9px;padding:7px 11px;font-size:12.5px;width:230px;max-width:48vw}
 .funilsearch:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.sortby{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;color:var(--text-3);font-weight:600}
+.sortby select{background:var(--bg-2);border:1px solid var(--border-2);color:var(--text);border-radius:8px;padding:5px 8px;font-size:12px;font-weight:600;font-family:var(--sans)}
+.sortby select:hover{border-color:var(--border-2)}
 .kadd:hover{border-color:var(--accent);color:var(--accent)}
 .ccard{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:12px 13px;cursor:grab;transition:.12s;border-top:2px solid var(--accent)}
 .ccard:hover{border-color:var(--border-2);box-shadow:var(--shadow)}
@@ -549,7 +552,15 @@ let promptFilter="Todos";
 let funilSearch="";
 let funilExpand={};
 let expandedCamps={};
+let campSort="celular";
 const FUNIL_LIMIT=10;
+function sortCamps(list){const k=campSort;return [...list].sort((a,b)=>{
+  if(k==="celular"){const na=(celName(a.celularId)||"~~~").toLowerCase(),nb=(celName(b.celularId)||"~~~").toLowerCase();if(na!==nb)return na<nb?-1:1;}
+  else if(k==="estagio"){const ia=CAMP_STAGES.indexOf(a.estagio),ib=CAMP_STAGES.indexOf(b.estagio);if(ia!==ib)return ia-ib;}
+  else if(k==="objetivo"){const oa=OBJETIVOS.findIndex(o=>o.v===a.objetivo),ob=OBJETIVOS.findIndex(o=>o.v===b.objetivo);if(oa!==ob)return oa-ob;}
+  else if(k==="campanha"){const na=(a.campanha||"").toLowerCase(),nb=(b.campanha||"").toLowerCase();if(na!==nb)return na<nb?-1:1;}
+  return subOrcAtivo(b)-subOrcAtivo(a);
+});}
 
 function go(r){route=r;openOferta=null;render();window.scrollTo(0,0);}
 
@@ -744,7 +755,7 @@ function vKanban(){
       ${of.nicho?`<span class="tag">${esc(of.nicho)}</span>`:""}
     </div>
     ${kpi}
-    <div class="sect-h" style="margin-top:6px"><h2>${svgInline("bolt")}Em veiculação · Pré-escala & Escala</h2><div class="line"></div><button class="btn sm pri" id="addcamp">${svg("plus")}Adicionar campanha</button></div>
+    <div class="sect-h" style="margin-top:6px"><h2>${svgInline("bolt")}Em veiculação · Pré-escala & Escala</h2><div class="line"></div><div class="sortby"><span>Ordenar:</span><select id="campsort">${[["celular","Celular"],["estagio","Estágio"],["objetivo","Objetivo"],["campanha","Nome da campanha"]].map(([v,l])=>`<option value="${v}" ${campSort===v?"selected":""}>${l}</option>`).join("")}</select></div><button class="btn sm pri" id="addcamp">${svg("plus")}Adicionar campanha</button></div>
     ${veicBlock}
     <div class="sect-h"><h2 style="color:var(--st-teste)">${svgInline("film")}Em teste</h2><div class="line"></div><button class="btn sm" id="addteste">${svg("plus")}Adicionar campanha de teste</button></div>
     ${testeBlock}
@@ -758,6 +769,7 @@ function vKanban(){
   $("#addcr").onclick=()=>criativoModal(null,{ofertaId:of.id,estagio:"modelado"});
   const at2=$("#addteste");if(at2)at2.onclick=()=>campanhaModal(null,{ofertaId:of.id,estagio:"teste"});
   const ac=$("#addcamp");if(ac)ac.onclick=()=>campanhaModal(null,{ofertaId:of.id,estagio:"pre-escala"});
+  const cso=$("#campsort");if(cso)cso.onchange=()=>{campSort=cso.value;render();};
   $("#view").querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>criativoModal(null,{ofertaId:of.id,estagio:b.dataset.add}));
   $("#view").querySelectorAll(".ccard").forEach(el=>el.onclick=ev=>{if(el._dragging||ev.target.closest("[data-next]")||ev.target.closest("[data-copypost]"))return;criativoModal(byId(DB.criativos,el.dataset.id));});
   $("#view").querySelectorAll("[data-next]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.next);if(NEXT[c.estagio]){c.estagio=NEXT[c.estagio];save();render();toast(`Avançou para ${ESTG[c.estagio].nome}`);}});
@@ -791,7 +803,7 @@ function creativoTable(list,withChip,simple){
   const orcUSD=list.filter(c=>c.moeda==="USD").reduce((s,c)=>s+subOrcAtivo(c),0);
   const totalCamps=list.reduce((s,c)=>s+campN(c),0);
   const ncols=(withChip?1:0)+(simple?0:3)+6;
-  const sorted=[...list].sort((a,b)=>{const na=(celName(a.celularId)||"~~~").toLowerCase(),nb=(celName(b.celularId)||"~~~").toLowerCase();return na!==nb?(na<nb?-1:1):subOrcAtivo(b)-subOrcAtivo(a);});
+  const sorted=sortCamps(list);
   const rows=sorted.map(c=>{
     const o=OBJ[c.objetivo]||OBJETIVOS[0];
     const parent=byId(DB.criativos,c.criativoId)||{};
