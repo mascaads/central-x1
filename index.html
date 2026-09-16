@@ -171,6 +171,7 @@ a{color:inherit}
 .ccels{display:flex;flex-wrap:wrap;gap:5px;min-width:0}
 .celtag{display:inline-flex;align-items:center;font-size:11px;color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 25%,transparent);padding:2px 7px;border-radius:6px;white-space:nowrap}
 .sigtag{display:inline-block;font-family:var(--mono);font-weight:700;font-size:11px;color:var(--accent);background:var(--accent-soft);padding:0 6px;border-radius:5px;vertical-align:1px}
+.datatag{display:inline-block;font-family:var(--mono);font-weight:700;font-size:11px;color:var(--warn);background:var(--warn-soft);border:1px solid color-mix(in srgb,var(--warn) 32%,transparent);padding:0 6px;border-radius:5px;letter-spacing:.02em}
 .postidbtn{cursor:pointer;display:inline-flex;align-items:center;gap:4px;max-width:100%}
 .postidbtn:hover{border-color:var(--accent);color:var(--accent)}
 .emptycol{text-align:center;color:var(--text-3);font-size:12px;padding:14px 8px}
@@ -814,7 +815,7 @@ function creativoTable(list,withChip,simple){
       chipCell=`<td>${chip?`<span class="mono" style="font-size:12px">${esc(chip.numero)}</span>`:'<span style="color:var(--text-3)">— sem chip</span>'}</td>`;}
     const main=`<tr data-row="${c.id}">
       <td style="width:44px"><button class="tgl ${campAtiva(c)?"on":""}" data-tglall="${c.id}" title="Ligar/desligar todas"><span></span></button></td>
-      <td>${simple?`<div class="nm">${esc(c.campanha||parent.nome||c.nome)}</div>`:`<div class="nm campexp" data-expand="${c.id}"><span class="caret ${exp?"open":""}">▸</span>${esc(c.campanha||parent.nome||c.nome)}</div>`}<div class="sub2">${parent.sigla?`<b style="color:var(--accent)">${esc(parent.sigla)}</b> · `:""}${esc(parent.nome||c.nome)}${parent.formato?" · "+esc(parent.formato):""}${c.data?` · <span class="mono">${fmtDataBR(c.data)}</span>`:""}</div></td>
+      <td>${simple?`<div class="nm">${esc(c.campanha||parent.nome||c.nome)}</div>`:`<div class="nm campexp" data-expand="${c.id}"><span class="caret ${exp?"open":""}">▸</span>${esc(c.campanha||parent.nome||c.nome)}</div>`}<div class="sub2">${parent.sigla?`<b style="color:var(--accent)">${esc(parent.sigla)}</b>`:""}${c.data?` <span class="datatag">${fmtDataBR(c.data)}</span>`:""}${(parent.sigla||c.data)?" · ":""}${esc(parent.nome||c.nome)}${parent.formato?" · "+esc(parent.formato):""}</div></td>
       <td>${c.celularId?`<span class="tag">${esc(celName(c.celularId)||"?")}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
       ${chipCell}
       <td>${stageSelect(c)}</td>
