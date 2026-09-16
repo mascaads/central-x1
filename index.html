@@ -815,7 +815,7 @@ function creativoTable(list,withChip,simple){
       chipCell=`<td>${chip?`<span class="mono" style="font-size:12px">${esc(chip.numero)}</span>`:'<span style="color:var(--text-3)">— sem chip</span>'}</td>`;}
     const main=`<tr data-row="${c.id}">
       <td style="width:44px"><button class="tgl ${campAtiva(c)?"on":""}" data-tglall="${c.id}" title="Ligar/desligar todas"><span></span></button></td>
-      <td>${simple?`<div class="nm">${esc(c.campanha||parent.nome||c.nome)}</div>`:`<div class="nm campexp" data-expand="${c.id}"><span class="caret ${exp?"open":""}">▸</span>${esc(c.campanha||parent.nome||c.nome)}</div>`}<div class="sub2">${parent.sigla?`<b style="color:var(--accent)">${esc(parent.sigla)}</b>`:""}${c.data?` <span class="datatag">${fmtDataBR(c.data)}</span>`:""}${(parent.sigla||c.data)?" · ":""}${esc(parent.nome||c.nome)}${parent.formato?" · "+esc(parent.formato):""}</div></td>
+      <td>${simple?`<div class="nm">${esc(c.campanha||parent.nome||c.nome)}${c.data?` <span class="datatag">${fmtDataBR(c.data)}</span>`:""}</div>`:`<div class="nm campexp" data-expand="${c.id}"><span class="caret ${exp?"open":""}">▸</span>${esc(c.campanha||parent.nome||c.nome)}${c.data?` <span class="datatag">${fmtDataBR(c.data)}</span>`:""}</div>`}<div class="sub2">${parent.sigla?`<b style="color:var(--accent)">${esc(parent.sigla)}</b> · `:""}${esc(parent.nome||c.nome)}${parent.formato?" · "+esc(parent.formato):""}</div></td>
       <td>${c.celularId?`<span class="tag">${esc(celName(c.celularId)||"?")}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
       ${chipCell}
       <td>${stageSelect(c)}</td>
