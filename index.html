@@ -206,6 +206,18 @@ a{color:inherit}
 .qtdstep{display:inline-flex;align-items:center;gap:6px}
 .qbtn{width:22px;height:22px;border-radius:6px;border:1px solid var(--border-2);background:var(--surface-2);color:var(--text-2);font-size:15px;font-weight:700;line-height:1;display:grid;place-items:center;padding:0}
 .qbtn:hover{border-color:var(--accent);color:var(--accent)}
+.campexp{cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.caret{display:inline-block;transition:.15s;color:var(--text-3);font-size:10px}
+.caret.open{transform:rotate(90deg)}
+.subrow>td{background:var(--bg-2);padding:0}
+.subs{padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+.subs-h{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);font-weight:600;margin-bottom:2px}
+.subitem{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.subname{font-size:12.5px;color:var(--text-2);min-width:100px}
+.subbud{display:flex;align-items:center;gap:6px}
+.submoeda{font-size:12px;color:var(--text-3);font-family:var(--mono)}
+.subinput{width:110px;background:var(--surface);border:1px solid var(--border-2);color:var(--text);border-radius:8px;padding:6px 9px;font-family:var(--mono);font-size:12.5px}
+.subinput:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .ministage:hover{border-color:var(--border-2)}
 tfoot td{border-top:2px solid var(--border-2);border-bottom:0;background:var(--surface-2);padding:12px 16px}
 .sect-h h2 svg{width:15px;height:15px;vertical-align:-2px;margin-right:5px;color:var(--st-escala)}
@@ -378,7 +390,12 @@ const isVeic=c=>EM_VEIC.includes(c.estagio);
 const NEXT={modelado:"validado",validado:"pre-escala","pre-escala":"escala",escala:"zona-branca"};
 // campanha = criativo com dup:true e criativoId (pai). Criativo sólido (funil) não tem dup.
 const campsDe=cid=>DB.criativos.filter(c=>c.dup&&c.criativoId===cid);
-const celularesAtivosDe=cid=>{const ids=[...new Set(campsDe(cid).filter(c=>c.ativo&&c.celularId).map(c=>c.celularId))];return ids.map(id=>byId(DB.celulares,id)).filter(Boolean);};
+// sub-campanhas: cada campanha tem c.subs=[{ativo,orcamento}]; a moeda é da campanha
+function ensureSubs(c){if(!c.dup)return c;if(!Array.isArray(c.subs)||!c.subs.length){const n=Math.max(1,+c.qtdCampanhas||1);c.subs=[];for(let i=0;i<n;i++)c.subs.push({ativo:c.ativo!==false,orcamento:+c.orcamento||0});}return c;}
+const subOrcAtivo=c=>(c.subs||[]).filter(s=>s.ativo).reduce((a,s)=>a+(+s.orcamento||0),0);
+const campAtiva=c=>(c.subs||[]).some(s=>s.ativo);
+const campN=c=>Math.max(1,(c.subs||[]).length);
+const celularesAtivosDe=cid=>{const ids=[...new Set(campsDe(cid).filter(c=>campAtiva(c)&&c.celularId).map(c=>c.celularId))];return ids.map(id=>byId(DB.celulares,id)).filter(Boolean);};
 
 /* icons */
 const I={
@@ -453,7 +470,7 @@ function normalize(db){
     if(c.postId===undefined)c.postId="";
     if(c.criativoId===undefined)c.criativoId=null;
     if(c.sigla===undefined)c.sigla="";
-    if(c.dup){if(!CAMP_STAGES.includes(c.estagio))c.estagio="escala";}
+    if(c.dup){if(!CAMP_STAGES.includes(c.estagio))c.estagio="escala";ensureSubs(c);}
     else{if(!FUNIL_STAGES.includes(c.estagio))c.estagio="validado";}
   });
   (db.celulares||[]).forEach(c=>{if(c.ofertaId===undefined)c.ofertaId=null;if(!CEL_STATUS[c.status])c.status="aquecido";});
@@ -529,6 +546,7 @@ let openOferta=null;
 let promptFilter="Todos";
 let funilSearch="";
 let funilExpand={};
+let expandedCamps={};
 const FUNIL_LIMIT=10;
 
 function go(r){route=r;openOferta=null;render();window.scrollTo(0,0);}
@@ -653,15 +671,15 @@ function vOfertas(){
     DB.criativos=DB.criativos.filter(c=>!ofIds.includes(c.ofertaId));
     DB.ofertas=DB.ofertas.filter(o=>o.bmId!==bm.id);
     DB.bms=DB.bms.filter(b=>b.id!==bm.id);curBM=null;save();render();toast("BM excluída");});};
-  $("#view").querySelectorAll("[data-open]").forEach(el=>el.onclick=()=>{openOferta=el.dataset.open;funilSearch="";funilExpand={};render();window.scrollTo(0,0);});
+  $("#view").querySelectorAll("[data-open]").forEach(el=>el.onclick=()=>{openOferta=el.dataset.open;funilSearch="";funilExpand={};expandedCamps={};render();window.scrollTo(0,0);});
 }
 function ofertaCard(o,showBM){
   const cs=DB.criativos.filter(c=>c.ofertaId===o.id);
   const criativos=cs.filter(c=>!c.dup);const camps=cs.filter(c=>c.dup);
   const bm=byId(DB.bms,o.bmId);
-  const at=camps.filter(c=>c.ativo);
-  const orcBRL=at.filter(c=>(c.moeda||"BRL")==="BRL").reduce((s,c)=>s+ +c.orcamento,0);
-  const orcUSD=at.filter(c=>c.moeda==="USD").reduce((s,c)=>s+ +c.orcamento,0);
+  const at=camps.filter(c=>campAtiva(c));
+  const orcBRL=camps.filter(c=>(c.moeda||"BRL")==="BRL").reduce((s,c)=>s+subOrcAtivo(c),0);
+  const orcUSD=camps.filter(c=>c.moeda==="USD").reduce((s,c)=>s+subOrcAtivo(c),0);
   const segs=FUNIL_STAGES.map(id=>{const n=criativos.filter(c=>c.estagio===id).length;return n?`<i style="flex:${n};background:var(${ESTG[id].cor})"></i>`:"";}).join("");
   return `<div class="card oferta" data-open="${o.id}" style="border-left-color:${bm?.cor||"var(--accent)"}">
     <div class="top"><div><h3>${esc(o.nome)}</h3><div class="nicho">${esc(o.nicho||"—")}</div>
@@ -682,11 +700,10 @@ function vKanban(){
   const all=DB.criativos.filter(c=>c.ofertaId===of.id);
   const veic=all.filter(c=>c.dup&&isVeic(c)).sort((a,b)=>ESTAGIOS.findIndex(e=>e.id===b.estagio)-ESTAGIOS.findIndex(e=>e.id===a.estagio)||(+b.orcamento)-(+a.orcamento));
   // KPIs
-  const at=veic.filter(c=>c.ativo);
-  const orcBRL=at.filter(c=>(c.moeda||"BRL")==="BRL").reduce((s,c)=>s+ +c.orcamento,0);
-  const orcUSD=at.filter(c=>c.moeda==="USD").reduce((s,c)=>s+ +c.orcamento,0);
-  const totalCamps=veic.reduce((s,c)=>s+ (+c.qtdCampanhas||0),0);
-  const ativos=at.length;
+  const orcBRL=veic.filter(c=>(c.moeda||"BRL")==="BRL").reduce((s,c)=>s+subOrcAtivo(c),0);
+  const orcUSD=veic.filter(c=>c.moeda==="USD").reduce((s,c)=>s+subOrcAtivo(c),0);
+  const totalCamps=veic.reduce((s,c)=>s+campN(c),0);
+  const ativos=veic.filter(c=>campAtiva(c)).length;
   const orcTiles=[];
   if(orcBRL>0||orcUSD<=0)orcTiles.push(kpiTile("clock","Orçamento / dia",fmtCur(orcBRL,"BRL"),"em R$ · ativos"));
   if(orcUSD>0)orcTiles.push(kpiTile("clock","Orçamento / dia",fmtCur(orcUSD,"USD"),"em US$ · ativos"));
@@ -733,7 +750,7 @@ function vKanban(){
     <div class="board tri">${board}</div>
     ${phonesSection(of)}`;
 
-  $("#back").onclick=()=>{openOferta=null;funilSearch="";funilExpand={};render();};
+  $("#back").onclick=()=>{openOferta=null;funilSearch="";funilExpand={};expandedCamps={};render();};
   $("#editof").onclick=()=>ofertaModal(of);
   $("#delof").onclick=()=>deleteOferta(of);
   $("#addcr").onclick=()=>criativoModal(null,{ofertaId:of.id,estagio:"modelado"});
@@ -742,12 +759,17 @@ function vKanban(){
   $("#view").querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>criativoModal(null,{ofertaId:of.id,estagio:b.dataset.add}));
   $("#view").querySelectorAll(".ccard").forEach(el=>el.onclick=ev=>{if(el._dragging||ev.target.closest("[data-next]")||ev.target.closest("[data-copypost]"))return;criativoModal(byId(DB.criativos,el.dataset.id));});
   $("#view").querySelectorAll("[data-next]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.next);if(NEXT[c.estagio]){c.estagio=NEXT[c.estagio];save();render();toast(`Avançou para ${ESTG[c.estagio].nome}`);}});
-  $("#view").querySelectorAll("[data-tgl]").forEach(b=>b.onclick=()=>{const c=byId(DB.criativos,b.dataset.tgl);c.ativo=!c.ativo;save();render();});
+  $("#view").querySelectorAll("[data-tglall]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.tglall);ensureSubs(c);const on=!campAtiva(c);c.subs.forEach(s=>s.ativo=on);c.ativo=on;save();render();});
+  $("#view").querySelectorAll("[data-expand]").forEach(el=>el.onclick=()=>{const id=el.dataset.expand;expandedCamps[id]?delete expandedCamps[id]:expandedCamps[id]=true;render();});
+  $("#view").querySelectorAll("[data-subtgl]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();const[id,i]=b.dataset.subtgl.split(":");const c=byId(DB.criativos,id);ensureSubs(c);const s=c.subs[+i];if(s){s.ativo=!s.ativo;c.ativo=campAtiva(c);save();render();}});
+  $("#view").querySelectorAll("[data-suborc]").forEach(inp=>inp.onchange=()=>{const[id,i]=inp.dataset.suborc.split(":");const c=byId(DB.criativos,id);ensureSubs(c);const s=c.subs[+i];if(s){s.orcamento=parseFloat(inp.value.replace(",","."))||0;save();render();}});
+  $("#view").querySelectorAll("[data-subdel]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();const[id,i]=b.dataset.subdel.split(":");const c=byId(DB.criativos,id);ensureSubs(c);if(c.subs.length>1){c.subs.splice(+i,1);c.qtdCampanhas=c.subs.length;save();render();}});
+  $("#view").querySelectorAll("[data-subadd]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.subadd);ensureSubs(c);const last=c.subs[c.subs.length-1]||{orcamento:0};c.subs.push({ativo:true,orcamento:+last.orcamento||0});c.qtdCampanhas=c.subs.length;expandedCamps[c.id]=true;save();render();});
   $("#view").querySelectorAll("[data-copypost]").forEach(b=>b.onclick=async(ev)=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.copypost);const pid=c.dup?(byId(DB.criativos,c.criativoId)||{}).postId:c.postId;try{await navigator.clipboard.writeText(pid||"");toast("Post ID copiado ✓");}catch(e){toast("Não consegui copiar");}});
   $("#view").querySelectorAll("[data-dup]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();duplicarCampanha(byId(DB.criativos,b.dataset.dup));});
   $("#view").querySelectorAll("[data-tofunil]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();const cr=byId(DB.criativos,b.dataset.tofunil);if(cr){cr.noFunil=false;cr.estagio="validado";save();render();toast("Criativo colocado no funil (Validado) ✓");}});
-  $("#view").querySelectorAll("[data-qtdplus]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.qtdplus);c.qtdCampanhas=(+c.qtdCampanhas||0)+1;save();render();});
-  $("#view").querySelectorAll("[data-qtdminus]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.qtdminus);c.qtdCampanhas=Math.max(1,(+c.qtdCampanhas||1)-1);save();render();});
+  $("#view").querySelectorAll("[data-subplus]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.subplus);ensureSubs(c);const last=c.subs[c.subs.length-1]||{orcamento:0};c.subs.push({ativo:true,orcamento:+last.orcamento||0});c.qtdCampanhas=c.subs.length;save();render();});
+  $("#view").querySelectorAll("[data-subminus]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.subminus);ensureSubs(c);if(c.subs.length>1){c.subs.pop();c.qtdCampanhas=c.subs.length;save();render();}});
   const fs=$("#funilsearch");if(fs)fs.oninput=()=>{funilSearch=fs.value;render();const n=$("#funilsearch");if(n){n.focus();try{n.setSelectionRange(n.value.length,n.value.length);}catch(e){}}};
   $("#view").querySelectorAll("[data-vermais]").forEach(b=>b.onclick=()=>{funilExpand[openOferta+":"+b.dataset.vermais]=true;render();});
   $("#view").querySelectorAll("[data-vermenos]").forEach(b=>b.onclick=()=>{delete funilExpand[openOferta+":"+b.dataset.vermenos];render();});
@@ -763,30 +785,33 @@ function vKanban(){
 }
 function kpiTile(ico,k,v,foot,col){return `<div class="stat"><div class="k">${svg(ico)}${k}</div><div class="v" style="font-size:23px${col?`;color:var(${col})`:""}">${v}</div><div class="foot">${foot}</div></div>`;}
 function creativoTable(list,withChip,simple){
-  const at=list.filter(c=>c.ativo);
-  const orcBRL=at.filter(c=>(c.moeda||"BRL")==="BRL").reduce((s,c)=>s+ +c.orcamento,0);
-  const orcUSD=at.filter(c=>c.moeda==="USD").reduce((s,c)=>s+ +c.orcamento,0);
-  const totalCamps=list.reduce((s,c)=>s+ (+c.qtdCampanhas||0),0);
-  const sorted=[...list].sort((a,b)=>{const na=(celName(a.celularId)||"~~~").toLowerCase(),nb=(celName(b.celularId)||"~~~").toLowerCase();return na!==nb?(na<nb?-1:1):(+b.orcamento)-(+a.orcamento);});
+  const orcBRL=list.filter(c=>(c.moeda||"BRL")==="BRL").reduce((s,c)=>s+subOrcAtivo(c),0);
+  const orcUSD=list.filter(c=>c.moeda==="USD").reduce((s,c)=>s+subOrcAtivo(c),0);
+  const totalCamps=list.reduce((s,c)=>s+campN(c),0);
+  const ncols=(withChip?1:0)+(simple?0:3)+6;
+  const sorted=[...list].sort((a,b)=>{const na=(celName(a.celularId)||"~~~").toLowerCase(),nb=(celName(b.celularId)||"~~~").toLowerCase();return na!==nb?(na<nb?-1:1):subOrcAtivo(b)-subOrcAtivo(a);});
   const rows=sorted.map(c=>{
     const o=OBJ[c.objetivo]||OBJETIVOS[0];
     const parent=byId(DB.criativos,c.criativoId)||{};
     const roi=parent.roi||c.roi;const postId=parent.postId||c.postId;
+    const subs=c.subs||[];const nAtivas=subs.filter(s=>s.ativo).length;const exp=!simple&&expandedCamps[c.id];
     let chipCell="";
     if(withChip){const cel=byId(DB.celulares,c.celularId);const chip=cel?byId(DB.chips,cel.chipId):null;
       chipCell=`<td>${chip?`<span class="mono" style="font-size:12px">${esc(chip.numero)}</span>`:'<span style="color:var(--text-3)">— sem chip</span>'}</td>`;}
-    return `<tr data-row="${c.id}">
-      <td style="width:44px"><button class="tgl ${c.ativo?"on":""}" data-tgl="${c.id}" title="${c.ativo?"Ativo":"Pausado"}"><span></span></button></td>
-      <td><div class="nm">${esc(c.campanha||parent.nome||c.nome)}</div><div class="sub2">${parent.sigla?`<b style="color:var(--accent)">${esc(parent.sigla)}</b> · `:""}${esc(parent.nome||c.nome)}${parent.formato?" · "+esc(parent.formato):""}</div></td>
+    const main=`<tr data-row="${c.id}">
+      <td style="width:44px"><button class="tgl ${campAtiva(c)?"on":""}" data-tglall="${c.id}" title="Ligar/desligar todas"><span></span></button></td>
+      <td>${simple?`<div class="nm">${esc(c.campanha||parent.nome||c.nome)}</div>`:`<div class="nm campexp" data-expand="${c.id}"><span class="caret ${exp?"open":""}">▸</span>${esc(c.campanha||parent.nome||c.nome)}</div>`}<div class="sub2">${parent.sigla?`<b style="color:var(--accent)">${esc(parent.sigla)}</b> · `:""}${esc(parent.nome||c.nome)}${parent.formato?" · "+esc(parent.formato):""}</div></td>
       <td>${c.celularId?`<span class="tag">${esc(celName(c.celularId)||"?")}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
       ${chipCell}
       <td>${stageSelect(c)}</td>
       ${simple?"":`<td><span class="pill" style="color:var(${o.c});background:color-mix(in srgb,var(${o.c}) 15%,transparent)"><span class="dot"></span>${o.l}</span></td>
-      <td style="text-align:center"><div class="qtdstep"><button class="qbtn" data-qtdminus="${c.id}" title="Menos uma campanha">−</button><span class="mono" style="min-width:16px;text-align:center">${num(c.qtdCampanhas)}</span><button class="qbtn" data-qtdplus="${c.id}" title="Mais uma campanha">+</button></div></td>
-      <td class="mono" style="text-align:right">${fmtCur(c.orcamento,c.moeda)}<div class="sub2">Diário</div></td>`}
+      <td style="text-align:center"><div class="qtdstep"><button class="qbtn" data-subminus="${c.id}" title="Menos uma sub-campanha">−</button><span class="mono" style="min-width:16px;text-align:center">${campN(c)}</span><button class="qbtn" data-subplus="${c.id}" title="Mais uma sub-campanha">+</button></div></td>
+      <td class="mono" style="text-align:right">${fmtCur(subOrcAtivo(c),c.moeda)}<div class="sub2">${nAtivas}/${subs.length} ativa${subs.length>1?"s":""}</div></td>`}
       <td style="text-align:center">${roi?`<span class="pill" style="color:var(--good);background:var(--good-soft)"><span class="dot"></span>${esc(roi)}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
       <td><div class="rowact">${parent.noFunil?`<button class="iconbtn tofunil" data-tofunil="${c.criativoId}" title="Colocar o criativo no funil de validação">${svg("layers")}</button>`:""}${postId?`<button class="iconbtn" data-copypost="${c.id}" title="Copiar Post ID">${svg("copy")}</button>`:""}<button class="iconbtn" data-dup="${c.id}" title="Duplicar campanha">${svg("dup")}</button><button class="iconbtn" data-edit="${c.id}" title="Editar campanha">${svg("edit")}</button><button class="iconbtn" data-del="${c.id}" title="Excluir campanha">${svg("trash")}</button></div></td>
     </tr>`;
+    const sub=exp?`<tr class="subrow"><td colspan="${ncols}"><div class="subs"><div class="subs-h">Sub-campanhas · orçamento por unidade</div>${subs.map((s,i)=>`<div class="subitem"><button class="tgl ${s.ativo?"on":""}" data-subtgl="${c.id}:${i}" title="${s.ativo?"Ativa":"Pausada"}"><span></span></button><span class="subname">Campanha ${i+1}</span><div class="subbud"><span class="submoeda">${(CUR[c.moeda]||CUR.BRL).s}</span><input type="number" step="0.01" value="${esc(s.orcamento||"")}" data-suborc="${c.id}:${i}" class="subinput"></div>${subs.length>1?`<button class="iconbtn" data-subdel="${c.id}:${i}" title="Remover">${svg("trash")}</button>`:""}</div>`).join("")}<button class="btn sm ghost" data-subadd="${c.id}">${svg("plus")}Sub-campanha</button></div></td></tr>`:"";
+    return main+sub;
   }).join("");
   return `<div class="tblwrap"><table><thead><tr>
       <th></th><th>Campanha</th><th>Celular</th>${withChip?"<th>Chip testado</th>":""}<th>Estágio</th>${simple?"":`<th>Objetivo</th><th style="text-align:center">Nº camp.</th><th style="text-align:right">Orçamento</th>`}<th style="text-align:center">ROI</th><th></th>
@@ -1070,7 +1095,8 @@ function campanhaModal(camp,preset={},dup=false){
       else if(!parent.sigla){parent.sigla=sigla.toUpperCase();}
       const criativoId=parent.id;
       const data={criativoId,ofertaId:parent?parent.ofertaId:ofId,nome:parent?parent.nome:campanha,campanha,celularId:val(root,"celularId")||null,estagio:val(root,"estagio")||"pre-escala",ativo:val(root,"ativo")!=="pausado",orcamento:parseFloat(val(root,"orcamento").replace(",","."))||0,moeda:val(root,"moeda")||"BRL",objetivo:val(root,"objetivo")||"engj",qtdCampanhas:parseInt(val(root,"qtdCampanhas"))||1};
-      if(editing){Object.assign(camp,data);}else{DB.criativos.push({id:uid(),dup:true,...data,criadoEm:now()});}
+      if(editing){Object.assign(camp,data);ensureSubs(camp);const n=Math.max(1,+data.qtdCampanhas||1);while(camp.subs.length<n)camp.subs.push({ativo:data.ativo,orcamento:+data.orcamento||0});while(camp.subs.length>n)camp.subs.pop();camp.qtdCampanhas=camp.subs.length;}
+      else{const nc={id:uid(),dup:true,...data,criadoEm:now()};ensureSubs(nc);DB.criativos.push(nc);}
       save();render();close();toast(editing?"Campanha atualizada":(novoCr?`Campanha + criativo ${parent.sigla} criados`:(dup?"Cópia criada":"Campanha criada")));}});
   const stgSel=$('#modal-root [name="estagio"]');if(stgSel){const tg=()=>{const m=$("#campmetrics");if(m)m.style.display=stgSel.value==="teste"?"none":"";};stgSel.onchange=tg;tg();}
   const sigIn=$('#modal-root [name="sigla"]');if(sigIn){const hint=()=>{const v=sigIn.value.trim().toLowerCase();const h=$("#siglahint");if(!h)return;if(!v){h.textContent="";return;}const m=DB.criativos.find(x=>!x.dup&&x.ofertaId===ofId&&((x.sigla||"").trim().toLowerCase()===v||(x.nome||"").trim().toLowerCase()===v));if(m){h.innerHTML=`✓ Liga em: <b style="color:var(--text)">${esc(m.nome)}</b>`;h.style.color="var(--good)";}else{h.innerHTML=`Sigla nova — vai criar o criativo <b style="color:var(--text-2)">${esc(sigIn.value.trim().toUpperCase())}</b> (fora do funil, só teste)`;h.style.color="var(--text-3)";}};sigIn.oninput=hint;hint();}
