@@ -912,22 +912,29 @@ function setupPhoneDnD(){
 function vCelulares(){
   topActions(`<button class="btn pri" id="addcel">${svg("plus")}Novo celular</button>`);
   if(!DB.celulares.length){$("#view").innerHTML=empty("phone","Nenhum celular","Cadastre os aparelhos que você usa para rodar os criativos.",`<button class="btn pri" id="e">${svg("plus")}Cadastrar celular</button>`);$("#e").onclick=()=>celModal();$("#addcel").onclick=()=>celModal();return;}
-  $("#view").innerHTML=`<div class="tblwrap"><table><thead><tr><th>Celular</th><th>Oferta</th><th>Chip</th><th>Criativos rodando</th><th>Status</th><th></th></tr></thead><tbody>
-    ${DB.celulares.map(c=>{
-      const chip=DB.chips.find(k=>k.id===c.chipId);
-      const crs=DB.criativos.filter(x=>x.celularId===c.id);
-      const of=c.ofertaId&&byId(DB.ofertas,c.ofertaId);const ofbm=of&&byId(DB.bms,of.bmId);
-      return `<tr><td><div class="nm">${esc(c.nome)}</div><div class="sub2" style="display:flex;align-items:center;gap:7px">${esc(c.modelo||"—")}${chip&&last4(chip.numero)?`<span class="fourtag">${last4(chip.numero)}</span>`:""}</div></td>
-        <td>${of?`<span class="pill" style="color:var(--text-2);background:var(--surface-2)"><span class="dot" style="background:${ofbm?.cor||'var(--accent)'}"></span>${esc(of.nome)}</span>`:'<span style="color:var(--text-3)">— sem oferta</span>'}</td>
-        <td>${chip?`<span class="mono" style="font-size:12.5px">${esc(chip.numero)}</span><div class="sub2">${esc(chip.operadora)}</div>`:'<span style="color:var(--text-3)">Sem chip</span>'}</td>
-        <td>${crs.length?crs.slice(0,3).map(x=>`<span class="tag" style="margin:1px 2px 1px 0">${esc(x.nome.slice(0,26))}${x.nome.length>26?"…":""}</span>`).join(""):'<span style="color:var(--text-3)">—</span>'}${crs.length>3?`<span class="tag">+${crs.length-3}</span>`:""}</td>
-        <td>${statusPill(CEL_STATUS,c.status)}</td>
-        <td><div class="rowact"><button class="iconbtn" data-edit="${c.id}">${svg("edit")}</button><button class="iconbtn" data-del="${c.id}">${svg("trash")}</button></div></td></tr>`;
-    }).join("")}
-  </tbody></table></div>`;
+  const card=c=>{
+    const chip=byId(DB.chips,c.chipId);const of=c.ofertaId&&byId(DB.ofertas,c.ofertaId);const ofbm=of&&byId(DB.bms,of.bmId);
+    const s=CEL_STATUS[c.status]||{c:"--text-3"};
+    return `<div class="pcard" draggable="true" data-pid="${c.id}" style="border-top-color:var(${s.c})">
+      <div class="ph-top">${svg("phone")}<div class="ph-i"><b>${esc(c.nome)}</b><span>${esc(c.modelo||"—")}${chip&&last4(chip.numero)?" · ····"+last4(chip.numero):""}</span></div></div>
+      <div class="ph-foot"><span>${of?`<span style="display:inline-flex;align-items:center;gap:5px;min-width:0;overflow:hidden"><span style="width:7px;height:7px;border-radius:50%;background:${ofbm?.cor||"var(--accent)"};flex:none"></span><span style="overflow:hidden;text-overflow:ellipsis">${esc(of.nome)}</span></span>`:'<span style="color:var(--text-3)">sem oferta</span>'}</span><div style="display:flex;gap:2px;flex:none"><button class="iconbtn" data-edit="${c.id}" title="Editar">${svg("edit")}</button><button class="iconbtn" data-del="${c.id}" title="Excluir">${svg("trash")}</button></div></div>
+    </div>`;
+  };
+  const board=Object.entries(CEL_STATUS).map(([st,s])=>{
+    const group=DB.celulares.filter(c=>c.status===st);
+    return `<div class="col pcol" data-pcol="${st}">
+      <div class="col-h"><span class="cdot" style="background:var(${s.c})"></span><span class="cn">${s.l}</span><span class="cc">${group.length}</span></div>
+      <div class="col-body" data-pbody="${st}">${group.map(card).join("")||`<div class="emptycol">—</div>`}</div>
+    </div>`;
+  }).join("");
+  const known=Object.keys(CEL_STATUS);const other=DB.celulares.filter(c=>!known.includes(c.status));
+  const otherBlock=other.length?`<div class="phonegroup" style="margin-top:16px"><div class="pg-label"><span class="dot" style="background:var(--text-3)"></span>Sem status<span class="pg-count">${other.length}</span></div><div class="grid phonesgrid">${other.map(card).join("")}</div></div>`:"";
+  $("#view").innerHTML=`<div class="sect-h" style="margin-top:0"><h2>${svgInline("phone")}Todos os celulares</h2><div class="line"></div><span class="tag">arraste entre os status</span></div>
+    <div class="board pkb">${board}</div>${otherBlock}`;
   $("#addcel").onclick=()=>celModal();
   $("#view").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>celModal(byId(DB.celulares,b.dataset.edit)));
   $("#view").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const c=byId(DB.celulares,b.dataset.del);confirmDel(`Excluir "${c.nome}"?`,"Os criativos vinculados ficarão sem celular.",()=>{DB.criativos.forEach(x=>{if(x.celularId===c.id)x.celularId=null;});DB.chips.forEach(k=>{if(k.celularId===c.id)k.celularId=null;});DB.celulares=DB.celulares.filter(x=>x.id!==c.id);save();render();toast("Celular excluído");});});
+  setupPhoneDnD();
 }
 
 /* ======================= CHIPS ======================= */
