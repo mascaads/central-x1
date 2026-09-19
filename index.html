@@ -934,7 +934,7 @@ function vCelulares(){
     <div class="board pkb">${board}</div>${otherBlock}`;
   $("#addcel").onclick=()=>celModal();
   $("#view").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>celModal(byId(DB.celulares,b.dataset.edit)));
-  $("#view").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const c=byId(DB.celulares,b.dataset.del);confirmDel(`Excluir "${c.nome}"?`,"Os criativos vinculados ficarão sem celular.",()=>{DB.criativos.forEach(x=>{if(x.celularId===c.id)x.celularId=null;});DB.chips.forEach(k=>{if(k.celularId===c.id)k.celularId=null;});DB.celulares=DB.celulares.filter(x=>x.id!==c.id);save();render();toast("Celular excluído");});});
+  $("#view").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const c=byId(DB.celulares,b.dataset.del);confirmDel(`Excluir "${c.nome}"?`,"O chip vinculado também sai, e as campanhas dele ficam sem celular.",()=>{DB.criativos.forEach(x=>{if(x.celularId===c.id)x.celularId=null;});DB.chips=DB.chips.filter(k=>k.id!==c.chipId&&k.celularId!==c.id);DB.celulares=DB.celulares.filter(x=>x.id!==c.id);save();render();toast("Celular e chip removidos ✓");});});
   setupPhoneDnD();
 }
 
@@ -968,7 +968,7 @@ function vChips(){
   const cs=$("#chipsearch");if(cs)cs.oninput=()=>{chipSearch=cs.value;render();const n=$("#chipsearch");if(n){n.focus();try{n.setSelectionRange(n.value.length,n.value.length);}catch(e){}}};
   $("#view").querySelectorAll("[data-rec]").forEach(b=>b.onclick=()=>{const k=byId(DB.chips,b.dataset.rec);k.ultimaRecargaEm=now();save();render();toast("Recarga registrada ✓");});
   $("#view").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>chipModal(byId(DB.chips,b.dataset.edit)));
-  $("#view").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const k=byId(DB.chips,b.dataset.del);confirmDel(`Excluir o chip ${k.numero}?`,"Ele será removido de tudo — inclusive desvinculado do celular que o usava.",()=>{DB.celulares.forEach(c=>{if(c.chipId===k.id)c.chipId=null;});DB.chips=DB.chips.filter(x=>x.id!==k.id);save();render();toast("Chip removido de tudo ✓");});});
+  $("#view").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const k=byId(DB.chips,b.dataset.del);const cel=DB.celulares.find(c=>c.chipId===k.id);confirmDel(`Excluir o chip ${k.numero}?`,`Remove de tudo${cel?` — e o celular <b>${esc(cel.nome)}</b> também sai (o celular é o chip)`:""}.`,()=>{const celIds=DB.celulares.filter(c=>c.chipId===k.id).map(c=>c.id);DB.criativos.forEach(x=>{if(celIds.includes(x.celularId))x.celularId=null;});DB.celulares=DB.celulares.filter(c=>!celIds.includes(c.id));DB.chips=DB.chips.filter(x=>x.id!==k.id);save();render();toast(cel?"Chip e celular removidos ✓":"Chip removido ✓");});});
 }
 
 /* ======================= PROMPTS ======================= */
