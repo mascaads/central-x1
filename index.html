@@ -554,6 +554,7 @@ let funilSearch="";
 let funilExpand={};
 let expandedCamps={};
 let campSort="celular";
+let chipSearch="";
 const FUNIL_LIMIT=10;
 function sortCamps(list){const k=campSort;return [...list].sort((a,b)=>{
   if(k==="celular"){const na=(celName(a.celularId)||"~~~").toLowerCase(),nb=(celName(b.celularId)||"~~~").toLowerCase();if(na!==nb)return na<nb?-1:1;}
@@ -563,7 +564,7 @@ function sortCamps(list){const k=campSort;return [...list].sort((a,b)=>{
   return subOrcAtivo(b)-subOrcAtivo(a);
 });}
 
-function go(r){route=r;openOferta=null;render();window.scrollTo(0,0);}
+function go(r){route=r;openOferta=null;chipSearch="";render();window.scrollTo(0,0);}
 
 /* ---------- render shell ---------- */
 function renderNav(){
@@ -941,8 +942,11 @@ function vCelulares(){
 function vChips(){
   topActions(`<button class="btn pri" id="addchip">${svg("plus")}Novo chip</button>`);
   if(!DB.chips.length){$("#view").innerHTML=empty("chip","Nenhum chip","Cadastre seus chips para acompanhar recarga e aquecimento.",`<button class="btn pri" id="e">${svg("plus")}Cadastrar chip</button>`);$("#e").onclick=()=>chipModal();$("#addchip").onclick=()=>chipModal();return;}
-  const sorted=[...DB.chips].sort((a,b)=>daysBetween(b.ultimaRecargaEm)-daysBetween(a.ultimaRecargaEm));
-  $("#view").innerHTML=`<div class="grid chips">${sorted.map(k=>{
+  const q=chipSearch.trim().toLowerCase();
+  let sorted=[...DB.chips].sort((a,b)=>daysBetween(b.ultimaRecargaEm)-daysBetween(a.ultimaRecargaEm));
+  if(q)sorted=sorted.filter(k=>((k.numero||"")+" "+(celName(k.celularId)||"")).toLowerCase().includes(q));
+  $("#view").innerHTML=`<div class="sect-h" style="margin-top:0"><h2>${svgInline("chip")}Chips</h2><div class="line"></div><input id="chipsearch" class="funilsearch" placeholder="Buscar número ou celular…" value="${esc(chipSearch)}" autocomplete="off"></div>
+  ${sorted.length?`<div class="grid chips">${sorted.map(k=>{
     const rec=daysBetween(k.ultimaRecargaEm);const vida=daysBetween(k.cadastradoEm);
     const col=k.status==="banido"?"--text-3":rec>=RECARGA_ALERTA?"--crit":rec>=RECARGA_ATENCAO?"--warn":"--good";
     return `<div class="card chipc" style="border-top-color:var(${col})">
@@ -959,11 +963,12 @@ function vChips(){
         <button class="iconbtn" data-del="${k.id}">${svg("trash")}</button></div>
       ${k.notas?`<div style="margin-top:11px;font-size:12px;color:var(--text-3);padding-top:10px;border-top:1px solid var(--border)">${esc(k.notas)}</div>`:""}
     </div>`;
-  }).join("")}</div>`;
+  }).join("")}</div>`:`<div class="card" style="padding:26px;text-align:center;color:var(--text-3);font-size:13px">Nenhum chip encontrado para "<b style="color:var(--text-2)">${esc(chipSearch)}</b>".</div>`}`;
   $("#addchip").onclick=()=>chipModal();
+  const cs=$("#chipsearch");if(cs)cs.oninput=()=>{chipSearch=cs.value;render();const n=$("#chipsearch");if(n){n.focus();try{n.setSelectionRange(n.value.length,n.value.length);}catch(e){}}};
   $("#view").querySelectorAll("[data-rec]").forEach(b=>b.onclick=()=>{const k=byId(DB.chips,b.dataset.rec);k.ultimaRecargaEm=now();save();render();toast("Recarga registrada ✓");});
   $("#view").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>chipModal(byId(DB.chips,b.dataset.edit)));
-  $("#view").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const k=byId(DB.chips,b.dataset.del);confirmDel(`Excluir chip ${k.numero}?`,"",()=>{DB.celulares.forEach(c=>{if(c.chipId===k.id)c.chipId=null;});DB.chips=DB.chips.filter(x=>x.id!==k.id);save();render();toast("Chip excluído");});});
+  $("#view").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const k=byId(DB.chips,b.dataset.del);confirmDel(`Excluir o chip ${k.numero}?`,"Ele será removido de tudo — inclusive desvinculado do celular que o usava.",()=>{DB.celulares.forEach(c=>{if(c.chipId===k.id)c.chipId=null;});DB.chips=DB.chips.filter(x=>x.id!==k.id);save();render();toast("Chip removido de tudo ✓");});});
 }
 
 /* ======================= PROMPTS ======================= */
