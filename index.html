@@ -1144,10 +1144,13 @@ function campanhaModal(camp,preset={},dup=false){
     let est="";if(/TEST/.test(up))est="teste";else if(/PR[EÉ]/.test(up))est="pre-escala";else if(/ESCALA/.test(up))est="escala";
     let obj="";const compras=/COMPRAS/.test(up);if(/ENGJ|ENGAJ/.test(up))obj=compras?"engj-compras":"engj";else if(/CONVERSA/.test(up))obj=compras?"conversas-compras":"conversas";
     let cel="";for(const c of celList){if(c.nome&&up.includes(c.nome.toUpperCase())){cel=c.id;break;}}
+    // data no nome: 23.09 / 23-09 / 23/09 (com ou sem ano)
+    let iso="";{const dm=nm.match(/(?:^|[^\d])([0-3]?\d)[.\/-]([01]?\d)(?:[.\/-](\d{2,4}))?(?![\d])/);if(dm){const dd=+dm[1],mm=+dm[2];let yy=dm[3]?+dm[3]:new Date().getFullYear();if(yy<100)yy+=2000;if(dd>=1&&dd<=31&&mm>=1&&mm<=12)iso=`${yy}-${String(mm).padStart(2,"0")}-${String(dd).padStart(2,"0")}`;}}
     if(sig){const si=$('#modal-root [name="sigla"]');if(si&&si.value.trim().toLowerCase()!==sig.toLowerCase()){si.value=sig;si.dispatchEvent(new Event("input"));}}
     if(est){const m=$("#campmetrics");if(m)m.style.display=est==="teste"?"none":"";}
     if(obj)selObj(obj);
     if(cel){const cc=$('#modal-root [name="celularId"]');if(cc&&cc.value!==cel)cc.value=cel;}
+    if(iso){const di=$('#modal-root [name="data"]');if(di&&di.value!==iso)di.value=iso;}
   };
   const selObj=(v)=>{const hid=$('#modal-root [name="objetivo"]');if(hid)hid.value=v;const oc=$("#objchips");if(oc)oc.querySelectorAll("[data-obj]").forEach(b=>b.classList.toggle("on",b.dataset.obj===v));};
   {const oc=$("#objchips");if(oc)oc.querySelectorAll("[data-obj]").forEach(b=>b.onclick=()=>selObj(b.dataset.obj));}
