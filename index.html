@@ -213,6 +213,9 @@ a{color:inherit}
 .campexp{cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .caret{display:inline-block;transition:.15s;color:var(--text-3);font-size:10px}
 .caret.open{transform:rotate(90deg)}
+.grouprow>td{background:var(--surface-2);border-top:2px solid var(--border-2);padding:9px 16px;font-size:12.5px}
+.grouprow b{font-weight:600}
+.grouprow .gmeta{color:var(--text-3);font-weight:500;margin-left:10px;font-size:11.5px}
 .subrow>td{background:var(--bg-2);padding:0}
 .subs{padding:12px 16px;display:flex;flex-direction:column;gap:8px}
 .subs-h{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);font-weight:600;margin-bottom:2px}
@@ -554,6 +557,7 @@ let funilSearch="";
 let funilExpand={};
 let expandedCamps={};
 let campSort="celular";
+let campGroup=true;
 let chipSearch="";
 const FUNIL_LIMIT=10;
 function sortCamps(list){const k=campSort;return [...list].sort((a,b)=>{
@@ -757,7 +761,7 @@ function vKanban(){
       ${of.nicho?`<span class="tag">${esc(of.nicho)}</span>`:""}
     </div>
     ${kpi}
-    <div class="sect-h" style="margin-top:6px"><h2>${svgInline("bolt")}Em veiculação · Pré-escala & Escala</h2><div class="line"></div><div class="sortby"><span>Ordenar:</span><select id="campsort">${[["celular","Celular"],["estagio","Estágio"],["objetivo","Objetivo"],["campanha","Nome da campanha"]].map(([v,l])=>`<option value="${v}" ${campSort===v?"selected":""}>${l}</option>`).join("")}</select></div><button class="btn sm pri" id="addcamp">${svg("plus")}Adicionar campanha</button></div>
+    <div class="sect-h" style="margin-top:6px"><h2>${svgInline("bolt")}Em veiculação · Pré-escala & Escala</h2><div class="line"></div><button class="btn sm ${campGroup?"":"ghost"}" id="campgroup" title="Agrupar campanhas por criativo">${svgInline("layers")}Agrupar</button><div class="sortby"><span>Ordenar:</span><select id="campsort">${[["celular","Celular"],["estagio","Estágio"],["objetivo","Objetivo"],["campanha","Nome da campanha"]].map(([v,l])=>`<option value="${v}" ${campSort===v?"selected":""}>${l}</option>`).join("")}</select></div><button class="btn sm pri" id="addcamp">${svg("plus")}Adicionar campanha</button></div>
     ${veicBlock}
     <div class="sect-h"><h2 style="color:var(--st-teste)">${svgInline("film")}Em teste</h2><div class="line"></div><button class="btn sm" id="addteste">${svg("plus")}Adicionar campanha de teste</button></div>
     ${testeBlock}
@@ -772,6 +776,7 @@ function vKanban(){
   const at2=$("#addteste");if(at2)at2.onclick=()=>campanhaModal(null,{ofertaId:of.id,estagio:"teste"});
   const ac=$("#addcamp");if(ac)ac.onclick=()=>campanhaModal(null,{ofertaId:of.id,estagio:"pre-escala"});
   const cso=$("#campsort");if(cso)cso.onchange=()=>{campSort=cso.value;render();};
+  const cgo=$("#campgroup");if(cgo)cgo.onclick=()=>{campGroup=!campGroup;render();};
   $("#view").querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>criativoModal(null,{ofertaId:of.id,estagio:b.dataset.add}));
   $("#view").querySelectorAll(".ccard").forEach(el=>el.onclick=ev=>{if(el._dragging||ev.target.closest("[data-next]")||ev.target.closest("[data-copypost]"))return;criativoModal(byId(DB.criativos,el.dataset.id));});
   $("#view").querySelectorAll("[data-next]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.next);if(NEXT[c.estagio]){c.estagio=NEXT[c.estagio];save();render();toast(`Avançou para ${ESTG[c.estagio].nome}`);}});
@@ -806,7 +811,7 @@ function creativoTable(list,withChip,simple){
   const totalCamps=list.reduce((s,c)=>s+campN(c),0);
   const ncols=(withChip?1:0)+(simple?0:3)+6;
   const sorted=sortCamps(list);
-  const rows=sorted.map(c=>{
+  const rowFn=c=>{
     const o=OBJ[c.objetivo]||OBJETIVOS[0];
     const parent=byId(DB.criativos,c.criativoId)||{};
     const roi=parent.roi||c.roi;const postId=parent.postId||c.postId;
@@ -828,7 +833,17 @@ function creativoTable(list,withChip,simple){
     </tr>`;
     const sub=exp?`<tr class="subrow"><td colspan="${ncols}"><div class="subs"><div class="subs-h">Sub-campanhas · orçamento por unidade</div>${subs.map((s,i)=>`<div class="subitem"><button class="tgl ${s.ativo?"on":""}" data-subtgl="${c.id}:${i}" title="${s.ativo?"Ativa":"Pausada"}"><span></span></button><span class="subname">Campanha ${i+1}</span><div class="subbud"><span class="submoeda">${(CUR[c.moeda]||CUR.BRL).s}</span><input type="number" step="0.01" value="${esc(s.orcamento||"")}" data-suborc="${c.id}:${i}" class="subinput"></div>${subs.length>1?`<button class="iconbtn" data-subdel="${c.id}:${i}" title="Remover">${svg("trash")}</button>`:""}</div>`).join("")}<button class="btn sm ghost" data-subadd="${c.id}">${svg("plus")}Sub-campanha</button></div></td></tr>`:"";
     return main+sub;
-  }).join("");
+  };
+  let rows;
+  if(campGroup){
+    const seen={},groups=[];
+    sorted.forEach(c=>{const gid=c.criativoId||"_";if(!seen[gid]){seen[gid]={id:gid,items:[]};groups.push(seen[gid]);}seen[gid].items.push(c);});
+    groups.sort((a,b)=>{const pa=byId(DB.criativos,a.id)||{},pb=byId(DB.criativos,b.id)||{};const sa=(pa.sigla||pa.nome||"~~~").toLowerCase(),sb=(pb.sigla||pb.nome||"~~~").toLowerCase();return sa<sb?-1:sa>sb?1:0;});
+    rows=groups.map(g=>{const p=byId(DB.criativos,g.id)||{};const gb=g.items.filter(c=>(c.moeda||"BRL")==="BRL").reduce((s,c)=>s+subOrcAtivo(c),0),gu=g.items.filter(c=>c.moeda==="USD").reduce((s,c)=>s+subOrcAtivo(c),0);const nc=g.items.reduce((s,c)=>s+campN(c),0);
+      const head=`<tr class="grouprow"><td colspan="${ncols}">${p.sigla?`<span class="sigtag">${esc(p.sigla)}</span> `:""}<b>${esc(p.nome||"Sem criativo")}</b><span class="gmeta">${g.items.length} campanha${g.items.length>1?"s":""} · ${nc} camp. · ${orcSummary(gb,gu)}/dia</span></td></tr>`;
+      return head+g.items.map(rowFn).join("");
+    }).join("");
+  }else{rows=sorted.map(rowFn).join("");}
   return `<div class="tblwrap"><table><thead><tr>
       <th></th><th>Campanha</th><th>Celular</th>${withChip?"<th>Chip testado</th>":""}<th>Estágio</th>${simple?"":`<th>Objetivo</th><th style="text-align:center">Nº camp.</th><th style="text-align:right">Orçamento</th>`}<th style="text-align:center">ROI</th><th></th>
     </tr></thead><tbody>${rows}</tbody>
@@ -1128,6 +1143,18 @@ function campanhaModal(camp,preset={},dup=false){
       save();render();close();toast(editing?"Campanha atualizada":(novoCr?`Campanha + criativo ${parent.sigla} criados`:(dup?"Cópia criada":"Campanha criada")));}});
   const stgSel=$('#modal-root [name="estagio"]');if(stgSel){const tg=()=>{const m=$("#campmetrics");if(m)m.style.display=stgSel.value==="teste"?"none":"";};stgSel.onchange=tg;tg();}
   const sigIn=$('#modal-root [name="sigla"]');if(sigIn){const hint=()=>{const v=sigIn.value.trim().toLowerCase();const h=$("#siglahint");if(!h)return;if(!v){h.textContent="";return;}const m=DB.criativos.find(x=>!x.dup&&x.ofertaId===ofId&&((x.sigla||"").trim().toLowerCase()===v||(x.nome||"").trim().toLowerCase()===v));if(m){h.innerHTML=`✓ Liga em: <b style="color:var(--text)">${esc(m.nome)}</b>`;h.style.color="var(--good)";}else{h.innerHTML=`Sigla nova — vai criar o criativo <b style="color:var(--text-2)">${esc(sigIn.value.trim().toUpperCase())}</b> (fora do funil, só teste)`;h.style.color="var(--text-3)";}};sigIn.oninput=hint;hint();}
+  const nmIn=$('#modal-root [name="campanha"]');if(nmIn)nmIn.oninput=()=>{
+    const nm=nmIn.value,up=nm.toUpperCase();if(!up.trim())return;
+    let sig="";for(const s of criativos.filter(x=>x.sigla).map(x=>x.sigla)){if(new RegExp("(^|[^A-Z0-9])"+s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"([^A-Z0-9]|$)","i").test(nm)){sig=s;break;}}
+    if(!sig){const m2=up.match(/(^|[^A-Z0-9])([A-Z]{1,3}\d{1,4})([^A-Z0-9]|$)/);if(m2)sig=m2[2];}
+    let est="";if(/TEST/.test(up))est="teste";else if(/PR[EÉ]/.test(up))est="pre-escala";else if(/ESCALA/.test(up))est="escala";
+    let obj="";const compras=/COMPRAS/.test(up);if(/ENGJ|ENGAJ/.test(up))obj=compras?"engj-compras":"engj";else if(/CONVERSA/.test(up))obj=compras?"conversas-compras":"conversas";
+    let cel="";for(const c of celList){if(c.nome&&up.includes(c.nome.toUpperCase())){cel=c.id;break;}}
+    if(sig){const si=$('#modal-root [name="sigla"]');if(si&&si.value.trim().toLowerCase()!==sig.toLowerCase()){si.value=sig;si.dispatchEvent(new Event("input"));}}
+    if(est){const e=$('#modal-root [name="estagio"]');if(e&&e.value!==est){e.value=est;e.dispatchEvent(new Event("change"));}}
+    if(obj){const o=$('#modal-root [name="objetivo"]');if(o&&o.value!==obj)o.value=obj;}
+    if(cel){const cc=$('#modal-root [name="celularId"]');if(cc&&cc.value!==cel)cc.value=cel;}
+  };
   if(editing){const f=$("#modal-root .modal-f");f.insertAdjacentHTML("afterbegin",`<button class="btn ghost danger" id="delcamp2">${svg("trash")}Excluir</button><button class="btn ghost" style="margin-right:auto" id="dupcamp2">${svg("dup")}Duplicar</button>`);
     $("#delcamp2").onclick=()=>{$("#modal-root").innerHTML="";confirmDel(`Excluir a campanha "${esc(camp.campanha||camp.nome)}"?`,"Remove só esta rodada. O criativo continua no funil.",()=>{DB.criativos=DB.criativos.filter(x=>x.id!==camp.id);save();render();toast("Campanha excluída");});};
     $("#dupcamp2").onclick=()=>{$("#modal-root").innerHTML="";duplicarCampanha(camp);};}
