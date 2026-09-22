@@ -1120,10 +1120,9 @@ function campanhaModal(camp,preset={},dup=false){
     <div class="field"><label>Sigla do criativo <span class="opt">(faz a ligação sozinha)</span></label><input name="sigla" list="siglalist" value="${esc(curSigla)}" placeholder="Ex.: C04" autocomplete="off" style="text-transform:uppercase"><datalist id="siglalist">${criativos.filter(x=>x.sigla).map(x=>`<option value="${esc(x.sigla)}">${esc(x.nome)}</option>`).join("")}</datalist><div id="siglahint" style="font-size:11.5px;margin-top:6px;color:var(--text-3)"></div></div>
     <div class="frow">${field("Nome da campanha","campanha",c.campanha||"",{ph:"Ex.: 08.08 ESCALA CELULAR 9"})}
     ${field("Celular","celularId",c.celularId||"",{type:"select",options:celOpts})}</div>
-    <div class="frow">${field("Estágio","estagio",CAMP_STAGES.includes(c.estagio)?c.estagio:"pre-escala",{type:"select",options:CAMP_STAGES.map(id=>({v:id,l:ESTG[id].nome}))})}
-    ${field("Data","data",c.data||todayISO(),{type:"date"})}</div>
-    ${field("Status","ativo",c.ativo===false?"pausado":"ativo",{type:"select",options:[{v:"ativo",l:"Ativo"},{v:"pausado",l:"Pausado"}]})}
-    <div id="campmetrics"><div class="frow"><div class="field"><label>Orçamento diário</label>
+    <div class="frow">${field("Data","data",c.data||todayISO(),{type:"date"})}
+    ${field("Status","ativo",c.ativo===false?"pausado":"ativo",{type:"select",options:[{v:"ativo",l:"Ativo"},{v:"pausado",l:"Pausado"}]})}</div>
+    <div id="campmetrics" style="${c.estagio==="teste"?"display:none":""}"><div class="frow"><div class="field"><label>Orçamento diário</label>
       <div style="display:flex;gap:8px"><input name="orcamento" type="number" step="0.01" value="${esc(c.orcamento||"")}" placeholder="40,00" style="flex:1">
       <select name="moeda" style="width:88px;background:var(--bg-2);border:1px solid var(--border-2);color:var(--text);border-radius:10px;padding:10px 8px">${[["BRL","R$"],["USD","US$"]].map(([v,l])=>`<option value="${v}" ${(c.moeda||"BRL")===v?"selected":""}>${l}</option>`).join("")}</select></div></div>
     ${field("Objetivo","objetivo",c.objetivo||"engj",{type:"select",options:OBJETIVOS.map(o=>({v:o.v,l:o.l}))})}</div>
@@ -1137,11 +1136,10 @@ function campanhaModal(camp,preset={},dup=false){
       if(!parent){parent={id:uid(),ofertaId:ofId,sigla:sigla.toUpperCase(),nome:sigla.toUpperCase(),estagio:"modelado",formato:"",roi:"",postId:"",notas:"",noFunil:true,criadoEm:now()};DB.criativos.push(parent);novoCr=true;}
       else if(!parent.sigla){parent.sigla=sigla.toUpperCase();}
       const criativoId=parent.id;
-      const data={criativoId,ofertaId:parent?parent.ofertaId:ofId,nome:parent?parent.nome:campanha,campanha,celularId:val(root,"celularId")||null,estagio:val(root,"estagio")||"pre-escala",ativo:val(root,"ativo")!=="pausado",orcamento:parseFloat(val(root,"orcamento").replace(",","."))||0,moeda:val(root,"moeda")||"BRL",objetivo:val(root,"objetivo")||"engj",qtdCampanhas:parseInt(val(root,"qtdCampanhas"))||1,data:val(root,"data")||todayISO()};
+      const data={criativoId,ofertaId:parent?parent.ofertaId:ofId,nome:parent?parent.nome:campanha,campanha,celularId:val(root,"celularId")||null,estagio:(()=>{const u=campanha.toUpperCase();return(/TEST/.test(u)?"teste":/PR[EÉ]/.test(u)?"pre-escala":/ESCALA/.test(u)?"escala":"")||c.estagio||"pre-escala";})(),ativo:val(root,"ativo")!=="pausado",orcamento:parseFloat(val(root,"orcamento").replace(",","."))||0,moeda:val(root,"moeda")||"BRL",objetivo:val(root,"objetivo")||"engj",qtdCampanhas:parseInt(val(root,"qtdCampanhas"))||1,data:val(root,"data")||todayISO()};
       if(editing){Object.assign(camp,data);ensureSubs(camp);const n=Math.max(1,+data.qtdCampanhas||1);while(camp.subs.length<n)camp.subs.push({ativo:data.ativo,orcamento:+data.orcamento||0});while(camp.subs.length>n)camp.subs.pop();camp.qtdCampanhas=camp.subs.length;}
       else{const nc={id:uid(),dup:true,...data,criadoEm:now()};ensureSubs(nc);DB.criativos.push(nc);}
       save();render();close();toast(editing?"Campanha atualizada":(novoCr?`Campanha + criativo ${parent.sigla} criados`:(dup?"Cópia criada":"Campanha criada")));}});
-  const stgSel=$('#modal-root [name="estagio"]');if(stgSel){const tg=()=>{const m=$("#campmetrics");if(m)m.style.display=stgSel.value==="teste"?"none":"";};stgSel.onchange=tg;tg();}
   const sigIn=$('#modal-root [name="sigla"]');if(sigIn){const hint=()=>{const v=sigIn.value.trim().toLowerCase();const h=$("#siglahint");if(!h)return;if(!v){h.textContent="";return;}const m=DB.criativos.find(x=>!x.dup&&x.ofertaId===ofId&&((x.sigla||"").trim().toLowerCase()===v||(x.nome||"").trim().toLowerCase()===v));if(m){h.innerHTML=`✓ Liga em: <b style="color:var(--text)">${esc(m.nome)}</b>`;h.style.color="var(--good)";}else{h.innerHTML=`Sigla nova — vai criar o criativo <b style="color:var(--text-2)">${esc(sigIn.value.trim().toUpperCase())}</b> (fora do funil, só teste)`;h.style.color="var(--text-3)";}};sigIn.oninput=hint;hint();}
   const nmIn=$('#modal-root [name="campanha"]');if(nmIn)nmIn.oninput=()=>{
     const nm=nmIn.value,up=nm.toUpperCase();if(!up.trim())return;
@@ -1151,7 +1149,7 @@ function campanhaModal(camp,preset={},dup=false){
     let obj="";const compras=/COMPRAS/.test(up);if(/ENGJ|ENGAJ/.test(up))obj=compras?"engj-compras":"engj";else if(/CONVERSA/.test(up))obj=compras?"conversas-compras":"conversas";
     let cel="";for(const c of celList){if(c.nome&&up.includes(c.nome.toUpperCase())){cel=c.id;break;}}
     if(sig){const si=$('#modal-root [name="sigla"]');if(si&&si.value.trim().toLowerCase()!==sig.toLowerCase()){si.value=sig;si.dispatchEvent(new Event("input"));}}
-    if(est){const e=$('#modal-root [name="estagio"]');if(e&&e.value!==est){e.value=est;e.dispatchEvent(new Event("change"));}}
+    if(est){const m=$("#campmetrics");if(m)m.style.display=est==="teste"?"none":"";}
     if(obj){const o=$('#modal-root [name="objetivo"]');if(o&&o.value!==obj)o.value=obj;}
     if(cel){const cc=$('#modal-root [name="celularId"]');if(cc&&cc.value!==cel)cc.value=cel;}
   };
