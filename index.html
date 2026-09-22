@@ -157,6 +157,11 @@ a{color:inherit}
 .sortby{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;color:var(--text-3);font-weight:600}
 .sortby select{background:var(--bg-2);border:1px solid var(--border-2);color:var(--text);border-radius:8px;padding:5px 8px;font-size:12px;font-weight:600;font-family:var(--sans)}
 .sortby select:hover{border-color:var(--border-2)}
+.objchips{display:flex;flex-wrap:wrap;gap:8px}
+.objchip{display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:9px;border:1px solid var(--border-2);background:var(--bg-2);color:var(--text-2);font-size:12.5px;font-weight:600;font-family:var(--sans)}
+.objchip .dot{width:8px;height:8px;border-radius:50%;background:var(--oc);flex:none}
+.objchip:hover{border-color:var(--oc);color:var(--text)}
+.objchip.on{border-color:var(--oc);background:color-mix(in srgb,var(--oc) 15%,transparent);color:var(--text)}
 .kadd:hover{border-color:var(--accent);color:var(--accent)}
 .ccard{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:12px 13px;cursor:grab;transition:.12s;border-top:2px solid var(--accent)}
 .ccard:hover{border-color:var(--border-2);box-shadow:var(--shadow)}
@@ -1123,9 +1128,9 @@ function campanhaModal(camp,preset={},dup=false){
     ${field("Status","ativo",c.ativo===false?"pausado":"ativo",{type:"select",options:[{v:"ativo",l:"Ativo"},{v:"pausado",l:"Pausado"}]})}</div>
     <div id="campmetrics" style="${c.estagio==="teste"?"display:none":""}"><div class="frow"><div class="field"><label>Orçamento diário</label>
       <div style="display:flex;gap:8px"><input name="orcamento" type="number" step="0.01" value="${esc(c.orcamento||"")}" placeholder="40,00" style="flex:1">
-      <select name="moeda" style="width:88px;background:var(--bg-2);border:1px solid var(--border-2);color:var(--text);border-radius:10px;padding:10px 8px">${[["BRL","R$"],["USD","US$"]].map(([v,l])=>`<option value="${v}" ${(c.moeda||"BRL")===v?"selected":""}>${l}</option>`).join("")}</select></div></div>
-    ${field("Objetivo","objetivo",c.objetivo||"engj",{type:"select",options:OBJETIVOS.map(o=>({v:o.v,l:o.l}))})}</div>
-    ${field("Nº de campanhas","qtdCampanhas",c.qtdCampanhas||"1",{type:"number",ph:"1"})}</div>`,
+      <select name="moeda" style="width:88px;background:var(--bg-2);border:1px solid var(--border-2);color:var(--text);border-radius:10px;padding:10px 8px">${[["USD","US$"],["BRL","R$"]].map(([v,l])=>`<option value="${v}" ${(c.moeda||"USD")===v?"selected":""}>${l}</option>`).join("")}</select></div></div>
+    ${field("Nº de campanhas","qtdCampanhas",c.qtdCampanhas||"1",{type:"number",ph:"1"})}</div>
+    <div class="field"><label>Objetivo</label><div class="objchips" id="objchips">${OBJETIVOS.map(o=>`<button type="button" class="objchip ${(c.objetivo||"engj")===o.v?"on":""}" data-obj="${o.v}" style="--oc:var(${o.c})"><span class="dot"></span>${esc(o.l)}</button>`).join("")}</div><input type="hidden" name="objetivo" value="${c.objetivo||"engj"}"></div></div>`,
     onOk:close=>{const root=$("#modal-root");
       const campanha=val(root,"campanha");if(!campanha)return toast("Dê um nome à campanha"),false;
       const sigla=val(root,"sigla").trim();if(!sigla)return toast("Informe a sigla do criativo (ex.: C04)"),false;
@@ -1149,9 +1154,11 @@ function campanhaModal(camp,preset={},dup=false){
     let cel="";for(const c of celList){if(c.nome&&up.includes(c.nome.toUpperCase())){cel=c.id;break;}}
     if(sig){const si=$('#modal-root [name="sigla"]');if(si&&si.value.trim().toLowerCase()!==sig.toLowerCase()){si.value=sig;si.dispatchEvent(new Event("input"));}}
     if(est){const m=$("#campmetrics");if(m)m.style.display=est==="teste"?"none":"";}
-    if(obj){const o=$('#modal-root [name="objetivo"]');if(o&&o.value!==obj)o.value=obj;}
+    if(obj)selObj(obj);
     if(cel){const cc=$('#modal-root [name="celularId"]');if(cc&&cc.value!==cel)cc.value=cel;}
   };
+  const selObj=(v)=>{const hid=$('#modal-root [name="objetivo"]');if(hid)hid.value=v;const oc=$("#objchips");if(oc)oc.querySelectorAll("[data-obj]").forEach(b=>b.classList.toggle("on",b.dataset.obj===v));};
+  {const oc=$("#objchips");if(oc)oc.querySelectorAll("[data-obj]").forEach(b=>b.onclick=()=>selObj(b.dataset.obj));}
   if(editing){const f=$("#modal-root .modal-f");f.insertAdjacentHTML("afterbegin",`<button class="btn ghost danger" id="delcamp2">${svg("trash")}Excluir</button><button class="btn ghost" style="margin-right:auto" id="dupcamp2">${svg("dup")}Duplicar</button>`);
     $("#delcamp2").onclick=()=>{$("#modal-root").innerHTML="";confirmDel(`Excluir a campanha "${esc(camp.campanha||camp.nome)}"?`,"Remove só esta rodada. O criativo continua no funil.",()=>{DB.criativos=DB.criativos.filter(x=>x.id!==camp.id);save();render();toast("Campanha excluída");});};
     $("#dupcamp2").onclick=()=>{$("#modal-root").innerHTML="";duplicarCampanha(camp);};}
