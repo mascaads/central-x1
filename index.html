@@ -809,7 +809,7 @@ function creativoTable(list,withChip,simple){
   const orcBRL=list.filter(c=>(c.moeda||"BRL")==="BRL").reduce((s,c)=>s+subOrcAtivo(c),0);
   const orcUSD=list.filter(c=>c.moeda==="USD").reduce((s,c)=>s+subOrcAtivo(c),0);
   const totalCamps=list.reduce((s,c)=>s+campN(c),0);
-  const ncols=(withChip?1:0)+(simple?0:3)+6;
+  const ncols=(withChip?1:0)+(simple?0:3)+5;
   const sorted=sortCamps(list);
   const rowFn=c=>{
     const o=OBJ[c.objetivo]||OBJETIVOS[0];
@@ -824,7 +824,6 @@ function creativoTable(list,withChip,simple){
       <td>${simple?`<div class="nm">${esc(c.campanha||parent.nome||c.nome)}${c.data?` <span class="datatag">${fmtDataBR(c.data)}</span>`:""}</div>`:`<div class="nm campexp" data-expand="${c.id}"><span class="caret ${exp?"open":""}">▸</span>${esc(c.campanha||parent.nome||c.nome)}${c.data?` <span class="datatag">${fmtDataBR(c.data)}</span>`:""}</div>`}<div class="sub2">${parent.sigla?`<b style="color:var(--accent)">${esc(parent.sigla)}</b> · `:""}${esc(parent.nome||c.nome)}${parent.formato?" · "+esc(parent.formato):""}</div></td>
       <td>${c.celularId?`<span class="tag">${esc(celName(c.celularId)||"?")}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
       ${chipCell}
-      <td>${stageSelect(c)}</td>
       ${simple?"":`<td><span class="pill" style="color:var(${o.c});background:color-mix(in srgb,var(${o.c}) 15%,transparent)"><span class="dot"></span>${o.l}</span></td>
       <td style="text-align:center"><div class="qtdstep"><button class="qbtn" data-subminus="${c.id}" title="Menos uma sub-campanha">−</button><span class="mono" style="min-width:16px;text-align:center">${campN(c)}</span><button class="qbtn" data-subplus="${c.id}" title="Mais uma sub-campanha">+</button></div></td>
       <td class="mono" style="text-align:right">${fmtCur(subOrcAtivo(c),c.moeda)}<div class="sub2">${nAtivas}/${subs.length} ativa${subs.length>1?"s":""}</div></td>`}
@@ -845,10 +844,10 @@ function creativoTable(list,withChip,simple){
     }).join("");
   }else{rows=sorted.map(rowFn).join("");}
   return `<div class="tblwrap"><table><thead><tr>
-      <th></th><th>Campanha</th><th>Celular</th>${withChip?"<th>Chip testado</th>":""}<th>Estágio</th>${simple?"":`<th>Objetivo</th><th style="text-align:center">Nº camp.</th><th style="text-align:right">Orçamento</th>`}<th style="text-align:center">ROI</th><th></th>
+      <th></th><th>Campanha</th><th>Celular</th>${withChip?"<th>Chip testado</th>":""}${simple?"":`<th>Objetivo</th><th style="text-align:center">Nº camp.</th><th style="text-align:right">Orçamento</th>`}<th style="text-align:center">ROI</th><th></th>
     </tr></thead><tbody>${rows}</tbody>
     <tfoot><tr>
-      <td></td><td style="font-weight:600">Resultados de ${list.length} campanha${list.length>1?"s":""}</td><td></td>${withChip?"<td></td>":""}<td></td>
+      <td></td><td style="font-weight:600">Resultados de ${list.length} campanha${list.length>1?"s":""}</td><td></td>${withChip?"<td></td>":""}
       ${simple?"":`<td></td><td class="mono" style="text-align:center;font-weight:600">${num(totalCamps)}</td><td class="mono" style="text-align:right;font-weight:600">${orcSummary(orcBRL,orcUSD)}<div class="sub2">Diário ativo</div></td>`}
       <td></td><td></td>
     </tr></tfoot></table></div>`;
