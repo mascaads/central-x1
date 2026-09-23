@@ -412,6 +412,8 @@ const subOrcAtivo=c=>(c.subs||[]).filter(s=>s.ativo).reduce((a,s)=>a+(+s.orcamen
 const campAtiva=c=>(c.subs||[]).some(s=>s.ativo);
 const campN=c=>Math.max(1,(c.subs||[]).length);
 const celularesAtivosDe=cid=>{const ids=[...new Set(campsDe(cid).filter(c=>campAtiva(c)&&c.celularId).map(c=>c.celularId))];return ids.map(id=>byId(DB.celulares,id)).filter(Boolean);};
+// Celular "Caiu": desativa (NÃO exclui) as campanhas dele. Retorna quantas foram desativadas.
+function desativarCampsDoCelular(celId){let n=0;DB.criativos.forEach(c=>{if(c.dup&&c.celularId===celId){ensureSubs(c);(c.subs||[]).forEach(s=>{if(s.ativo){s.ativo=false;n++;}});c.ativo=false;}});return n;}
 
 /* icons */
 const I={
@@ -916,7 +918,7 @@ function setupPhoneDnD(){
   $("#view").querySelectorAll(".pcol").forEach(col=>{
     col.addEventListener("dragover",e=>{e.preventDefault();col.classList.add("drop");});
     col.addEventListener("dragleave",e=>{if(!col.contains(e.relatedTarget))col.classList.remove("drop");});
-    col.addEventListener("drop",e=>{e.preventDefault();col.classList.remove("drop");if(!dragPid)return;const c=byId(DB.celulares,dragPid);const st=col.dataset.pcol;if(c&&c.status!==st){c.status=st;save();render();toast(`${c.nome} → ${CEL_STATUS[st].l}`);}});
+    col.addEventListener("drop",e=>{e.preventDefault();col.classList.remove("drop");if(!dragPid)return;const c=byId(DB.celulares,dragPid);const st=col.dataset.pcol;if(c&&c.status!==st){c.status=st;let msg=`${c.nome} → ${CEL_STATUS[st].l}`;if(st==="banido"){const n=desativarCampsDoCelular(c.id);if(n)msg+=` · ${n} campanha${n>1?"s":""} desativada${n>1?"s":""}`;}save();render();toast(msg);}});
   });
 }
 
@@ -1171,9 +1173,11 @@ function celModal(cel){
     ${field("Notas","notas",cel?.notas||"",{type:"textarea",optional:true})}`,
     onOk:close=>{const root=$("#modal-root");const nome=val(root,"nome");if(!nome)return toast("Dê um apelido ao celular"),false;
       const data={nome,modelo:val(root,"modelo"),chipId:val(root,"chipId")||null,ofertaId:val(root,"ofertaId")||null,status:val(root,"status"),notas:val(root,"notas")};
+      const caiu=editing&&data.status==="banido"&&cel.status!=="banido";
       if(editing){Object.assign(cel,data);}else{cel={id:uid(),...data,criadoEm:now()};DB.celulares.push(cel);}
       if(data.chipId){const k=byId(DB.chips,data.chipId);if(k)k.celularId=cel.id;}
-      save();render();close();toast(editing?"Celular atualizado":"Celular criado");}});
+      let ndes=0;if(caiu||(!editing&&data.status==="banido"))ndes=desativarCampsDoCelular(cel.id);
+      save();render();close();toast((editing?"Celular atualizado":"Celular criado")+(ndes?` · ${ndes} campanha${ndes>1?"s":""} desativada${ndes>1?"s":""}`:""));}});
 }
 function chipModal(chip){
   const editing=!!chip;
