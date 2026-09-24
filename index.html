@@ -414,6 +414,33 @@ const campN=c=>Math.max(1,(c.subs||[]).length);
 const celularesAtivosDe=cid=>{const ids=[...new Set(campsDe(cid).filter(c=>campAtiva(c)&&c.celularId).map(c=>c.celularId))];return ids.map(id=>byId(DB.celulares,id)).filter(Boolean);};
 // Celular "Caiu": desativa (NÃO exclui) as campanhas dele. Retorna quantas foram desativadas.
 function desativarCampsDoCelular(celId){let n=0;DB.criativos.forEach(c=>{if(c.dup&&c.celularId===celId){ensureSubs(c);(c.subs||[]).forEach(s=>{if(s.ativo){s.ativo=false;n++;}});c.ativo=false;}});return n;}
+// Junta criativos que têm a MESMA sigla na mesma oferta: reaponta as campanhas pro
+// criativo "principal" (o que está no funil / mais antigo, ou o preferId) e apaga o
+// fantasma auto-criado. Assim, ao dar sigla a um criativo, suas campanhas colam nele na hora.
+function consolidarSiglas(db,preferId){
+  const cr=db.criativos||[];const groups={};
+  cr.filter(c=>!c.dup&&(c.sigla||"").trim()).forEach(c=>{const key=(c.ofertaId||"")+"|"+c.sigla.trim().toLowerCase();(groups[key]=groups[key]||[]).push(c);});
+  let changed=false;const removeIds=new Set();
+  Object.values(groups).forEach(list=>{
+    if(list.length<2)return;
+    list.sort((a,b)=>{
+      if(preferId){if(a.id===preferId&&b.id!==preferId)return -1;if(b.id===preferId&&a.id!==preferId)return 1;}
+      const af=a.noFunil?1:0,bf=b.noFunil?1:0;if(af!==bf)return af-bf;
+      const an=((a.nome||"").trim().toLowerCase()===(a.sigla||"").trim().toLowerCase())?1:0;
+      const bn=((b.nome||"").trim().toLowerCase()===(b.sigla||"").trim().toLowerCase())?1:0;
+      if(an!==bn)return an-bn;
+      return (a.criadoEm||0)-(b.criadoEm||0);
+    });
+    const primary=list[0];
+    list.slice(1).forEach(d=>{
+      cr.forEach(x=>{if(x.dup&&x.criativoId===d.id){x.criativoId=primary.id;changed=true;}});
+      const isPhantom=d.noFunil&&(d.nome||"").trim().toLowerCase()===(d.sigla||"").trim().toLowerCase();
+      if(isPhantom&&d.id!==preferId){removeIds.add(d.id);changed=true;}
+    });
+  });
+  if(removeIds.size)db.criativos=cr.filter(x=>!removeIds.has(x.id));
+  return changed;
+}
 
 /* icons */
 const I={
@@ -492,6 +519,7 @@ function normalize(db){
     else{if(!FUNIL_STAGES.includes(c.estagio))c.estagio="validado";}
   });
   (db.celulares||[]).forEach(c=>{if(c.ofertaId===undefined)c.ofertaId=null;if(!CEL_STATUS[c.status])c.status="aquecido";});
+  if(consolidarSiglas(db))_migrated=true;
   return db;
 }
 function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(DB));}catch(e){}}
@@ -1101,8 +1129,9 @@ function criativoModal(cr,preset={}){
     onOk:close=>{const root=$("#modal-root");const nome=val(root,"nome");if(!nome)return toast("Dê um nome ao criativo"),false;
       const data={nome,sigla:val(root,"sigla"),ofertaId:val(root,"ofertaId"),estagio:val(root,"estagio"),formato:val(root,"formato"),roi:val(root,"roi"),postId:val(root,"postId"),notas:val(root,"notas")};
       if(!data.ofertaId)return toast("Crie uma oferta antes"),false;
-      if(editing){Object.assign(cr,data);}else{DB.criativos.push({id:uid(),...data,criadoEm:now()});}
-      save();render();close();toast(editing?"Criativo atualizado":"Criativo criado");}});
+      let cid;if(editing){Object.assign(cr,data);cid=cr.id;}else{cid=uid();DB.criativos.push({id:cid,...data,criadoEm:now()});}
+      const juntou=data.sigla&&data.sigla.trim()?consolidarSiglas(DB,cid):false;
+      save();render();close();toast(editing?(juntou?"Criativo atualizado · campanhas reconectadas":"Criativo atualizado"):"Criativo criado");}});
   if(editing){const f=$("#modal-root .modal-f");f.insertAdjacentHTML("afterbegin",`<button class="btn ghost danger" style="margin-right:auto" id="delcr">${svg("trash")}Excluir</button>`);
     $("#delcr").onclick=()=>{$("#modal-root").innerHTML="";const nc=campsDe(cr.id).length;confirmDel(`Excluir o criativo "${esc(cr.nome)}"?`,`Apaga o criativo <b>de vez</b>${nc?` e as <b>${nc}</b> campanha(s) dele`:""}. Se ele é vencedor, prefira arrastar pra <b>Zona Branca</b>.`,()=>{DB.criativos=DB.criativos.filter(x=>x.id!==cr.id&&x.criativoId!==cr.id);save();render();toast("Criativo excluído");});};}
 }
