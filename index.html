@@ -756,7 +756,6 @@ function ofertaCard(o,showBM){
     <div class="mini">
       <div class="m"><b>${criativos.length}</b>Criativos</div>
       <div class="m"><b>${camps.length}</b>Campanhas</div>
-      <div class="m" style="grid-column:span 2"><b class="mono" style="font-size:15px">${orcSummary(orcBRL,orcUSD)}</b>Orçamento / dia</div>
     </div>
   </div>`;
 }
@@ -771,14 +770,9 @@ function vKanban(){
   const orcUSD=veic.filter(c=>c.moeda==="USD").reduce((s,c)=>s+subOrcAtivo(c),0);
   const totalCamps=veic.reduce((s,c)=>s+campN(c),0);
   const ativos=veic.filter(c=>campAtiva(c)).length;
-  const orcTiles=[];
-  if(orcBRL>0||orcUSD<=0)orcTiles.push(kpiTile("clock","Orçamento / dia",fmtCur(orcBRL,"BRL"),"em R$ · ativos"));
-  if(orcUSD>0)orcTiles.push(kpiTile("clock","Orçamento / dia",fmtCur(orcUSD,"USD"),"em US$ · ativos"));
-
   const kpi=`<div class="grid stats" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:22px">
     ${kpiTile("bolt","Em veiculação",`${veic.length}`,`${ativos} ativos agora`)}
     ${kpiTile("layers","Campanhas",num(totalCamps),"somando os tipos")}
-    ${orcTiles.join("")}
   </div>`;
 
   const veicBlock=veic.length?creativoTable(veic,false):`<div class="card" style="padding:26px;text-align:center;color:var(--text-3);font-size:13px">Nenhuma campanha em veiculação. Use <b style="color:var(--text-2)">Adicionar campanha</b> para colocar um criativo pra rodar num celular.</div>`;
@@ -856,7 +850,7 @@ function creativoTable(list,withChip,simple){
   const orcBRL=list.filter(c=>(c.moeda||"BRL")==="BRL").reduce((s,c)=>s+subOrcAtivo(c),0);
   const orcUSD=list.filter(c=>c.moeda==="USD").reduce((s,c)=>s+subOrcAtivo(c),0);
   const totalCamps=list.reduce((s,c)=>s+campN(c),0);
-  const ncols=(withChip?1:0)+(simple?0:3)+5;
+  const ncols=(withChip?1:0)+(simple?0:2)+5;
   const sorted=sortCamps(list);
   const rowFn=c=>{
     const o=OBJ[c.objetivo]||OBJETIVOS[0];
@@ -872,21 +866,20 @@ function creativoTable(list,withChip,simple){
       <td>${c.celularId?`<span class="tag">${esc(celName(c.celularId)||"?")}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
       ${chipCell}
       ${simple?"":`<td><span class="pill" style="color:var(${o.c});background:color-mix(in srgb,var(${o.c}) 15%,transparent)"><span class="dot"></span>${o.l}</span></td>
-      <td style="text-align:center"><div class="qtdstep"><button class="qbtn" data-subminus="${c.id}" title="Menos uma sub-campanha">−</button><span class="mono" style="min-width:16px;text-align:center">${campN(c)}</span><button class="qbtn" data-subplus="${c.id}" title="Mais uma sub-campanha">+</button></div></td>
-      <td class="mono" style="text-align:right">${fmtCur(subOrcAtivo(c),c.moeda)}<div class="sub2">${nAtivas}/${subs.length} ativa${subs.length>1?"s":""}</div></td>`}
+      <td style="text-align:center"><div class="qtdstep"><button class="qbtn" data-subminus="${c.id}" title="Menos uma sub-campanha">−</button><span class="mono" style="min-width:16px;text-align:center">${campN(c)}</span><button class="qbtn" data-subplus="${c.id}" title="Mais uma sub-campanha">+</button></div><div class="sub2" style="text-align:center;margin-top:3px">${nAtivas}/${subs.length} ativa${subs.length>1?"s":""}</div></td>`}
       <td style="text-align:center">${roi?`<span class="pill" style="color:var(--good);background:var(--good-soft)"><span class="dot"></span>${esc(roi)}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
       <td><div class="rowact">${parent.noFunil?`<button class="iconbtn tofunil" data-tofunil="${c.criativoId}" title="Colocar o criativo no funil de validação">${svg("layers")}</button>`:""}${postId?`<button class="iconbtn" data-copypost="${c.id}" title="Copiar Post ID">${svg("copy")}</button>`:""}<button class="iconbtn" data-dup="${c.id}" title="Duplicar campanha">${svg("dup")}</button><button class="iconbtn" data-edit="${c.id}" title="Editar campanha">${svg("edit")}</button><button class="iconbtn" data-del="${c.id}" title="Excluir campanha">${svg("trash")}</button></div></td>
     </tr>`;
-    const sub=exp?`<tr class="subrow"><td colspan="${ncols}"><div class="subs"><div class="subs-h">Sub-campanhas · orçamento por unidade</div>${subs.map((s,i)=>`<div class="subitem"><button class="tgl ${s.ativo?"on":""}" data-subtgl="${c.id}:${i}" title="${s.ativo?"Ativa":"Pausada"}"><span></span></button><span class="subname">Campanha ${i+1}</span><div class="subbud"><span class="submoeda">${(CUR[c.moeda]||CUR.BRL).s}</span><input type="number" step="0.01" value="${esc(s.orcamento||"")}" data-suborc="${c.id}:${i}" class="subinput"></div>${subs.length>1?`<button class="iconbtn" data-subdel="${c.id}:${i}" title="Remover">${svg("trash")}</button>`:""}</div>`).join("")}<button class="btn sm ghost" data-subadd="${c.id}">${svg("plus")}Sub-campanha</button></div></td></tr>`:"";
+    const sub=exp?`<tr class="subrow"><td colspan="${ncols}"><div class="subs"><div class="subs-h">Sub-campanhas · ligar/desligar cada uma</div>${subs.map((s,i)=>`<div class="subitem"><button class="tgl ${s.ativo?"on":""}" data-subtgl="${c.id}:${i}" title="${s.ativo?"Ativa":"Pausada"}"><span></span></button><span class="subname">Campanha ${i+1}</span>${subs.length>1?`<button class="iconbtn" data-subdel="${c.id}:${i}" title="Remover">${svg("trash")}</button>`:""}</div>`).join("")}<button class="btn sm ghost" data-subadd="${c.id}">${svg("plus")}Sub-campanha</button></div></td></tr>`:"";
     return main+sub;
   };
   const rows=sorted.map(rowFn).join("");
   return `<div class="tblwrap"><table><thead><tr>
-      <th></th><th>Campanha</th><th>Celular</th>${withChip?"<th>Chip testado</th>":""}${simple?"":`<th>Objetivo</th><th style="text-align:center">Nº camp.</th><th style="text-align:right">Orçamento</th>`}<th style="text-align:center">ROI</th><th></th>
+      <th></th><th>Campanha</th><th>Celular</th>${withChip?"<th>Chip testado</th>":""}${simple?"":`<th>Objetivo</th><th style="text-align:center">Nº camp.</th>`}<th style="text-align:center">ROI</th><th></th>
     </tr></thead><tbody>${rows}</tbody>
     <tfoot><tr>
       <td></td><td style="font-weight:600">Resultados de ${list.length} campanha${list.length>1?"s":""}</td><td></td>${withChip?"<td></td>":""}
-      ${simple?"":`<td></td><td class="mono" style="text-align:center;font-weight:600">${num(totalCamps)}</td><td class="mono" style="text-align:right;font-weight:600">${orcSummary(orcBRL,orcUSD)}<div class="sub2">Diário ativo</div></td>`}
+      ${simple?"":`<td></td><td class="mono" style="text-align:center;font-weight:600">${num(totalCamps)}</td>`}
       <td></td><td></td>
     </tr></tfoot></table></div>`;
 }
@@ -1169,10 +1162,7 @@ function campanhaModal(camp,preset={},dup=false){
     ${field("Celular","celularId",c.celularId||"",{type:"select",options:celOpts})}</div>
     <div class="frow">${field("Data","data",c.data||todayISO(),{type:"date"})}
     ${field("Status","ativo",c.ativo===false?"pausado":"ativo",{type:"select",options:[{v:"ativo",l:"Ativo"},{v:"pausado",l:"Pausado"}]})}</div>
-    <div id="campmetrics" style="${c.estagio==="teste"?"display:none":""}"><div class="frow"><div class="field"><label>Orçamento diário</label>
-      <div style="display:flex;gap:8px"><input name="orcamento" type="number" step="0.01" value="${esc(c.orcamento||"")}" placeholder="40,00" style="flex:1">
-      <select name="moeda" style="width:88px;background:var(--bg-2);border:1px solid var(--border-2);color:var(--text);border-radius:10px;padding:10px 8px">${[["USD","US$"],["BRL","R$"]].map(([v,l])=>`<option value="${v}" ${(c.moeda||"USD")===v?"selected":""}>${l}</option>`).join("")}</select></div></div>
-    ${field("Nº de campanhas","qtdCampanhas",c.qtdCampanhas||"1",{type:"number",ph:"1"})}</div>
+    <div id="campmetrics" style="${c.estagio==="teste"?"display:none":""}">${field("Nº de campanhas","qtdCampanhas",c.qtdCampanhas||"1",{type:"number",ph:"1"})}
     <div class="field"><label>Objetivo</label><div class="objchips" id="objchips">${OBJETIVOS.map(o=>`<button type="button" class="objchip ${(c.objetivo||"engj")===o.v?"on":""}" data-obj="${o.v}" style="--oc:var(${o.c})"><span class="dot"></span>${esc(o.l)}</button>`).join("")}</div><input type="hidden" name="objetivo" value="${c.objetivo||"engj"}"></div></div>`,
     onOk:close=>{const root=$("#modal-root");
       const campanha=val(root,"campanha");if(!campanha)return toast("Dê um nome à campanha"),false;
@@ -1183,7 +1173,7 @@ function campanhaModal(camp,preset={},dup=false){
       if(!parent){parent={id:uid(),ofertaId:ofId,sigla:sigla.toUpperCase(),nome:sigla.toUpperCase(),estagio:"modelado",formato:"",roi:"",postId:"",notas:"",noFunil:true,criadoEm:now()};DB.criativos.push(parent);novoCr=true;}
       else if(!parent.sigla){parent.sigla=sigla.toUpperCase();}
       const criativoId=parent.id;
-      const data={criativoId,ofertaId:parent?parent.ofertaId:ofId,nome:parent?parent.nome:campanha,campanha,celularId:val(root,"celularId")||null,estagio:(()=>{const u=campanha.toUpperCase();return(/TEST/.test(u)?"teste":/PR[EÉ]/.test(u)?"pre-escala":/ESCALA/.test(u)?"escala":"")||c.estagio||"pre-escala";})(),ativo:val(root,"ativo")!=="pausado",orcamento:parseFloat(val(root,"orcamento").replace(",","."))||0,moeda:val(root,"moeda")||"BRL",objetivo:val(root,"objetivo")||"engj",qtdCampanhas:parseInt(val(root,"qtdCampanhas"))||1,data:val(root,"data")||todayISO()};
+      const data={criativoId,ofertaId:parent?parent.ofertaId:ofId,nome:parent?parent.nome:campanha,campanha,celularId:val(root,"celularId")||null,estagio:(()=>{const u=campanha.toUpperCase();return(/TEST/.test(u)?"teste":/PR[EÉ]/.test(u)?"pre-escala":/ESCALA/.test(u)?"escala":"")||c.estagio||"pre-escala";})(),ativo:val(root,"ativo")!=="pausado",objetivo:val(root,"objetivo")||"engj",qtdCampanhas:parseInt(val(root,"qtdCampanhas"))||1,data:val(root,"data")||todayISO()};
       if(editing){Object.assign(camp,data);ensureSubs(camp);const n=Math.max(1,+data.qtdCampanhas||1);while(camp.subs.length<n)camp.subs.push({ativo:data.ativo,orcamento:+data.orcamento||0});while(camp.subs.length>n)camp.subs.pop();camp.qtdCampanhas=camp.subs.length;}
       else{const nc={id:uid(),dup:true,...data,criadoEm:now()};ensureSubs(nc);DB.criativos.push(nc);}
       save();render();close();toast(editing?"Campanha atualizada":(novoCr?`Campanha + criativo ${parent.sigla} criados`:(dup?"Cópia criada":"Campanha criada")));}});
