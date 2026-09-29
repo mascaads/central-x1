@@ -206,6 +206,8 @@ a{color:inherit}
 .board.pkb{grid-auto-columns:minmax(195px,1fr)}
 .pkb .col-body{min-height:120px}
 .pcol.drop{outline:2px dashed var(--accent);outline-offset:-3px;border-radius:14px}
+.pcard.over-top{box-shadow:0 -3px 0 0 var(--accent)}
+.pcard.over-bot{box-shadow:0 3px 0 0 var(--accent)}
 .pcard{background:var(--surface);border:1px solid var(--border);border-top:2px solid var(--text-3);border-radius:11px;padding:11px 12px;margin-bottom:9px;cursor:grab;display:flex;flex-direction:column;gap:9px}
 .pcard:hover{border-color:var(--border-2);box-shadow:var(--shadow)}
 .pcard.drag{opacity:.4}
@@ -945,7 +947,22 @@ let dragPid=null;
 function setupPhoneDnD(){
   $("#view").querySelectorAll(".pcard").forEach(card=>{
     card.addEventListener("dragstart",e=>{dragPid=card.dataset.pid;card._dragging=true;card.classList.add("drag");e.dataTransfer.effectAllowed="move";});
-    card.addEventListener("dragend",()=>{card.classList.remove("drag");setTimeout(()=>card._dragging=false,50);dragPid=null;$("#view").querySelectorAll(".pcol").forEach(c=>c.classList.remove("drop"));});
+    card.addEventListener("dragend",()=>{card.classList.remove("drag");setTimeout(()=>card._dragging=false,50);dragPid=null;$("#view").querySelectorAll(".pcol").forEach(c=>c.classList.remove("drop"));$("#view").querySelectorAll(".pcard").forEach(c=>c.classList.remove("over-top","over-bot"));});
+    // reordenar dentro da coluna (ou soltar sobre um card de outra coluna): arraste pra cima/baixo
+    card.addEventListener("dragover",e=>{if(!dragPid||dragPid===card.dataset.pid)return;e.preventDefault();const r=card.getBoundingClientRect();const after=e.clientY>r.top+r.height/2;card.classList.toggle("over-bot",after);card.classList.toggle("over-top",!after);});
+    card.addEventListener("dragleave",e=>{if(!card.contains(e.relatedTarget))card.classList.remove("over-top","over-bot");});
+    card.addEventListener("drop",e=>{
+      if(!dragPid)return;e.preventDefault();e.stopPropagation();
+      const after=card.classList.contains("over-bot");card.classList.remove("over-top","over-bot");
+      const tid=card.dataset.pid;if(tid===dragPid)return;
+      const dragged=byId(DB.celulares,dragPid),target=byId(DB.celulares,tid);if(!dragged||!target)return;
+      const old=dragged.status;dragged.status=target.status;
+      DB.celulares=DB.celulares.filter(c=>c.id!==dragged.id);
+      let idx=DB.celulares.findIndex(c=>c.id===target.id);if(after)idx++;DB.celulares.splice(idx,0,dragged);
+      let msg=`${dragged.nome} reordenado`;
+      if(dragged.status!==old){msg=`${dragged.nome} → ${CEL_STATUS[dragged.status].l}`;if(dragged.status==="banido"){const n=desativarCampsDoCelular(dragged.id);if(n)msg+=` · ${n} campanha${n>1?"s":""} desativada${n>1?"s":""}`;}}
+      save();render();toast(msg);
+    });
   });
   $("#view").querySelectorAll(".pcol").forEach(col=>{
     col.addEventListener("dragover",e=>{e.preventDefault();col.classList.add("drop");});
