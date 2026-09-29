@@ -484,7 +484,7 @@ const ESTAGIOS=[
 ];
 const ESTG=Object.fromEntries(ESTAGIOS.map(e=>[e.id,e]));
 const BM_CORES=["#4f8cff","#26c281","#f0a830","#f2585f","#c9b8ff","#25d0c0","#ff8a5b","#a0d468"];
-const CEL_STATUS={rodando:{l:"Rodando",c:"--good"},testando:{l:"Testando",c:"--st-teste"},aquecido:{l:"Aquecido",c:"--accent"},aquecendo:{l:"Aquecendo",c:"--warn"},"escala-forte":{l:"Escala Forte",c:"--st-escala"},banido:{l:"Caiu",c:"--crit"}};
+const CEL_STATUS={rodando:{l:"Rodando",c:"--good"},"escala-forte":{l:"Escala Forte",c:"--st-escala"},testando:{l:"Testando",c:"--st-teste"},aquecido:{l:"Aquecido",c:"--accent"},aquecendo:{l:"Aquecendo",c:"--warn"},banido:{l:"Caiu",c:"--crit"}};
 const RECARGA_ATENCAO=60,RECARGA_ALERTA=90; // dias: 2 meses = atenção, 3 meses = alerta
 const CHIP_STATUS={aquecendo:{l:"Aquecendo",c:"--warn"},testando:{l:"Testando",c:"--st-teste"},ativo:{l:"Ativo",c:"--good"},reserva:{l:"Reserva",c:"--text-3"},banido:{l:"Banido",c:"--crit"}};
 
@@ -970,7 +970,7 @@ function setupPhoneDnD(){
 
 /* ======================= CELULARES ======================= */
 function vCelulares(){
-  topActions(`<button class="btn pri" id="addcel">${svg("plus")}Novo celular</button>`);
+  topActions(`<button class="widebtn ${wideMode?"on":""}" id="widetoggle" title="Usar a largura toda do monitor">${svgInline("layers")}${wideMode?"Modo amplo: ON":"Modo amplo"}</button><button class="btn pri" id="addcel">${svg("plus")}Novo celular</button>`);
   if(!DB.celulares.length){$("#view").innerHTML=empty("phone","Nenhum celular","Cadastre os aparelhos que você usa para rodar os criativos.",`<button class="btn pri" id="e">${svg("plus")}Cadastrar celular</button>`);$("#e").onclick=()=>celModal();$("#addcel").onclick=()=>celModal();return;}
   const card=c=>{
     const chip=byId(DB.chips,c.chipId);const of=c.ofertaId&&byId(DB.ofertas,c.ofertaId);const ofbm=of&&byId(DB.bms,of.bmId);
@@ -989,7 +989,7 @@ function vCelulares(){
   }).join("");
   const known=Object.keys(CEL_STATUS);const other=DB.celulares.filter(c=>!known.includes(c.status));
   const otherBlock=other.length?`<div class="phonegroup" style="margin-top:16px"><div class="pg-label"><span class="dot" style="background:var(--text-3)"></span>Sem status<span class="pg-count">${other.length}</span></div><div class="grid phonesgrid">${other.map(card).join("")}</div></div>`:"";
-  $("#view").innerHTML=`<div class="sect-h" style="margin-top:0"><h2>${svgInline("phone")}Todos os celulares</h2><div class="line"></div><span class="tag">arraste entre os status</span><button class="widebtn ${wideMode?"on":""}" id="widetoggle" title="Usar a largura toda do monitor">${svgInline("layers")}${wideMode?"Modo amplo: on":"Modo amplo"}</button></div>
+  $("#view").innerHTML=`<div class="sect-h" style="margin-top:0"><h2>${svgInline("phone")}Todos os celulares</h2><div class="line"></div><span class="tag">arraste entre os status</span></div>
     <div class="board pkb">${board}</div>${otherBlock}`;
   $("#addcel").onclick=()=>celModal();
   {const wt=$("#widetoggle");if(wt)wt.onclick=()=>{wideMode=!wideMode;try{localStorage.setItem("cx1_wide",wideMode?"1":"0");}catch(e){}render();};}
