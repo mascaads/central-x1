@@ -73,6 +73,11 @@ a{color:inherit}
 .topbar .sub{font-size:12.5px;color:var(--text-2);margin-top:2px}
 .topbar .sp{flex:1}
 .view{padding:26px 30px 60px;max-width:1400px;width:100%}
+:root[data-wide] .view{max-width:none}
+:root[data-wide] .board.pkb{grid-auto-columns:minmax(220px,1fr)}
+.widebtn{display:inline-flex;align-items:center;gap:6px;background:var(--bg-2);border:1px solid var(--border-2);color:var(--text-2);border-radius:9px;padding:6px 12px;font-size:12px;font-weight:600;font-family:var(--sans);cursor:pointer}
+.widebtn:hover{border-color:var(--accent);color:var(--text)}
+.widebtn.on{background:var(--accent);border-color:var(--accent);color:#fff}
 
 /* ---------- Buttons ---------- */
 .btn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:10px;border:1px solid var(--border-2);background:var(--surface);color:var(--text);font-size:13px;font-weight:600;transition:.13s;white-space:nowrap}
@@ -198,7 +203,8 @@ a{color:inherit}
 .phonecard.free{border-style:dashed;border-color:var(--border-2)}
 .phonecard.free .ph-i span{color:var(--warn)}
 .board.pkb{grid-auto-columns:minmax(195px,1fr)}
-.pkb .col-body{min-height:60px}
+.pkb .col-body{min-height:120px}
+.pcol.drop{outline:2px dashed var(--accent);outline-offset:-3px;border-radius:14px}
 .pcard{background:var(--surface);border:1px solid var(--border);border-top:2px solid var(--text-3);border-radius:11px;padding:11px 12px;margin-bottom:9px;cursor:grab;display:flex;flex-direction:column;gap:9px}
 .pcard:hover{border-color:var(--border-2);box-shadow:var(--shadow)}
 .pcard.drag{opacity:.4}
@@ -478,7 +484,7 @@ const ESTAGIOS=[
 ];
 const ESTG=Object.fromEntries(ESTAGIOS.map(e=>[e.id,e]));
 const BM_CORES=["#4f8cff","#26c281","#f0a830","#f2585f","#c9b8ff","#25d0c0","#ff8a5b","#a0d468"];
-const CEL_STATUS={rodando:{l:"Rodando",c:"--good"},testando:{l:"Testando",c:"--st-teste"},aquecido:{l:"Aquecido",c:"--accent"},aquecendo:{l:"Aquecendo",c:"--warn"},banido:{l:"Caiu",c:"--crit"}};
+const CEL_STATUS={rodando:{l:"Rodando",c:"--good"},testando:{l:"Testando",c:"--st-teste"},aquecido:{l:"Aquecido",c:"--accent"},aquecendo:{l:"Aquecendo",c:"--warn"},"escala-forte":{l:"Escala Forte",c:"--st-escala"},banido:{l:"Caiu",c:"--crit"}};
 const RECARGA_ATENCAO=60,RECARGA_ALERTA=90; // dias: 2 meses = atenção, 3 meses = alerta
 const CHIP_STATUS={aquecendo:{l:"Aquecendo",c:"--warn"},testando:{l:"Testando",c:"--st-teste"},ativo:{l:"Ativo",c:"--good"},reserva:{l:"Reserva",c:"--text-3"},banido:{l:"Banido",c:"--crit"}};
 
@@ -595,6 +601,8 @@ let funilExpand={};
 let expandedCamps={};
 let campSort="data";
 let chipSearch="";
+let wideMode=false;try{wideMode=localStorage.getItem("cx1_wide")==="1";}catch(e){}
+function applyWide(){document.documentElement.toggleAttribute("data-wide",wideMode);}
 const FUNIL_LIMIT=10;
 const CAMP_SORTS=[["data","Data"],["celular","Celular"],["criativo","Criativo"],["objetivo","Objetivo"]];
 function sortCamps(list){const k=campSort;return [...list].sort((a,b)=>{
@@ -619,6 +627,7 @@ function renderTheme(){
   $("#theme").innerHTML=`${svg(light?"moon":"sun")}<span>Tema ${light?"escuro":"claro"}</span>`;
 }
 function render(){
+  applyWide();
   const v=VIEWS.find(x=>x.id===route);
   $("#vt").textContent=route==="ofertas"&&openOferta?byId(DB.ofertas,openOferta)?.nome||v.nome:v.nome;
   $("#vs").textContent=v.sub;
@@ -948,6 +957,15 @@ function setupPhoneDnD(){
     col.addEventListener("dragleave",e=>{if(!col.contains(e.relatedTarget))col.classList.remove("drop");});
     col.addEventListener("drop",e=>{e.preventDefault();col.classList.remove("drop");if(!dragPid)return;const c=byId(DB.celulares,dragPid);const st=col.dataset.pcol;if(c&&c.status!==st){c.status=st;let msg=`${c.nome} → ${CEL_STATUS[st].l}`;if(st==="banido"){const n=desativarCampsDoCelular(c.id);if(n)msg+=` · ${n} campanha${n>1?"s":""} desativada${n>1?"s":""}`;}save();render();toast(msg);}});
   });
+  // auto-scroll ao arrastar perto das bordas (facilita levar um celular de baixo pra outra coluna lá em cima)
+  if(!window._phoneAutoScroll){window._phoneAutoScroll=true;
+    document.addEventListener("dragover",e=>{
+      if(!dragPid)return;const m=110,y=e.clientY,h=innerHeight;
+      if(y<m)scrollBy(0,-Math.ceil((m-y)/4));else if(y>h-m)scrollBy(0,Math.ceil((y-(h-m))/4));
+      const bd=$(".board.pkb");if(bd){const r=bd.getBoundingClientRect(),x=e.clientX;
+        if(x<r.left+m)bd.scrollLeft-=Math.ceil((r.left+m-x)/4);else if(x>r.right-m)bd.scrollLeft+=Math.ceil((x-(r.right-m))/4);}
+    });
+  }
 }
 
 /* ======================= CELULARES ======================= */
@@ -971,9 +989,10 @@ function vCelulares(){
   }).join("");
   const known=Object.keys(CEL_STATUS);const other=DB.celulares.filter(c=>!known.includes(c.status));
   const otherBlock=other.length?`<div class="phonegroup" style="margin-top:16px"><div class="pg-label"><span class="dot" style="background:var(--text-3)"></span>Sem status<span class="pg-count">${other.length}</span></div><div class="grid phonesgrid">${other.map(card).join("")}</div></div>`:"";
-  $("#view").innerHTML=`<div class="sect-h" style="margin-top:0"><h2>${svgInline("phone")}Todos os celulares</h2><div class="line"></div><span class="tag">arraste entre os status</span></div>
+  $("#view").innerHTML=`<div class="sect-h" style="margin-top:0"><h2>${svgInline("phone")}Todos os celulares</h2><div class="line"></div><span class="tag">arraste entre os status</span><button class="widebtn ${wideMode?"on":""}" id="widetoggle" title="Usar a largura toda do monitor">${svgInline("layers")}${wideMode?"Modo amplo: on":"Modo amplo"}</button></div>
     <div class="board pkb">${board}</div>${otherBlock}`;
   $("#addcel").onclick=()=>celModal();
+  {const wt=$("#widetoggle");if(wt)wt.onclick=()=>{wideMode=!wideMode;try{localStorage.setItem("cx1_wide",wideMode?"1":"0");}catch(e){}render();};}
   $("#view").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>celModal(byId(DB.celulares,b.dataset.edit)));
   $("#view").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const c=byId(DB.celulares,b.dataset.del);confirmDel(`Excluir "${c.nome}"?`,"O chip vinculado também sai, e as campanhas dele ficam sem celular.",()=>{DB.criativos.forEach(x=>{if(x.celularId===c.id)x.celularId=null;});DB.chips=DB.chips.filter(k=>k.id!==c.chipId&&k.celularId!==c.id);DB.celulares=DB.celulares.filter(x=>x.id!==c.id);save();render();toast("Celular e chip removidos ✓");});});
   setupPhoneDnD();
