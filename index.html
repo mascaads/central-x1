@@ -63,6 +63,7 @@ a{color:inherit}
 .side-foot{padding:12px;border-top:1px solid var(--border)}
 .themebtn{display:flex;align-items:center;gap:9px;width:100%;padding:9px 12px;background:var(--surface);border:1px solid var(--border);color:var(--text-2);border-radius:10px;font-size:12.5px;font-weight:500}
 .themebtn:hover{border-color:var(--border-2);color:var(--text)}
+.themebtn.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 .themebtn svg{width:16px;height:16px}
 
 .main{min-width:0;display:flex;flex-direction:column}
@@ -351,6 +352,7 @@ td .sub2{font-size:12px;color:var(--text-3);margin-top:1px}
     <nav class="nav" id="nav"></nav>
     <div class="side-foot">
       <div id="acct"></div>
+      <button class="themebtn" id="widetoggle" style="margin-bottom:8px"></button>
       <button class="themebtn" id="theme"></button>
     </div>
   </aside>
@@ -602,7 +604,7 @@ let expandedCamps={};
 let campSort="data";
 let chipSearch="";
 let wideMode=false;try{wideMode=localStorage.getItem("cx1_wide")==="1";}catch(e){}
-function applyWide(){document.documentElement.toggleAttribute("data-wide",wideMode);}
+function applyWide(){document.documentElement.toggleAttribute("data-wide",wideMode);const w=$("#widetoggle");if(w){w.className="themebtn"+(wideMode?" on":"");w.innerHTML=`${svg("layers")}<span>Modo amplo${wideMode?" · ON":""}</span>`;}}
 const FUNIL_LIMIT=10;
 const CAMP_SORTS=[["data","Data"],["celular","Celular"],["criativo","Criativo"],["objetivo","Objetivo"]];
 function sortCamps(list){const k=campSort;return [...list].sort((a,b)=>{
@@ -970,7 +972,7 @@ function setupPhoneDnD(){
 
 /* ======================= CELULARES ======================= */
 function vCelulares(){
-  topActions(`<button class="widebtn ${wideMode?"on":""}" id="widetoggle" title="Usar a largura toda do monitor">${svgInline("layers")}${wideMode?"Modo amplo: ON":"Modo amplo"}</button><button class="btn pri" id="addcel">${svg("plus")}Novo celular</button>`);
+  topActions(`<button class="btn pri" id="addcel">${svg("plus")}Novo celular</button>`);
   if(!DB.celulares.length){$("#view").innerHTML=empty("phone","Nenhum celular","Cadastre os aparelhos que você usa para rodar os criativos.",`<button class="btn pri" id="e">${svg("plus")}Cadastrar celular</button>`);$("#e").onclick=()=>celModal();$("#addcel").onclick=()=>celModal();return;}
   const card=c=>{
     const chip=byId(DB.chips,c.chipId);const of=c.ofertaId&&byId(DB.ofertas,c.ofertaId);const ofbm=of&&byId(DB.bms,of.bmId);
@@ -992,7 +994,6 @@ function vCelulares(){
   $("#view").innerHTML=`<div class="sect-h" style="margin-top:0"><h2>${svgInline("phone")}Todos os celulares</h2><div class="line"></div><span class="tag">arraste entre os status</span></div>
     <div class="board pkb">${board}</div>${otherBlock}`;
   $("#addcel").onclick=()=>celModal();
-  {const wt=$("#widetoggle");if(wt)wt.onclick=()=>{wideMode=!wideMode;try{localStorage.setItem("cx1_wide",wideMode?"1":"0");}catch(e){}render();};}
   $("#view").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>celModal(byId(DB.celulares,b.dataset.edit)));
   $("#view").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const c=byId(DB.celulares,b.dataset.del);confirmDel(`Excluir "${c.nome}"?`,"O chip vinculado também sai, e as campanhas dele ficam sem celular.",()=>{DB.criativos.forEach(x=>{if(x.celularId===c.id)x.celularId=null;});DB.chips=DB.chips.filter(k=>k.id!==c.chipId&&k.celularId!==c.id);DB.celulares=DB.celulares.filter(x=>x.id!==c.id);save();render();toast("Celular e chip removidos ✓");});});
   setupPhoneDnD();
@@ -1273,6 +1274,7 @@ function initTheme(){
   renderTheme();
 }
 $("#theme").onclick=()=>{const cur=document.documentElement.getAttribute("data-theme");const light=cur==="light";const next=light?"dark":"light";document.documentElement.setAttribute("data-theme",next);try{localStorage.setItem("central_theme",next);}catch(e){}renderTheme();};
+$("#widetoggle").onclick=()=>{wideMode=!wideMode;try{localStorage.setItem("cx1_wide",wideMode?"1":"0");}catch(e){}applyWide();};
 function closeSide(){$("#side").classList.remove("open");$("#scrim").classList.remove("on");}
 $("#menu").onclick=()=>{$("#side").classList.toggle("open");$("#scrim").classList.toggle("on");};
 $("#scrim").onclick=closeSide;
