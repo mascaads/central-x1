@@ -205,12 +205,11 @@ a{color:inherit}
 .phonecard.free .ph-i span{color:var(--warn)}
 .board.pkb{grid-auto-columns:minmax(195px,1fr)}
 .pkb .col-body{min-height:120px}
-.pcol.drop{outline:2px dashed var(--accent);outline-offset:-3px;border-radius:14px}
-.pcard.over-top{box-shadow:0 -3px 0 0 var(--accent)}
-.pcard.over-bot{box-shadow:0 3px 0 0 var(--accent)}
-.pcard{background:var(--surface);border:1px solid var(--border);border-top:2px solid var(--text-3);border-radius:11px;padding:11px 12px;margin-bottom:9px;cursor:grab;display:flex;flex-direction:column;gap:9px}
+.pcol.drop .col-body{background:var(--accent-soft);border-radius:12px}
+.pcard{background:var(--surface);border:1px solid var(--border);border-top:2px solid var(--text-3);border-radius:11px;padding:11px 12px;margin-bottom:9px;cursor:grab;display:flex;flex-direction:column;gap:9px;transition:box-shadow .15s,opacity .12s}
+.pcard:active{cursor:grabbing}
 .pcard:hover{border-color:var(--border-2);box-shadow:var(--shadow)}
-.pcard.drag{opacity:.4}
+.pcard.drag{opacity:.5;box-shadow:0 12px 28px -8px rgba(0,0,0,.5);border-color:var(--accent);transform:scale(1.02)}
 .pcard .ph-top{display:flex;align-items:center;gap:9px}
 .pcard .ph-top>svg{width:18px;height:18px;color:var(--text-2);flex:none}
 .pcard .ph-i{min-width:0;flex:1}
@@ -944,30 +943,38 @@ function setupDnD(){
   });
 }
 let dragPid=null;
+function getAfterEl(container,y){
+  const els=[...container.querySelectorAll(".pcard")].filter(el=>el.dataset.pid!==dragPid);
+  let closest={offset:-Infinity,el:null};
+  for(const child of els){const box=child.getBoundingClientRect();const offset=y-box.top-box.height/2;if(offset<0&&offset>closest.offset)closest={offset,el:child};}
+  return closest.el;
+}
+function persistPhoneOrder(){
+  const board=$(".board.pkb");if(!board){save();render();return;}
+  const cards=[...board.querySelectorAll(".pcard")];const domIds=cards.map(el=>el.dataset.pid);const domSet=new Set(domIds);
+  const old={};cards.forEach(el=>{const c=byId(DB.celulares,el.dataset.pid);if(c)old[c.id]=c.status;});
+  cards.forEach(el=>{const c=byId(DB.celulares,el.dataset.pid);const col=el.closest(".pcol");if(c&&col)c.status=col.dataset.pcol;});
+  let inserted=false;const newOrder=[];
+  DB.celulares.forEach(c=>{if(domSet.has(c.id)){if(!inserted){inserted=true;domIds.forEach(id=>{const x=byId(DB.celulares,id);if(x)newOrder.push(x);});}}else newOrder.push(c);});
+  DB.celulares=newOrder;
+  let caiuMsg="";cards.forEach(el=>{const c=byId(DB.celulares,el.dataset.pid);if(c&&c.status==="banido"&&old[c.id]!=="banido"){const n=desativarCampsDoCelular(c.id);if(n)caiuMsg=`${c.nome} → Caiu · ${n} campanha${n>1?"s":""} desativada${n>1?"s":""}`;}});
+  save();render();if(caiuMsg)toast(caiuMsg);
+}
 function setupPhoneDnD(){
   $("#view").querySelectorAll(".pcard").forEach(card=>{
-    card.addEventListener("dragstart",e=>{dragPid=card.dataset.pid;card._dragging=true;card.classList.add("drag");e.dataTransfer.effectAllowed="move";});
-    card.addEventListener("dragend",()=>{card.classList.remove("drag");setTimeout(()=>card._dragging=false,50);dragPid=null;$("#view").querySelectorAll(".pcol").forEach(c=>c.classList.remove("drop"));$("#view").querySelectorAll(".pcard").forEach(c=>c.classList.remove("over-top","over-bot"));});
-    // reordenar dentro da coluna (ou soltar sobre um card de outra coluna): arraste pra cima/baixo
-    card.addEventListener("dragover",e=>{if(!dragPid||dragPid===card.dataset.pid)return;e.preventDefault();const r=card.getBoundingClientRect();const after=e.clientY>r.top+r.height/2;card.classList.toggle("over-bot",after);card.classList.toggle("over-top",!after);});
-    card.addEventListener("dragleave",e=>{if(!card.contains(e.relatedTarget))card.classList.remove("over-top","over-bot");});
-    card.addEventListener("drop",e=>{
-      if(!dragPid)return;e.preventDefault();e.stopPropagation();
-      const after=card.classList.contains("over-bot");card.classList.remove("over-top","over-bot");
-      const tid=card.dataset.pid;if(tid===dragPid)return;
-      const dragged=byId(DB.celulares,dragPid),target=byId(DB.celulares,tid);if(!dragged||!target)return;
-      const old=dragged.status;dragged.status=target.status;
-      DB.celulares=DB.celulares.filter(c=>c.id!==dragged.id);
-      let idx=DB.celulares.findIndex(c=>c.id===target.id);if(after)idx++;DB.celulares.splice(idx,0,dragged);
-      let msg=`${dragged.nome} reordenado`;
-      if(dragged.status!==old){msg=`${dragged.nome} → ${CEL_STATUS[dragged.status].l}`;if(dragged.status==="banido"){const n=desativarCampsDoCelular(dragged.id);if(n)msg+=` · ${n} campanha${n>1?"s":""} desativada${n>1?"s":""}`;}}
-      save();render();toast(msg);
-    });
+    card.addEventListener("dragstart",e=>{dragPid=card.dataset.pid;card._dragging=true;e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/plain",dragPid);}catch(_){}requestAnimationFrame(()=>card.classList.add("drag"));$("#view").querySelectorAll(".emptycol").forEach(x=>x.remove());});
+    card.addEventListener("dragend",()=>{card.classList.remove("drag");setTimeout(()=>card._dragging=false,50);const moved=dragPid;dragPid=null;$("#view").querySelectorAll(".pcol").forEach(c=>c.classList.remove("drop"));if(moved)persistPhoneOrder();});
   });
   $("#view").querySelectorAll(".pcol").forEach(col=>{
-    col.addEventListener("dragover",e=>{e.preventDefault();col.classList.add("drop");});
-    col.addEventListener("dragleave",e=>{if(!col.contains(e.relatedTarget))col.classList.remove("drop");});
-    col.addEventListener("drop",e=>{e.preventDefault();col.classList.remove("drop");if(!dragPid)return;const c=byId(DB.celulares,dragPid);const st=col.dataset.pcol;if(c&&c.status!==st){c.status=st;let msg=`${c.nome} → ${CEL_STATUS[st].l}`;if(st==="banido"){const n=desativarCampsDoCelular(c.id);if(n)msg+=` · ${n} campanha${n>1?"s":""} desativada${n>1?"s":""}`;}save();render();toast(msg);}});
+    const body=col.querySelector(".col-body")||col;
+    col.addEventListener("dragover",e=>{
+      if(!dragPid)return;e.preventDefault();
+      const dragging=$('.pcard[data-pid="'+dragPid+'"]');if(!dragging)return;
+      const after=getAfterEl(body,e.clientY);
+      if(after==null)body.appendChild(dragging);else body.insertBefore(dragging,after);
+      $("#view").querySelectorAll(".pcol").forEach(c=>c.classList.toggle("drop",c===col));
+    });
+    col.addEventListener("drop",e=>{e.preventDefault();});
   });
   // auto-scroll ao arrastar perto das bordas (facilita levar um celular de baixo pra outra coluna lá em cima)
   if(!window._phoneAutoScroll){window._phoneAutoScroll=true;
