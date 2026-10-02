@@ -216,6 +216,7 @@ a{color:inherit}
 .pcard .ph-i b{display:block;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .restab{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--st-zona);background:color-mix(in srgb,var(--st-zona) 16%,transparent);border:1px solid color-mix(in srgb,var(--st-zona) 40%,transparent);border-radius:7px;padding:3px 7px;white-space:nowrap;flex:none}
 .restab.ok{color:var(--good);background:var(--good-soft);border-color:color-mix(in srgb,var(--good) 40%,transparent)}
+.ph-restab{display:flex;margin-top:-3px}
 .pcard .ph-i span{font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
 .pcard .ph-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:11px;color:var(--text-2);border-top:1px solid var(--border);padding-top:8px}
 /* toggle switch */
@@ -898,7 +899,7 @@ function phonesSection(of){
     const runs=DB.criativos.filter(x=>x.dup&&x.celularId===c.id&&x.ofertaId===of.id).length;
     const chip=byId(DB.chips,c.chipId);const s=CEL_STATUS[c.status]||{c:"--text-3"};
     return `<div class="pcard" draggable="true" data-pid="${c.id}" style="border-top-color:var(${s.c})">
-      <div class="ph-top">${svg("phone")}<div class="ph-i"><b>${esc(c.nome)}</b><span>${esc(c.modelo||"—")}${chip?" · "+esc(chip.numero):""}</span></div>${restabBadge(c)}</div>
+      <div class="ph-top">${svg("phone")}<div class="ph-i"><b>${esc(c.nome)}</b><span>${esc(c.modelo||"—")}${chip?" · "+esc(chip.numero):""}</span></div></div>${c.status==="restabelecido"?`<div class="ph-restab">${restabBadge(c)}</div>`:""}
       <div class="ph-foot"><span>${runs} camp.</span><div style="display:flex;gap:2px"><button class="iconbtn" data-editcel="${c.id}" title="Editar">${svg("edit")}</button><button class="iconbtn" data-unassign="${c.id}" title="Tirar da oferta">${svg("trash")}</button></div></div>
     </div>`;
   };
@@ -918,7 +919,7 @@ function phonesSection(of){
   const freeBlock=free.length?`<div class="phonegroup" style="margin-top:16px"><div class="pg-label" style="color:var(--warn)"><span class="dot" style="background:var(--warn)"></span>Sem oferta<span class="pg-count">${free.length}</span></div><div class="grid phonesgrid">${free.map(freeCard).join("")}</div></div>`:"";
   const empty=(!assigned.length&&!free.length)?`<div class="card" style="padding:20px;color:var(--text-3);font-size:13px;text-align:center">Nenhum celular ainda. Cadastre em <b style="color:var(--text-2)">Celulares</b> e escolha esta oferta — ou eles aparecem aqui com um <b style="color:var(--text-2)">+</b> para adicionar.</div>`:"";
   return `<div class="sect-h"><h2>${svgInline("phone")}Celulares nesta oferta</h2><div class="line"></div>${assigned.length?`<span class="tag">arraste entre os status</span>`:""}${free.length?`<span class="tag" style="color:var(--warn)">${free.length} sem oferta</span>`:""}</div>
-    ${assigned.length?`<div class="board pkb">${board}</div>`:""}${otherBlock}${freeBlock}${empty}`;
+    ${assigned.length?`<div class="board pkb" style="grid-auto-flow:row;grid-template-columns:repeat(${Object.keys(CEL_STATUS).length},minmax(0,1fr))">${board}</div>`:""}${otherBlock}${freeBlock}${empty}`;
 }
 function stageSelect(c){
   const stages=(c.dup?CAMP_STAGES:FUNIL_STAGES).map(id=>ESTG[id]);
@@ -1004,7 +1005,7 @@ function vCelulares(){
     const chip=byId(DB.chips,c.chipId);const of=c.ofertaId&&byId(DB.ofertas,c.ofertaId);const ofbm=of&&byId(DB.bms,of.bmId);
     const s=CEL_STATUS[c.status]||{c:"--text-3"};
     return `<div class="pcard" draggable="true" data-pid="${c.id}" style="border-top-color:var(${s.c})">
-      <div class="ph-top">${svg("phone")}<div class="ph-i"><b>${esc(c.nome)}</b><span>${esc(c.modelo||"—")}${chip&&last4(chip.numero)?" · ····"+last4(chip.numero):""}</span></div>${restabBadge(c)}</div>
+      <div class="ph-top">${svg("phone")}<div class="ph-i"><b>${esc(c.nome)}</b><span>${esc(c.modelo||"—")}${chip&&last4(chip.numero)?" · ····"+last4(chip.numero):""}</span></div></div>${c.status==="restabelecido"?`<div class="ph-restab">${restabBadge(c)}</div>`:""}
       <div class="ph-foot"><span>${of?`<span style="display:inline-flex;align-items:center;gap:5px;min-width:0;overflow:hidden"><span style="width:7px;height:7px;border-radius:50%;background:${ofbm?.cor||"var(--accent)"};flex:none"></span><span style="overflow:hidden;text-overflow:ellipsis">${esc(of.nome)}</span></span>`:'<span style="color:var(--text-3)">sem oferta</span>'}</span><div style="display:flex;gap:2px;flex:none"><button class="iconbtn" data-edit="${c.id}" title="Editar">${svg("edit")}</button><button class="iconbtn" data-del="${c.id}" title="Excluir">${svg("trash")}</button></div></div>
     </div>`;
   };
@@ -1018,7 +1019,7 @@ function vCelulares(){
   const known=Object.keys(CEL_STATUS);const other=DB.celulares.filter(c=>!known.includes(c.status));
   const otherBlock=other.length?`<div class="phonegroup" style="margin-top:16px"><div class="pg-label"><span class="dot" style="background:var(--text-3)"></span>Sem status<span class="pg-count">${other.length}</span></div><div class="grid phonesgrid">${other.map(card).join("")}</div></div>`:"";
   $("#view").innerHTML=`<div class="sect-h" style="margin-top:0"><h2>${svgInline("phone")}Todos os celulares</h2><div class="line"></div><span class="tag">arraste entre os status</span></div>
-    <div class="board pkb">${board}</div>${otherBlock}`;
+    <div class="board pkb" style="grid-auto-flow:row;grid-template-columns:repeat(${Object.keys(CEL_STATUS).length},minmax(0,1fr))">${board}</div>${otherBlock}`;
   $("#addcel").onclick=()=>celModal();
   $("#view").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>celModal(byId(DB.celulares,b.dataset.edit)));
   $("#view").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const c=byId(DB.celulares,b.dataset.del);confirmDel(`Excluir "${c.nome}"?`,"O chip vinculado também sai, e as campanhas dele ficam sem celular.",()=>{DB.criativos.forEach(x=>{if(x.celularId===c.id)x.celularId=null;});DB.chips=DB.chips.filter(k=>k.id!==c.chipId&&k.celularId!==c.id);DB.celulares=DB.celulares.filter(x=>x.id!==c.id);save();render();toast("Celular e chip removidos ✓");});});
