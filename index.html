@@ -214,6 +214,8 @@ a{color:inherit}
 .pcard .ph-top>svg{width:18px;height:18px;color:var(--text-2);flex:none}
 .pcard .ph-i{min-width:0;flex:1}
 .pcard .ph-i b{display:block;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.restab{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--st-zona);background:color-mix(in srgb,var(--st-zona) 16%,transparent);border:1px solid color-mix(in srgb,var(--st-zona) 40%,transparent);border-radius:7px;padding:3px 7px;white-space:nowrap;flex:none}
+.restab.ok{color:var(--good);background:var(--good-soft);border-color:color-mix(in srgb,var(--good) 40%,transparent)}
 .pcard .ph-i span{font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
 .pcard .ph-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:11px;color:var(--text-2);border-top:1px solid var(--border);padding-top:8px}
 /* toggle switch */
@@ -487,7 +489,12 @@ const ESTAGIOS=[
 ];
 const ESTG=Object.fromEntries(ESTAGIOS.map(e=>[e.id,e]));
 const BM_CORES=["#4f8cff","#26c281","#f0a830","#f2585f","#c9b8ff","#25d0c0","#ff8a5b","#a0d468"];
-const CEL_STATUS={"escala-forte":{l:"Escala Forte",c:"--st-escala"},rodando:{l:"Rodando",c:"--good"},testando:{l:"Testando",c:"--st-teste"},aquecido:{l:"Aquecido",c:"--accent"},aquecendo:{l:"Aquecendo",c:"--warn"},banido:{l:"Caiu",c:"--crit"}};
+const CEL_STATUS={"escala-forte":{l:"Escala Forte",c:"--st-escala"},rodando:{l:"Rodando",c:"--good"},testando:{l:"Testando",c:"--st-teste"},aquecido:{l:"Aquecido",c:"--accent"},aquecendo:{l:"Aquecendo",c:"--warn"},restabelecido:{l:"Restabelecido",c:"--st-zona"},banido:{l:"Caiu",c:"--crit"}};
+const RESTAB_MS=24*60*60*1000;
+// info do timer de 24h do estágio Restabelecido (conta de 0 até 24h, depois vira OK)
+function restabFmt(el){const h=Math.floor(el/3600000),m=Math.floor(el%3600000/60000),s=Math.floor(el%60000/1000);return`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;}
+function restabBadge(c){if(c.status!=="restabelecido"||!c.restabTs)return"";const el=now()-c.restabTs;if(el>=RESTAB_MS)return`<span class="restab ok">✓ OK</span>`;return`<span class="restab" data-restab="${c.id}" data-ts="${c.restabTs}">⏳ ${restabFmt(el)}</span>`;}
+function startRestabTicker(){if(window._restabTick)return;window._restabTick=setInterval(()=>{document.querySelectorAll(".restab[data-ts]").forEach(n=>{const el=now()-(+n.dataset.ts);if(el>=RESTAB_MS){n.textContent="✓ OK";n.classList.add("ok");n.removeAttribute("data-ts");}else n.textContent="⏳ "+restabFmt(el);});},1000);}
 const RECARGA_ATENCAO=60,RECARGA_ALERTA=90; // dias: 2 meses = atenção, 3 meses = alerta
 const CHIP_STATUS={aquecendo:{l:"Aquecendo",c:"--warn"},testando:{l:"Testando",c:"--st-teste"},ativo:{l:"Ativo",c:"--good"},reserva:{l:"Reserva",c:"--text-3"},banido:{l:"Banido",c:"--crit"}};
 
@@ -891,7 +898,7 @@ function phonesSection(of){
     const runs=DB.criativos.filter(x=>x.dup&&x.celularId===c.id&&x.ofertaId===of.id).length;
     const chip=byId(DB.chips,c.chipId);const s=CEL_STATUS[c.status]||{c:"--text-3"};
     return `<div class="pcard" draggable="true" data-pid="${c.id}" style="border-top-color:var(${s.c})">
-      <div class="ph-top">${svg("phone")}<div class="ph-i"><b>${esc(c.nome)}</b><span>${esc(c.modelo||"—")}${chip?" · "+esc(chip.numero):""}</span></div></div>
+      <div class="ph-top">${svg("phone")}<div class="ph-i"><b>${esc(c.nome)}</b><span>${esc(c.modelo||"—")}${chip?" · "+esc(chip.numero):""}</span></div>${restabBadge(c)}</div>
       <div class="ph-foot"><span>${runs} camp.</span><div style="display:flex;gap:2px"><button class="iconbtn" data-editcel="${c.id}" title="Editar">${svg("edit")}</button><button class="iconbtn" data-unassign="${c.id}" title="Tirar da oferta">${svg("trash")}</button></div></div>
     </div>`;
   };
@@ -957,7 +964,9 @@ function persistPhoneOrder(){
   let inserted=false;const newOrder=[];
   DB.celulares.forEach(c=>{if(domSet.has(c.id)){if(!inserted){inserted=true;domIds.forEach(id=>{const x=byId(DB.celulares,id);if(x)newOrder.push(x);});}}else newOrder.push(c);});
   DB.celulares=newOrder;
-  let caiuMsg="";cards.forEach(el=>{const c=byId(DB.celulares,el.dataset.pid);if(c&&c.status==="banido"&&old[c.id]!=="banido"){const n=desativarCampsDoCelular(c.id);if(n)caiuMsg=`${c.nome} → Caiu · ${n} campanha${n>1?"s":""} desativada${n>1?"s":""}`;}});
+  let caiuMsg="";cards.forEach(el=>{const c=byId(DB.celulares,el.dataset.pid);if(!c)return;
+    if(c.status==="restabelecido"){if(old[c.id]!=="restabelecido")c.restabTs=now();}else if(old[c.id]==="restabelecido")delete c.restabTs;
+    if(c.status==="banido"&&old[c.id]!=="banido"){const n=desativarCampsDoCelular(c.id);if(n)caiuMsg=`${c.nome} → Caiu · ${n} campanha${n>1?"s":""} desativada${n>1?"s":""}`;}});
   save();render();if(caiuMsg)toast(caiuMsg);
 }
 function setupPhoneDnD(){
@@ -995,7 +1004,7 @@ function vCelulares(){
     const chip=byId(DB.chips,c.chipId);const of=c.ofertaId&&byId(DB.ofertas,c.ofertaId);const ofbm=of&&byId(DB.bms,of.bmId);
     const s=CEL_STATUS[c.status]||{c:"--text-3"};
     return `<div class="pcard" draggable="true" data-pid="${c.id}" style="border-top-color:var(${s.c})">
-      <div class="ph-top">${svg("phone")}<div class="ph-i"><b>${esc(c.nome)}</b><span>${esc(c.modelo||"—")}${chip&&last4(chip.numero)?" · ····"+last4(chip.numero):""}</span></div></div>
+      <div class="ph-top">${svg("phone")}<div class="ph-i"><b>${esc(c.nome)}</b><span>${esc(c.modelo||"—")}${chip&&last4(chip.numero)?" · ····"+last4(chip.numero):""}</span></div>${restabBadge(c)}</div>
       <div class="ph-foot"><span>${of?`<span style="display:inline-flex;align-items:center;gap:5px;min-width:0;overflow:hidden"><span style="width:7px;height:7px;border-radius:50%;background:${ofbm?.cor||"var(--accent)"};flex:none"></span><span style="overflow:hidden;text-overflow:ellipsis">${esc(of.nome)}</span></span>`:'<span style="color:var(--text-3)">sem oferta</span>'}</span><div style="display:flex;gap:2px;flex:none"><button class="iconbtn" data-edit="${c.id}" title="Editar">${svg("edit")}</button><button class="iconbtn" data-del="${c.id}" title="Excluir">${svg("trash")}</button></div></div>
     </div>`;
   };
@@ -1237,7 +1246,9 @@ function celModal(cel){
     onOk:close=>{const root=$("#modal-root");const nome=val(root,"nome");if(!nome)return toast("Dê um apelido ao celular"),false;
       const data={nome,modelo:val(root,"modelo"),chipId:val(root,"chipId")||null,ofertaId:val(root,"ofertaId")||null,status:val(root,"status"),notas:val(root,"notas")};
       const caiu=editing&&data.status==="banido"&&cel.status!=="banido";
+      const antesStatus=editing?cel.status:null;
       if(editing){Object.assign(cel,data);}else{cel={id:uid(),...data,criadoEm:now()};DB.celulares.push(cel);}
+      if(data.status==="restabelecido"){if(antesStatus!=="restabelecido")cel.restabTs=now();}else delete cel.restabTs;
       if(data.chipId){const k=byId(DB.chips,data.chipId);if(k)k.celularId=cel.id;}
       let ndes=0;if(caiu||(!editing&&data.status==="banido"))ndes=desativarCampsDoCelular(cel.id);
       save();render();close();toast((editing?"Celular atualizado":"Celular criado")+(ndes?` · ${ndes} campanha${ndes>1?"s":""} desativada${ndes>1?"s":""}`:""));}});
@@ -1358,6 +1369,7 @@ function renderAccount(){
 
 initTheme();
 render();
+startRestabTicker();
 initCloud();
 </script>
 </body>
