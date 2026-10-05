@@ -299,16 +299,37 @@ td .sub2{font-size:12px;color:var(--text-3);margin-top:1px}
 .pag-alert{margin-top:12px;font-size:12px;line-height:1.45;color:var(--crit);background:color-mix(in srgb,var(--crit) 12%,transparent);border:1px solid color-mix(in srgb,var(--crit) 40%,transparent);border-radius:9px;padding:9px 11px}
 .pag-alert.top{margin:0 0 18px}
 .pag-alert b{font-weight:700}
-.celpick{max-height:300px;overflow-y:auto;overflow-x:hidden;border:1px solid var(--border-2);border-radius:10px;padding:8px;background:var(--bg-2);display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px;color-scheme:dark;scrollbar-width:thin;scrollbar-color:var(--border-2) transparent}
-.celopt{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text);border:1px solid var(--border);background:var(--surface);min-width:0}
-.celopt:hover{background:var(--surface-2);border-color:var(--border-2)}
-.celopt:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
-.field .celopt input{width:16px;height:16px;padding:0;margin:0;flex:none;accent-color:var(--accent);box-shadow:none}
-.celopt>span{display:flex;align-items:center;gap:7px;min-width:0;flex-wrap:wrap;overflow-wrap:anywhere}
-.celopt em{color:var(--text-3);font-style:normal;font-size:11px;font-weight:400}
-.celopt.removed{grid-column:1/-1}
-.celopt.removed{color:var(--crit)}
-.celopt.removed em{color:color-mix(in srgb,var(--crit) 80%,var(--text-3))}
+.cp{display:flex;flex-direction:column;gap:10px}
+.cp-sel{display:flex;flex-wrap:wrap;gap:6px;min-height:34px;align-items:center;padding:8px;border:1px dashed var(--border-2);border-radius:10px}
+.cp-sel .vazio{color:var(--text-3);font-size:12.5px;padding:0 4px}
+.cp-tag{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--text);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);border-radius:8px;padding:5px 6px 5px 9px}
+.cp-tag .num{font-family:var(--mono);font-weight:500;font-size:11.5px;color:var(--text-2)}
+.cp-tag button{border:0;background:none;color:var(--text-2);cursor:pointer;font-size:13px;line-height:1;padding:2px 4px;border-radius:5px}
+.cp-tag button:hover{background:var(--surface-3);color:var(--text)}
+.cp-tag.gone{background:color-mix(in srgb,var(--crit) 14%,transparent);border-color:color-mix(in srgb,var(--crit) 50%,transparent);color:var(--crit)}
+.cp-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cp-bar .cp-q{flex:1;min-width:180px}
+.cp-filtro{border:1px solid var(--border-2);background:var(--bg-2);color:var(--text-2);border-radius:9px;padding:9px 12px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap}
+.cp-filtro.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.cp-list{max-height:320px;overflow-y:auto;border:1px solid var(--border-2);border-radius:10px;background:var(--bg-2);color-scheme:dark;scrollbar-width:thin;scrollbar-color:var(--border-2) transparent}
+.cp-row{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:11px;align-items:center;width:100%;text-align:left;padding:10px 12px;border:0;border-bottom:1px solid var(--border);background:none;color:var(--text);cursor:pointer;font:inherit}
+.cp-row:last-child{border-bottom:0}
+.cp-row:hover{background:var(--surface-2)}
+.cp-row.on{background:var(--accent-soft)}
+.cp-box{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--border-2);display:grid;place-items:center;font-size:13px;font-weight:700;color:#fff;background:var(--surface)}
+.cp-row.on .cp-box{background:var(--accent);border-color:var(--accent)}
+.cp-nome{font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px;min-width:0}
+.cp-nome span.t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cp-info{font-size:12px;color:var(--text-2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cp-info .num{font-family:var(--mono);color:var(--text)}
+.cp-st{font-size:11.5px;font-weight:600;border-radius:20px;padding:3px 9px;white-space:nowrap;color:var(--sc);background:color-mix(in srgb,var(--sc) 15%,transparent)}
+.cp-nada{padding:22px 12px;text-align:center;color:var(--text-3);font-size:12.5px}
+.cp-cont{font-size:12px;color:var(--text-3)}
+.pag-cels{flex-direction:column;flex-wrap:nowrap;gap:5px}
+.pag-cel{display:flex;align-items:center;gap:8px;font-size:12.5px;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:6px 9px;min-width:0}
+.pag-cel b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pag-cel .num{font-family:var(--mono);font-size:11.5px;color:var(--text-2);margin-left:auto;white-space:nowrap}
+.pag-cel.gone{color:var(--crit);border-color:color-mix(in srgb,var(--crit) 45%,transparent);background:color-mix(in srgb,var(--crit) 12%,transparent)}
 .promptc{padding:16px 17px;display:flex;flex-direction:column;gap:11px}
 .promptc .p-top{display:flex;justify-content:space-between;align-items:start;gap:10px}
 .promptc h3{font-size:14.5px;font-weight:600}
@@ -1136,7 +1157,7 @@ function vPaginas(){
     return `<div class="card pagc ${remov.length?"hasgone":""}">
       <div class="pag-top">${svg("flag")}<h3>${esc(p.nome)}</h3><div class="p-act"><button class="iconbtn" data-edit="${p.id}">${svg("edit")}</button><button class="iconbtn" data-del="${p.id}">${svg("trash")}</button></div></div>
       <div class="pag-of">${of?`<span class="ofpill" style="--oc:${bm?.cor||"var(--accent)"}"><span class="dot"></span>${esc(of.nome)}</span>`:'<span class="pag-semof">Sem oferta definida</span>'}</div>
-      <div class="pag-cels">${cels.length?cels.map(cc=>{const c=byId(DB.celulares,cc.id);if(c){const s=CEL_STATUS[c.status]||{c:"--text-3"};return `<span class="celtag"><span class="cdot2" style="background:var(${s.c})"></span>${esc(c.nome)}</span>`;}return `<span class="celtag gone">⚠ ${esc(cc.nome)}</span>`;}).join(""):'<span class="pag-semof">Nenhum celular vinculado</span>'}</div>
+      <div class="pag-cels">${cels.length?cels.map(cc=>{const c=byId(DB.celulares,cc.id);if(c){const st=CEL_STATUS[c.status]||{c:"--text-3",l:""};const k=byId(DB.chips,c.chipId);return `<div class="pag-cel" title="${esc(st.l)}"><span class="cdot2" style="background:var(${st.c});flex:none"></span><b>${esc(c.nome)}</b><span class="num">${k?esc(k.numero):"sem chip"}</span></div>`;}return `<div class="pag-cel gone">⚠ <b>${esc(cc.nome)}</b><span class="num" style="color:inherit">removido</span></div>`;}).join(""):'<span class="pag-semof">Nenhum celular vinculado</span>'}</div>
       ${remov.length?`<div class="pag-alert">⚠ ${remov.length>1?`${remov.length} celulares/chips foram removidos`:"Esse celular/chip foi removido"} e ainda ${remov.length>1?"estão":"está"} nesta página — <b>entre no Facebook e tire ${remov.length>1?"eles":"ele"} da página</b> (${esc(remov.map(r=>r.nome).join(", "))})</div>`:""}
     </div>`;};
   $("#view").innerHTML=`<div class="sect-h" style="margin-top:0"><h2>${svgInline("flag")}Páginas do Facebook</h2><div class="line"></div><span class="tag">${pags.length} página${pags.length>1?"s":""}</span></div>
@@ -1149,23 +1170,56 @@ function vPaginas(){
 function paginaModal(p){
   const editing=!!p;
   const ofOpts=[{v:"",l:"— Sem oferta —"},...DB.ofertas.map(o=>{const bm=byId(DB.bms,o.bmId);return {v:o.id,l:`${bm?bm.nome+" · ":""}${o.nome}`};})];
-  const attached=p?.cels||[];const attIds=new Set(attached.map(c=>c.id));
-  const remov=attached.filter(a=>!byId(DB.celulares,a.id));
-  const celList=[...DB.celulares].sort((a,b)=>a.nome.localeCompare(b.nome));
-  const celPick=`<div class="field"><label>Celulares / chips nesta página <span class="opt">(marque os que estão rodando nela)</span></label>
-    <div class="celpick">
-      ${remov.map(r=>`<label class="celopt removed"><input type="checkbox" data-cel="${r.id}" data-nome="${esc(r.nome)}" checked><span>⚠ ${esc(r.nome)} <em>(removido do app — desmarque quando tirar do Facebook)</em></span></label>`).join("")}
-      ${celList.length?celList.map(c=>{const s=CEL_STATUS[c.status]||{c:"--text-3"};return `<label class="celopt"><input type="checkbox" data-cel="${c.id}" data-nome="${esc(c.nome)}" ${attIds.has(c.id)?"checked":""}><span><span class="cdot2" style="background:var(${s.c})"></span>${esc(c.nome)} <em>${esc((CEL_STATUS[c.status]||{l:""}).l)}</em></span></label>`;}).join(""):'<div class="pag-semof" style="padding:8px">Nenhum celular cadastrado ainda.</div>'}
-    </div></div>`;
-  modal({title:editing?"Editar página":"Nova página",ico:"flag",body:`
+  // sel: id -> nome (guarda o nome pra continuar avisando se o celular for removido do app)
+  const sel=new Map((p?.cels||[]).map(c=>[c.id,c.nome]));
+  const jaTinha=new Set(sel.keys());   // os já marcados abrem no topo; marcar depois não faz a linha pular
+  let q="",soOferta=false;
+  modal({wide:true,title:editing?"Editar página":"Nova página",ico:"flag",body:`
     ${field("Nome da página","nome",p?.nome||"",{ph:"Ex.: Punto y Plata Oficial"})}
     ${field("Oferta que ela roda","ofertaId",p?.ofertaId||"",{type:"select",options:ofOpts})}
-    ${celPick}`,
+    <div class="field"><label>Celulares / chips nesta página <span class="cp-cont" id="cpcont"></span></label>
+      <div class="cp">
+        <div class="cp-sel" id="cpsel"></div>
+        <div class="cp-bar"><input class="cp-q" id="cpq" placeholder="Buscar por apelido, número ou modelo…" autocomplete="off"><button type="button" class="cp-filtro" id="cpof">Só os da oferta</button></div>
+        <div class="cp-list" id="cplist"></div>
+      </div></div>`,
     onOk:close=>{const root=$("#modal-root");const nome=val(root,"nome");if(!nome)return toast("Dê um nome à página"),false;
-      const cels=[...root.querySelectorAll(".celpick input:checked")].map(cb=>{const id=cb.dataset.cel;const c=byId(DB.celulares,id);return {id,nome:c?c.nome:cb.dataset.nome};});
+      const cels=[...sel].map(([id,nm])=>{const c=byId(DB.celulares,id);return {id,nome:c?c.nome:nm};});
       const data={nome,ofertaId:val(root,"ofertaId")||null,cels};
       if(editing){Object.assign(p,data);}else{(DB.paginas||(DB.paginas=[])).push({id:uid(),...data,criadoEm:now()});}
       save();render();close();toast(editing?"Página atualizada":"Página cadastrada");}});
+  const root=$("#modal-root");const ofSel=root.querySelector('[name="ofertaId"]');
+  const pinta=()=>{
+    const ofId=ofSel.value;
+    // topo: o que já está na página
+    $("#cpsel").innerHTML=sel.size?[...sel].map(([id,nm])=>{const c=byId(DB.celulares,id);const k=c&&byId(DB.chips,c.chipId);
+      return c?`<span class="cp-tag">${esc(c.nome)}${k?`<span class="num">${esc(k.numero)}</span>`:""}<button type="button" data-tira="${id}" title="Tirar da página">✕</button></span>`
+              :`<span class="cp-tag gone" title="Foi removido do app — tire também no Facebook">⚠ ${esc(nm)} (removido)<button type="button" data-tira="${id}" title="Já tirei do Facebook">✕</button></span>`;}).join("")
+      :'<span class="vazio">Nenhum celular nesta página ainda — marque na lista abaixo.</span>';
+    $("#cpcont").textContent=sel.size?`· ${sel.size} marcado${sel.size>1?"s":""}`:"";
+    const bot=$("#cpof");bot.hidden=!ofId;bot.classList.toggle("on",soOferta&&!!ofId);
+    // lista
+    const busca=q.trim().toLowerCase();const digitos=busca.replace(/\D/g,"");
+    const lista=DB.celulares.map(c=>({c,k:byId(DB.chips,c.chipId),of:c.ofertaId&&byId(DB.ofertas,c.ofertaId)}))
+      .filter(x=>!(soOferta&&ofId)||x.c.ofertaId===ofId)
+      .filter(x=>{if(!busca)return true;const txt=`${x.c.nome} ${x.c.modelo||""} ${x.k?x.k.numero:""} ${x.of?x.of.nome:""}`.toLowerCase();
+        return txt.includes(busca)||(digitos.length>=3&&x.k&&x.k.numero.replace(/\D/g,"").includes(digitos));})
+      .sort((a,b)=>(jaTinha.has(b.c.id)-jaTinha.has(a.c.id))||((b.c.ofertaId===ofId&&!!ofId)-(a.c.ofertaId===ofId&&!!ofId))||a.c.nome.localeCompare(b.c.nome,undefined,{numeric:true}));
+    $("#cplist").innerHTML=lista.length?lista.map(({c,k,of})=>{const st=CEL_STATUS[c.status]||{c:"--text-3",l:"—"};const on=sel.has(c.id);
+      return `<button type="button" class="cp-row ${on?"on":""}" data-cel="${c.id}">
+        <span class="cp-box">${on?"✓":""}</span>
+        <span style="min-width:0"><span class="cp-nome"><span class="t">${esc(c.nome)}</span></span>
+          <span class="cp-info" style="display:block">${k?`<span class="num">${esc(k.numero)}</span>`:"sem chip"}${c.modelo?" · "+esc(c.modelo):""}${of?" · "+esc(of.nome):""}</span></span>
+        <span class="cp-st" style="--sc:var(${st.c})">${esc(st.l)}</span></button>`;}).join("")
+      :`<div class="cp-nada">${DB.celulares.length?(busca?`Nada encontrado para “${esc(q.trim())}”.`:"Nenhum celular nessa oferta. Clique em “Só os da oferta” pra ver todos."):"Nenhum celular cadastrado ainda. Cadastre em Celulares ou Chips."}</div>`;
+  };
+  $("#cpq").oninput=e=>{q=e.target.value;pinta();};
+  $("#cpof").onclick=()=>{soOferta=!soOferta;pinta();};
+  ofSel.onchange=pinta;
+  $("#cplist").onclick=e=>{const r=e.target.closest("[data-cel]");if(!r)return;const id=r.dataset.cel;const topo=$("#cplist").scrollTop;
+    if(sel.has(id))sel.delete(id);else sel.set(id,(byId(DB.celulares,id)||{}).nome||"");pinta();$("#cplist").scrollTop=topo;};
+  $("#cpsel").onclick=e=>{const b=e.target.closest("[data-tira]");if(!b)return;sel.delete(b.dataset.tira);pinta();};
+  pinta();
 }
 
 /* ======================= shared UI ======================= */
