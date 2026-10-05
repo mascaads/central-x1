@@ -446,7 +446,13 @@ const CAMP_STAGES=["teste","pre-escala","escala"]; // estágios da campanha (rod
 const isVeic=c=>EM_VEIC.includes(c.estagio);
 const NEXT={modelado:"validado",validado:"pre-escala","pre-escala":"escala",escala:"zona-branca"};
 // campanha = criativo com dup:true e criativoId (pai). Criativo sólido (funil) não tem dup.
-const campsDe=cid=>DB.criativos.filter(c=>c.dup&&c.criativoId===cid);
+// uma campanha pode rodar mais de um criativo: criativoIds (lista) + criativoId (o primeiro, por compatibilidade)
+const crIdsDe=c=>(c.criativoIds&&c.criativoIds.length)?c.criativoIds:(c.criativoId?[c.criativoId]:[]);
+const paisDe=c=>crIdsDe(c).map(id=>byId(DB.criativos,id)).filter(Boolean);
+const siglasDe=c=>paisDe(c).map(p=>p.sigla||p.nome).join(" / ");
+const campsDe=cid=>DB.criativos.filter(c=>c.dup&&crIdsDe(c).includes(cid));
+// excluir criativo: campanha só dele some junto; campanha compartilhada só perde aquela sigla
+function removerCriativo(cid){DB.criativos=DB.criativos.filter(x=>{if(x.id===cid)return false;if(!x.dup)return true;const ids=crIdsDe(x);if(!ids.includes(cid))return true;const rest=ids.filter(i=>i!==cid);if(!rest.length)return false;x.criativoIds=rest;x.criativoId=rest[0];return true;});}
 // sub-campanhas: cada campanha tem c.subs=[{ativo,orcamento}]; a moeda é da campanha
 function ensureSubs(c){if(!c.dup)return c;if(!Array.isArray(c.subs)||!c.subs.length){const n=Math.max(1,+c.qtdCampanhas||1);c.subs=[];for(let i=0;i<n;i++)c.subs.push({ativo:c.ativo!==false,orcamento:+c.orcamento||0});}return c;}
 const subOrcAtivo=c=>(c.subs||[]).filter(s=>s.ativo).reduce((a,s)=>a+(+s.orcamento||0),0);
@@ -474,7 +480,7 @@ function consolidarSiglas(db,preferId){
     });
     const primary=list[0];
     list.slice(1).forEach(d=>{
-      cr.forEach(x=>{if(x.dup&&x.criativoId===d.id){x.criativoId=primary.id;changed=true;}});
+      cr.forEach(x=>{if(x.dup&&crIdsDe(x).includes(d.id)){x.criativoIds=[...new Set(crIdsDe(x).map(i=>i===d.id?primary.id:i))];x.criativoId=x.criativoIds[0];changed=true;}});
       const isPhantom=d.noFunil&&(d.nome||"").trim().toLowerCase()===(d.sigla||"").trim().toLowerCase();
       if(isPhantom&&d.id!==preferId){removeIds.add(d.id);changed=true;}
     });
@@ -651,7 +657,7 @@ const CAMP_SORTS=[["data","Data"],["celular","Celular"],["criativo","Criativo"],
 function sortCamps(list){const k=campSort;return [...list].sort((a,b)=>{
   if(k==="data"){const da=a.data||"",db=b.data||"";if(da!==db)return da<db?1:-1;}
   else if(k==="celular"){const na=(celName(a.celularId)||"~~~").toLowerCase(),nb=(celName(b.celularId)||"~~~").toLowerCase();if(na!==nb)return na<nb?-1:1;}
-  else if(k==="criativo"){const pa=byId(DB.criativos,a.criativoId)||{},pb=byId(DB.criativos,b.criativoId)||{};const sa=(pa.sigla||pa.nome||"~~~").toLowerCase(),sb=(pb.sigla||pb.nome||"~~~").toLowerCase();if(sa!==sb)return sa<sb?-1:1;}
+  else if(k==="criativo"){const sa=(siglasDe(a)||"~~~").toLowerCase(),sb=(siglasDe(b)||"~~~").toLowerCase();if(sa!==sb)return sa<sb?-1:1;}
   else if(k==="objetivo"){const oa=OBJETIVOS.findIndex(o=>o.v===a.objetivo),ob=OBJETIVOS.findIndex(o=>o.v===b.objetivo);if(oa!==ob)return oa-ob;}
   return subOrcAtivo(b)-subOrcAtivo(a);
 });}
@@ -883,7 +889,7 @@ function vKanban(){
   $("#view").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{const c=byId(DB.criativos,b.dataset.edit);c.dup?campanhaModal(c):criativoModal(c);});
   $("#view").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const c=byId(DB.criativos,b.dataset.del);
     if(c.dup){confirmDel(`Excluir a campanha "${esc(c.campanha||c.nome)}"?`,"Remove só esta rodada. O criativo continua no funil.",()=>{DB.criativos=DB.criativos.filter(x=>x.id!==c.id);save();render();toast("Campanha excluída");});}
-    else{const nc=campsDe(c.id).length;confirmDel(`Excluir o criativo "${esc(c.nome)}"?`,`Apaga o criativo <b>de vez</b>${nc?` e as <b>${nc}</b> campanha(s) dele`:""}. Se ele é vencedor, prefira arrastar pra <b>Zona Branca</b>.`,()=>{DB.criativos=DB.criativos.filter(x=>x.id!==c.id&&x.criativoId!==c.id);save();render();toast("Criativo excluído");});}});
+    else{const nc=campsDe(c.id).length;confirmDel(`Excluir o criativo "${esc(c.nome)}"?`,`Apaga o criativo <b>de vez</b>${nc?` e as <b>${nc}</b> campanha(s) dele`:""}. Se ele é vencedor, prefira arrastar pra <b>Zona Branca</b>.`,()=>{removerCriativo(c.id);save();render();toast("Criativo excluído");});}});
   setupDnD();setupPhoneDnD();
 }
 function kpiTile(ico,k,v,foot,col){return `<div class="stat"><div class="k">${svg(ico)}${k}</div><div class="v" style="font-size:23px${col?`;color:var(${col})`:""}">${v}</div><div class="foot">${foot}</div></div>`;}
@@ -895,7 +901,7 @@ function creativoTable(list,withChip,simple){
   const sorted=sortCamps(list);
   const rowFn=c=>{
     const o=OBJ[c.objetivo]||OBJETIVOS[0];
-    const parent=byId(DB.criativos,c.criativoId)||{};
+    const pais=paisDe(c);const parent=pais[0]||{};const paiFora=pais.find(x=>x.noFunil);
     const roi=parent.roi||c.roi;const postId=parent.postId||c.postId;
     const subs=c.subs||[];const nAtivas=subs.filter(s=>s.ativo).length;const exp=!simple&&expandedCamps[c.id];
     let chipCell="";
@@ -903,13 +909,13 @@ function creativoTable(list,withChip,simple){
       chipCell=`<td>${chip?`<span class="mono" style="font-size:12px">${esc(chip.numero)}</span>`:'<span style="color:var(--text-3)">— sem chip</span>'}</td>`;}
     const main=`<tr data-row="${c.id}">
       <td style="width:44px"><button class="tgl ${campAtiva(c)?"on":""}" data-tglall="${c.id}" title="Ligar/desligar todas"><span></span></button></td>
-      <td>${simple?`<div class="nm">${esc(c.campanha||parent.nome||c.nome)}${c.data?` <span class="datatag">${fmtDataBR(c.data)}</span>`:""}</div>`:`<div class="nm campexp" data-expand="${c.id}"><span class="caret ${exp?"open":""}">▸</span>${esc(c.campanha||parent.nome||c.nome)}${c.data?` <span class="datatag">${fmtDataBR(c.data)}</span>`:""}</div>`}<div class="sub2">${parent.sigla?`<b style="color:var(--accent)">${esc(parent.sigla)}</b> · `:""}${esc(parent.nome||c.nome)}${parent.formato?" · "+esc(parent.formato):""}</div></td>
+      <td>${simple?`<div class="nm">${esc(c.campanha||parent.nome||c.nome)}${c.data?` <span class="datatag">${fmtDataBR(c.data)}</span>`:""}</div>`:`<div class="nm campexp" data-expand="${c.id}"><span class="caret ${exp?"open":""}">▸</span>${esc(c.campanha||parent.nome||c.nome)}${c.data?` <span class="datatag">${fmtDataBR(c.data)}</span>`:""}</div>`}<div class="sub2">${pais.length>1?`<b style="color:var(--accent)">${esc(siglasDe(c))}</b> · ${esc(pais.filter(x=>x.nome&&x.nome!==x.sigla).map(x=>x.nome).join(" + ")||pais.length+" criativos")}`:`${parent.sigla?`<b style="color:var(--accent)">${esc(parent.sigla)}</b> · `:""}${esc(parent.nome||c.nome)}${parent.formato?" · "+esc(parent.formato):""}`}</div></td>
       <td>${c.celularId?`<span class="tag">${esc(celName(c.celularId)||"?")}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
       ${chipCell}
       ${simple?"":`<td><span class="pill" style="color:var(${o.c});background:color-mix(in srgb,var(${o.c}) 15%,transparent)"><span class="dot"></span>${o.l}</span></td>
       <td style="text-align:center"><div class="qtdstep"><button class="qbtn" data-subminus="${c.id}" title="Menos uma sub-campanha">−</button><span class="mono" style="min-width:16px;text-align:center">${campN(c)}</span><button class="qbtn" data-subplus="${c.id}" title="Mais uma sub-campanha">+</button></div><div class="sub2" style="text-align:center;margin-top:3px">${nAtivas}/${subs.length} ativa${subs.length>1?"s":""}</div></td>`}
       <td style="text-align:center">${roi?`<span class="pill" style="color:var(--good);background:var(--good-soft)"><span class="dot"></span>${esc(roi)}</span>`:'<span style="color:var(--text-3)">—</span>'}</td>
-      <td><div class="rowact">${parent.noFunil?`<button class="iconbtn tofunil" data-tofunil="${c.criativoId}" title="Colocar o criativo no funil de validação">${svg("layers")}</button>`:""}${postId?`<button class="iconbtn" data-copypost="${c.id}" title="Copiar Post ID">${svg("copy")}</button>`:""}<button class="iconbtn" data-dup="${c.id}" title="Duplicar campanha">${svg("dup")}</button><button class="iconbtn" data-edit="${c.id}" title="Editar campanha">${svg("edit")}</button><button class="iconbtn" data-del="${c.id}" title="Excluir campanha">${svg("trash")}</button></div></td>
+      <td><div class="rowact">${paiFora?`<button class="iconbtn tofunil" data-tofunil="${paiFora.id}" title="Colocar o criativo no funil de validação">${svg("layers")}</button>`:""}${postId?`<button class="iconbtn" data-copypost="${c.id}" title="Copiar Post ID">${svg("copy")}</button>`:""}<button class="iconbtn" data-dup="${c.id}" title="Duplicar campanha">${svg("dup")}</button><button class="iconbtn" data-edit="${c.id}" title="Editar campanha">${svg("edit")}</button><button class="iconbtn" data-del="${c.id}" title="Excluir campanha">${svg("trash")}</button></div></td>
     </tr>`;
     const sub=exp?`<tr class="subrow"><td colspan="${ncols}"><div class="subs"><div class="subs-h">Sub-campanhas · ligar/desligar cada uma</div>${subs.map((s,i)=>`<div class="subitem"><button class="tgl ${s.ativo?"on":""}" data-subtgl="${c.id}:${i}" title="${s.ativo?"Ativa":"Pausada"}"><span></span></button><span class="subname">Campanha ${i+1}</span>${subs.length>1?`<button class="iconbtn" data-subdel="${c.id}:${i}" title="Remover">${svg("trash")}</button>`:""}</div>`).join("")}<button class="btn sm ghost" data-subadd="${c.id}">${svg("plus")}Sub-campanha</button></div></td></tr>`:"";
     return main+sub;
@@ -1256,18 +1262,20 @@ function criativoModal(cr,preset={}){
       const juntou=data.sigla&&data.sigla.trim()?consolidarSiglas(DB,cid):false;
       save();render();close();toast(editing?(juntou?"Criativo atualizado · campanhas reconectadas":"Criativo atualizado"):"Criativo criado");}});
   if(editing){const f=$("#modal-root .modal-f");f.insertAdjacentHTML("afterbegin",`<button class="btn ghost danger" style="margin-right:auto" id="delcr">${svg("trash")}Excluir</button>`);
-    $("#delcr").onclick=()=>{$("#modal-root").innerHTML="";const nc=campsDe(cr.id).length;confirmDel(`Excluir o criativo "${esc(cr.nome)}"?`,`Apaga o criativo <b>de vez</b>${nc?` e as <b>${nc}</b> campanha(s) dele`:""}. Se ele é vencedor, prefira arrastar pra <b>Zona Branca</b>.`,()=>{DB.criativos=DB.criativos.filter(x=>x.id!==cr.id&&x.criativoId!==cr.id);save();render();toast("Criativo excluído");});};}
+    $("#delcr").onclick=()=>{$("#modal-root").innerHTML="";const nc=campsDe(cr.id).length;confirmDel(`Excluir o criativo "${esc(cr.nome)}"?`,`Apaga o criativo <b>de vez</b>${nc?` e as <b>${nc}</b> campanha(s) dele`:""}. Se ele é vencedor, prefira arrastar pra <b>Zona Branca</b>.`,()=>{removerCriativo(cr.id);save();render();toast("Criativo excluído");});};}
 }
 function campanhaModal(camp,preset={},dup=false){
   const editing=!!camp;const c=camp||preset;
   const ofId=c.ofertaId||openOferta||DB.ofertas[0]?.id||"";
   const criativos=DB.criativos.filter(x=>!x.dup&&x.ofertaId===ofId);
-  const curSigla=c.criativoId?((byId(DB.criativos,c.criativoId)||{}).sigla||""):(c.sigla||"");
+  const curSigla=paisDe(c).map(x=>x.sigla||x.nome).join(" / ")||(c.sigla||"");
+  const partirSiglas=v=>[...new Set(String(v||"").split(/[\/,;+]+/).map(x=>x.trim().toUpperCase()).filter(Boolean))];
+  const acharCr=sg=>{const q=sg.toLowerCase();return DB.criativos.find(x=>!x.dup&&x.ofertaId===ofId&&((x.sigla||"").trim().toLowerCase()===q||(x.nome||"").trim().toLowerCase()===q));};
   const celList=DB.celulares.filter(x=>x.ofertaId===ofId);
   if(c.celularId&&!celList.some(x=>x.id===c.celularId)){const s=byId(DB.celulares,c.celularId);if(s)celList.push(s);}
   const celOpts=[{v:"",l:"— Sem celular —"},...celList.map(x=>({v:x.id,l:`${x.nome}${x.modelo?" ("+x.modelo+")":""}`}))];
   modal({wide:true,title:dup?"Duplicar campanha":(editing?"Editar campanha":"Nova campanha"),okText:dup?"Criar cópia":"Salvar",ico:"bolt",body:`
-    <div class="field"><label>Sigla do criativo <span class="opt">(faz a ligação sozinha)</span></label><input name="sigla" list="siglalist" value="${esc(curSigla)}" placeholder="Ex.: C04" autocomplete="off" style="text-transform:uppercase"><datalist id="siglalist">${criativos.filter(x=>x.sigla).map(x=>`<option value="${esc(x.sigla)}">${esc(x.nome)}</option>`).join("")}</datalist><div id="siglahint" style="font-size:11.5px;margin-top:6px;color:var(--text-3)"></div></div>
+    <div class="field"><label>Sigla do criativo <span class="opt">(faz a ligação sozinha — mais de um? separe com / )</span></label><input name="sigla" list="siglalist" value="${esc(curSigla)}" placeholder="Ex.: C04  ou  M04 / M03" autocomplete="off" style="text-transform:uppercase"><datalist id="siglalist">${criativos.filter(x=>x.sigla).map(x=>`<option value="${esc(x.sigla)}">${esc(x.nome)}</option>`).join("")}</datalist><div id="siglahint" style="font-size:11.5px;margin-top:6px;color:var(--text-3)"></div></div>
     <div class="frow">${field("Nome da campanha","campanha",c.campanha||"",{ph:"Ex.: 08.08 ESCALA CELULAR 9"})}
     ${field("Celular","celularId",c.celularId||"",{type:"select",options:celOpts})}</div>
     <div class="frow">${field("Data","data",c.data||todayISO(),{type:"date"})}
@@ -1276,28 +1284,28 @@ function campanhaModal(camp,preset={},dup=false){
     <div class="field"><label>Objetivo</label><div class="objchips" id="objchips">${OBJETIVOS.map(o=>`<button type="button" class="objchip ${(c.objetivo||"engj")===o.v?"on":""}" data-obj="${o.v}" style="--oc:var(${o.c})"><span class="dot"></span>${esc(o.l)}</button>`).join("")}</div><input type="hidden" name="objetivo" value="${c.objetivo||"engj"}"></div></div>`,
     onOk:close=>{const root=$("#modal-root");
       const campanha=val(root,"campanha");if(!campanha)return toast("Dê um nome à campanha"),false;
-      const sigla=val(root,"sigla").trim();if(!sigla)return toast("Informe a sigla do criativo (ex.: C04)"),false;
-      const q=sigla.toLowerCase();
-      let parent=DB.criativos.find(x=>!x.dup&&x.ofertaId===ofId&&((x.sigla||"").trim().toLowerCase()===q||(x.nome||"").trim().toLowerCase()===q));
-      let novoCr=false;
-      if(!parent){parent={id:uid(),ofertaId:ofId,sigla:sigla.toUpperCase(),nome:sigla.toUpperCase(),estagio:"modelado",formato:"",roi:"",postId:"",notas:"",noFunil:true,criadoEm:now()};DB.criativos.push(parent);novoCr=true;}
-      else if(!parent.sigla){parent.sigla=sigla.toUpperCase();}
-      const criativoId=parent.id;
-      const data={criativoId,ofertaId:parent?parent.ofertaId:ofId,nome:parent?parent.nome:campanha,campanha,celularId:val(root,"celularId")||null,estagio:(()=>{const u=campanha.toUpperCase();return(/TEST/.test(u)?"teste":/PR[EÉ]/.test(u)?"pre-escala":/ESCALA/.test(u)?"escala":"")||c.estagio||"pre-escala";})(),ativo:val(root,"ativo")!=="pausado",objetivo:val(root,"objetivo")||"engj",qtdCampanhas:parseInt(val(root,"qtdCampanhas"))||1,data:val(root,"data")||todayISO()};
+      const siglas=partirSiglas(val(root,"sigla"));if(!siglas.length)return toast("Informe a sigla do criativo (ex.: C04)"),false;
+      const novas=[];
+      const parents=siglas.map(sg=>{let pr=acharCr(sg);
+        if(!pr){pr={id:uid(),ofertaId:ofId,sigla:sg,nome:sg,estagio:"modelado",formato:"",roi:"",postId:"",notas:"",noFunil:true,criadoEm:now()};DB.criativos.push(pr);novas.push(sg);}
+        else if(!pr.sigla){pr.sigla=sg;}
+        return pr;});
+      const parent=parents[0];const novoCr=novas.length>0;
+      const criativoId=parent.id;const criativoIds=[...new Set(parents.map(x=>x.id))];
+      const data={criativoId,criativoIds,ofertaId:parent?parent.ofertaId:ofId,nome:parents.map(x=>x.nome).join(" + ")||campanha,campanha,celularId:val(root,"celularId")||null,estagio:(()=>{const u=campanha.toUpperCase();return(/TEST/.test(u)?"teste":/PR[EÉ]/.test(u)?"pre-escala":/ESCALA/.test(u)?"escala":"")||c.estagio||"pre-escala";})(),ativo:val(root,"ativo")!=="pausado",objetivo:val(root,"objetivo")||"engj",qtdCampanhas:parseInt(val(root,"qtdCampanhas"))||1,data:val(root,"data")||todayISO()};
       if(editing){Object.assign(camp,data);ensureSubs(camp);const n=Math.max(1,+data.qtdCampanhas||1);while(camp.subs.length<n)camp.subs.push({ativo:data.ativo,orcamento:+data.orcamento||0});while(camp.subs.length>n)camp.subs.pop();camp.qtdCampanhas=camp.subs.length;}
       else{const nc={id:uid(),dup:true,...data,criadoEm:now()};ensureSubs(nc);DB.criativos.push(nc);}
-      save();render();close();toast(editing?"Campanha atualizada":(novoCr?`Campanha + criativo ${parent.sigla} criados`:(dup?"Cópia criada":"Campanha criada")));}});
-  const sigIn=$('#modal-root [name="sigla"]');if(sigIn){const hint=()=>{const v=sigIn.value.trim().toLowerCase();const h=$("#siglahint");if(!h)return;if(!v){h.textContent="";return;}const m=DB.criativos.find(x=>!x.dup&&x.ofertaId===ofId&&((x.sigla||"").trim().toLowerCase()===v||(x.nome||"").trim().toLowerCase()===v));if(m){h.innerHTML=`✓ Liga em: <b style="color:var(--text)">${esc(m.nome)}</b>`;h.style.color="var(--good)";}else{h.innerHTML=`Sigla nova — vai criar o criativo <b style="color:var(--text-2)">${esc(sigIn.value.trim().toUpperCase())}</b> (fora do funil, só teste)`;h.style.color="var(--text-3)";}};sigIn.oninput=hint;hint();}
+      save();render();close();toast(editing?"Campanha atualizada":(novoCr?`Campanha + criativo ${novas.join(" / ")} criados`:(dup?"Cópia criada":"Campanha criada")));}});
+  const sigIn=$('#modal-root [name="sigla"]');if(sigIn){const hint=()=>{const h=$("#siglahint");if(!h)return;const sgs=partirSiglas(sigIn.value);if(!sgs.length){h.textContent="";return;}
+    h.style.color="var(--text-3)";
+    h.innerHTML=sgs.map(sg=>{const m=acharCr(sg);return m?`<span style="color:var(--good)">✓ ${esc(sg)} liga em: <b style="color:var(--text)">${esc(m.nome)}</b></span>`:`${esc(sg)} é sigla nova — vai criar o criativo <b style="color:var(--text-2)">${esc(sg)}</b> (fora do funil, só teste)`;}).join("<br>");};sigIn.oninput=hint;hint();}
   const nmIn=$('#modal-root [name="campanha"]');if(nmIn)nmIn.oninput=()=>{
     const nm=nmIn.value,up=nm.toUpperCase();if(!up.trim())return;
-    let sig="";for(const s of criativos.filter(x=>x.sigla).map(x=>x.sigla)){if(new RegExp("(^|[^A-Z0-9])"+s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"([^A-Z0-9]|$)","i").test(nm)){sig=s;break;}}
-    if(!sig){const m2=up.match(/(^|[^A-Z0-9])([A-Z]{1,3}\d{1,4})([^A-Z0-9]|$)/);if(m2)sig=m2[2];}
     let est="";if(/TEST/.test(up))est="teste";else if(/PR[EÉ]/.test(up))est="pre-escala";else if(/ESCALA/.test(up))est="escala";
     let obj="";const compras=/COMPRAS/.test(up);if(/ENGJ|ENGAJ/.test(up))obj=compras?"engj-compras":"engj";else if(/CONVERSA/.test(up))obj=compras?"conversas-compras":"conversas";
     let cel="";for(const c of celList){if(c.nome&&up.includes(c.nome.toUpperCase())){cel=c.id;break;}}
     // data no nome: 23.09 / 23-09 / 23/09 (com ou sem ano)
     let iso="";{const dm=nm.match(/(?:^|[^\d])([0-3]?\d)[.\/-]([01]?\d)(?:[.\/-](\d{2,4}))?(?![\d])/);if(dm){const dd=+dm[1],mm=+dm[2];let yy=dm[3]?+dm[3]:new Date().getFullYear();if(yy<100)yy+=2000;if(dd>=1&&dd<=31&&mm>=1&&mm<=12)iso=`${yy}-${String(mm).padStart(2,"0")}-${String(dd).padStart(2,"0")}`;}}
-    if(sig){const si=$('#modal-root [name="sigla"]');if(si&&si.value.trim().toLowerCase()!==sig.toLowerCase()){si.value=sig;si.dispatchEvent(new Event("input"));}}
     if(est){const m=$("#campmetrics");if(m)m.style.display=est==="teste"?"none":"";}
     if(obj)selObj(obj);
     if(cel){const cc=$('#modal-root [name="celularId"]');if(cc&&cc.value!==cel)cc.value=cel;}
