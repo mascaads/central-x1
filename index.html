@@ -299,12 +299,14 @@ td .sub2{font-size:12px;color:var(--text-3);margin-top:1px}
 .pag-alert{margin-top:12px;font-size:12px;line-height:1.45;color:var(--crit);background:color-mix(in srgb,var(--crit) 12%,transparent);border:1px solid color-mix(in srgb,var(--crit) 40%,transparent);border-radius:9px;padding:9px 11px}
 .pag-alert.top{margin:0 0 18px}
 .pag-alert b{font-weight:700}
-.celpick{max-height:230px;overflow:auto;border:1px solid var(--border-2);border-radius:10px;padding:6px;background:var(--bg-2);display:flex;flex-direction:column;gap:2px}
-.celopt{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;cursor:pointer;font-size:12.5px;color:var(--text)}
-.celopt:hover{background:var(--surface-2)}
-.celopt input{width:15px;height:15px;flex:none;accent-color:var(--accent)}
-.celopt span{display:inline-flex;align-items:center;gap:7px;min-width:0}
-.celopt em{color:var(--text-3);font-style:normal;font-size:11px}
+.celpick{max-height:300px;overflow-y:auto;overflow-x:hidden;border:1px solid var(--border-2);border-radius:10px;padding:8px;background:var(--bg-2);display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px;color-scheme:dark;scrollbar-width:thin;scrollbar-color:var(--border-2) transparent}
+.celopt{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text);border:1px solid var(--border);background:var(--surface);min-width:0}
+.celopt:hover{background:var(--surface-2);border-color:var(--border-2)}
+.celopt:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.field .celopt input{width:16px;height:16px;padding:0;margin:0;flex:none;accent-color:var(--accent);box-shadow:none}
+.celopt>span{display:flex;align-items:center;gap:7px;min-width:0;flex-wrap:wrap;overflow-wrap:anywhere}
+.celopt em{color:var(--text-3);font-style:normal;font-size:11px;font-weight:400}
+.celopt.removed{grid-column:1/-1}
 .celopt.removed{color:var(--crit)}
 .celopt.removed em{color:color-mix(in srgb,var(--crit) 80%,var(--text-3))}
 .promptc{padding:16px 17px;display:flex;flex-direction:column;gap:11px}
