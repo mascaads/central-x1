@@ -280,6 +280,16 @@ td .sub2{font-size:12px;color:var(--text-3);margin-top:1px}
 
 /* prompts */
 .prompts{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.paginas{grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
+.pagc{padding:16px}
+.pag-top{display:flex;align-items:center;gap:9px}
+.pag-top>svg{width:17px;height:17px;color:var(--text-2);flex:none}
+.pag-top h3{flex:1;min-width:0;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0}
+.pag-of{margin-top:12px}
+.pag-semof{color:var(--text-3);font-size:12px}
+.ofpill{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--text);background:color-mix(in srgb,var(--oc) 14%,transparent);border:1px solid color-mix(in srgb,var(--oc) 40%,transparent);border-radius:8px;padding:5px 10px;max-width:100%}
+.ofpill .dot{width:8px;height:8px;border-radius:50%;background:var(--oc);flex:none}
+.ofpill{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .promptc{padding:16px 17px;display:flex;flex-direction:column;gap:11px}
 .promptc .p-top{display:flex;justify-content:space-between;align-items:start;gap:10px}
 .promptc h3{font-size:14.5px;font-weight:600}
@@ -476,6 +486,7 @@ const I={
   drag:'<circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/>',
   refresh:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/>',
   spark:'<path d="M12 2v6M12 16v6M2 12h6M16 12h6"/>',
+  flag:'<path d="M4 22V4M4 4c3-2 6 2 9 0s4-2 7 0v9c-3 2-4 2-7 0s-6-2-9 0"/>',
 };
 const svg=(k,cls="")=>`<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${I[k]}</svg>`;
 
@@ -536,6 +547,7 @@ function normalize(db){
     else{if(!FUNIL_STAGES.includes(c.estagio))c.estagio="validado";}
   });
   (db.celulares||[]).forEach(c=>{if(c.ofertaId===undefined)c.ofertaId=null;if(!CEL_STATUS[c.status])c.status="aquecido";});
+  if(!Array.isArray(db.paginas))db.paginas=[];
   if(consolidarSiglas(db))_migrated=true;
   return db;
 }
@@ -601,6 +613,7 @@ const VIEWS=[
   {id:"ofertas",nome:"BMs & Ofertas",ico:"layers",sub:"Suas BMs, ofertas e o funil de criativos"},
   {id:"celulares",nome:"Celulares",ico:"phone",sub:"Aparelhos rodando, em descanso e reserva"},
   {id:"chips",nome:"Chips",ico:"chip",sub:"Cadastro, recarga e aquecimento dos chips"},
+  {id:"paginas",nome:"Páginas",ico:"flag",sub:"Suas páginas do Facebook e a oferta que cada uma roda"},
   {id:"prompts",nome:"Prompts",ico:"prompt",sub:"Sua biblioteca de prompts salvos"},
 ];
 let route="overview";
@@ -628,7 +641,7 @@ function go(r){route=r;openOferta=null;chipSearch="";render();window.scrollTo(0,
 
 /* ---------- render shell ---------- */
 function renderNav(){
-  const counts={overview:"",ofertas:DB.ofertas.length,celulares:DB.celulares.length,chips:DB.chips.length,prompts:DB.prompts.length};
+  const counts={overview:"",ofertas:DB.ofertas.length,celulares:DB.celulares.length,chips:DB.chips.length,paginas:(DB.paginas||[]).length,prompts:DB.prompts.length};
   $("#nav").innerHTML=`<div class="lbl">Operação</div>`+VIEWS.map(v=>`
     <button class="${route===v.id?"on":""}" data-go="${v.id}">${svg(v.ico)}<span>${v.nome}</span>${counts[v.id]!==""?`<span class="cnt">${counts[v.id]}</span>`:""}</button>`).join("");
   $("#nav").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{go(b.dataset.go);closeSide();});
@@ -643,7 +656,7 @@ function render(){
   $("#vt").textContent=route==="ofertas"&&openOferta?byId(DB.ofertas,openOferta)?.nome||v.nome:v.nome;
   $("#vs").textContent=v.sub;
   renderNav();
-  const R={overview:vOverview,ofertas:vOfertas,celulares:vCelulares,chips:vChips,prompts:vPrompts}[route];
+  const R={overview:vOverview,ofertas:vOfertas,celulares:vCelulares,chips:vChips,paginas:vPaginas,prompts:vPrompts}[route];
   R();
 }
 const byId=(arr,id)=>arr.find(x=>x.id===id);
@@ -1086,10 +1099,38 @@ function vPrompts(){
   $("#view").querySelectorAll("[data-toggle]").forEach(b=>b.onclick=()=>{const body=$(`[data-body="${b.dataset.toggle}"]`);const open=body.classList.toggle("open");const fade=$(`[data-fade="${b.dataset.toggle}"]`);if(fade)fade.style.display=open?"none":"";b.textContent=open?"Recolher":"Ver tudo";});
 }
 
+/* ======================= PÁGINAS ======================= */
+function vPaginas(){
+  topActions(`<button class="btn pri" id="addpag">${svg("plus")}Nova página</button>`);
+  const pags=DB.paginas||(DB.paginas=[]);
+  if(!pags.length){$("#view").innerHTML=empty("flag","Nenhuma página","Cadastre suas páginas do Facebook e a oferta que cada uma está rodando.",`<button class="btn pri" id="e">${svg("plus")}Cadastrar página</button>`);$("#e").onclick=()=>paginaModal();$("#addpag").onclick=()=>paginaModal();return;}
+  const card=p=>{const of=p.ofertaId&&byId(DB.ofertas,p.ofertaId);const bm=of&&byId(DB.bms,of.bmId);
+    return `<div class="card pagc">
+      <div class="pag-top">${svg("flag")}<h3>${esc(p.nome)}</h3><div class="p-act"><button class="iconbtn" data-edit="${p.id}">${svg("edit")}</button><button class="iconbtn" data-del="${p.id}">${svg("trash")}</button></div></div>
+      <div class="pag-of">${of?`<span class="ofpill" style="--oc:${bm?.cor||"var(--accent)"}"><span class="dot"></span>${esc(of.nome)}</span>`:'<span class="pag-semof">Sem oferta definida</span>'}</div>
+    </div>`;};
+  $("#view").innerHTML=`<div class="sect-h" style="margin-top:0"><h2>${svgInline("flag")}Páginas do Facebook</h2><div class="line"></div><span class="tag">${pags.length} página${pags.length>1?"s":""}</span></div>
+    <div class="grid paginas">${pags.map(card).join("")}</div>`;
+  $("#addpag").onclick=()=>paginaModal();
+  $("#view").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>paginaModal(byId(DB.paginas,b.dataset.edit)));
+  $("#view").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const p=byId(DB.paginas,b.dataset.del);confirmDel(`Excluir a página "${esc(p.nome)}"?`,"",()=>{DB.paginas=DB.paginas.filter(x=>x.id!==p.id);save();render();toast("Página excluída");});});
+}
+function paginaModal(p){
+  const editing=!!p;
+  const ofOpts=[{v:"",l:"— Sem oferta —"},...DB.ofertas.map(o=>{const bm=byId(DB.bms,o.bmId);return {v:o.id,l:`${bm?bm.nome+" · ":""}${o.nome}`};})];
+  modal({title:editing?"Editar página":"Nova página",ico:"flag",body:`
+    ${field("Nome da página","nome",p?.nome||"",{ph:"Ex.: Punto y Plata Oficial"})}
+    ${field("Oferta que ela roda","ofertaId",p?.ofertaId||"",{type:"select",options:ofOpts})}`,
+    onOk:close=>{const root=$("#modal-root");const nome=val(root,"nome");if(!nome)return toast("Dê um nome à página"),false;
+      const data={nome,ofertaId:val(root,"ofertaId")||null};
+      if(editing){Object.assign(p,data);}else{(DB.paginas||(DB.paginas=[])).push({id:uid(),...data,criadoEm:now()});}
+      save();render();close();toast(editing?"Página atualizada":"Página cadastrada");}});
+}
+
 /* ======================= shared UI ======================= */
 function empty(ico,h,p,btn){return `<div class="empty"><div class="ico">${svg(ico)}</div><h3>${h}</h3><p>${p}</p>${btn||""}</div>`;}
 function seedBanner(){return `<div class="seedbanner">${svg("spark")}<div class="sp"><b>Dados de exemplo.</b> Isto é uma operação fictícia pra você ver o app funcionando. Comece a editar ou limpe tudo quando quiser.</div><button class="btn sm" id="clearseed">Limpar exemplos</button></div>`;}
-function bindSeed(){const b=$("#clearseed");if(b)b.onclick=()=>confirmDel("Limpar os dados de exemplo?","Você vai começar do zero, com a operação vazia.",()=>{DB={_seed:false,bms:[],ofertas:[],criativos:[],celulares:[],chips:[],prompts:[]};curBM=null;save();render();toast("Tudo limpo — é sua operação agora");});}
+function bindSeed(){const b=$("#clearseed");if(b)b.onclick=()=>confirmDel("Limpar os dados de exemplo?","Você vai começar do zero, com a operação vazia.",()=>{DB={_seed:false,bms:[],ofertas:[],criativos:[],celulares:[],chips:[],paginas:[],prompts:[]};curBM=null;save();render();toast("Tudo limpo — é sua operação agora");});}
 
 let toastT;
 function toast(msg){let t=$(".toast");if(t)t.remove();t=document.createElement("div");t.className="toast";t.textContent=msg;document.body.appendChild(t);clearTimeout(toastT);toastT=setTimeout(()=>t.remove(),2200);}
