@@ -473,10 +473,11 @@ const OBJETIVOS=[
   {v:"engj-compras",l:"ENGJ Compras",c:"--st-zona"},
   {v:"conversas",l:"Conversas",c:"--good"},
   {v:"conversas-compras",l:"Conversas Compras",c:"--warn"},
+  {v:"bid",l:"BID",c:"--st-pre"},
 ];
 const OBJ=Object.fromEntries(OBJETIVOS.map(o=>[o.v,o]));
-// tipos de campanha que dá pra marcar como "já testei" num criativo (os 4 objetivos + BID)
-const TESTES_CAMP=[...OBJETIVOS,{v:"bid",l:"BID",c:"--st-pre"}];
+// tipos de campanha que dá pra marcar como "já testei" num criativo (os mesmos objetivos)
+const TESTES_CAMP=OBJETIVOS;
 const EM_VEIC=["pre-escala","escala"];
 const FUNIL_STAGES=["modelado","validado","pre-escala","escala","zona-branca"]; // estágios do criativo (funil)
 const CAMP_STAGES=["teste","pre-escala","escala"]; // estágios da campanha (rodada)
@@ -1376,7 +1377,7 @@ function campanhaModal(camp,preset={},dup=false){
   const nmIn=$('#modal-root [name="campanha"]');if(nmIn)nmIn.oninput=()=>{
     const nm=nmIn.value,up=nm.toUpperCase();if(!up.trim())return;
     let est="";if(/TEST/.test(up))est="teste";else if(/PR[EÉ]/.test(up))est="pre-escala";else if(/ESCALA/.test(up))est="escala";
-    let obj="";const compras=/COMPRAS/.test(up);if(/ENGJ|ENGAJ/.test(up))obj=compras?"engj-compras":"engj";else if(/CONVERSA/.test(up))obj=compras?"conversas-compras":"conversas";
+    let obj="";const compras=/COMPRAS/.test(up);if(/ENGJ|ENGAJ/.test(up))obj=compras?"engj-compras":"engj";else if(/CONVERSA/.test(up))obj=compras?"conversas-compras":"conversas";else if(/(^|[^A-Z])BID([^A-Z]|$)/.test(up))obj="bid";
     let cel="";for(const c of celList){if(c.nome&&up.includes(c.nome.toUpperCase())){cel=c.id;break;}}
     // data no nome: 23.09 / 23-09 / 23/09 (com ou sem ano)
     let iso="";{const dm=nm.match(/(?:^|[^\d])([0-3]?\d)[.\/-]([01]?\d)(?:[.\/-](\d{2,4}))?(?![\d])/);if(dm){const dd=+dm[1],mm=+dm[2];let yy=dm[3]?+dm[3]:new Date().getFullYear();if(yy<100)yy+=2000;if(dd>=1&&dd<=31&&mm>=1&&mm<=12)iso=`${yy}-${String(mm).padStart(2,"0")}-${String(dd).padStart(2,"0")}`;}}
@@ -1531,7 +1532,7 @@ render();
 startRestabTicker();
 initCloud();
 /* ---------- versão + aviso de atualização ---------- */
-const BUILD="2026-10-06.2";
+const BUILD="2026-10-06.3";
 {const vs=$("#verstamp");if(vs)vs.textContent="versão "+BUILD;}
 async function checarVersaoNova(){
   try{const r=await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"});const t=await r.text();const m=t.match(/const BUILD="([^"]+)"/);
