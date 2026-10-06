@@ -1224,7 +1224,6 @@ const ESTEIRA_FASES=[
   {de:11,ate:30,rot:"Dias 11–30",t:"Estabilizar",d:"Rotina normal, sem picos de volume.",c:"--st-escala"},
   {de:31,ate:99999,rot:"Dia 31+",t:"Maduro",d:"Já dá pra marcar como Aquecido.",c:"--good"},
 ];
-const faseDe=ms=>{const dia=Math.floor(ms/86400000)+1;return {dia,...(ESTEIRA_FASES.find(f=>dia>=f.de&&dia<=f.ate)||ESTEIRA_FASES[ESTEIRA_FASES.length-1])};};
 function fmtEst(ms){const m=Math.max(0,Math.floor(ms/60000)),d=Math.floor(m/1440),h=Math.floor(m%1440/60),mm=m%60,p=n=>String(n).padStart(2,"0");return d?`${d}d ${p(h)}h ${p(mm)}m`:h?`${h}h ${p(mm)}m`:`${mm}m`;}
 // dicas curtas: uma frase por item
 const DICAS_FACA=[
@@ -1255,10 +1254,8 @@ function vEsteira(){
   topActions(`<button class="btn" id="goChips">${svg("chip")}Escolher chips</button>`);
   const naEst=DB.chips.filter(k=>k.esteira);
   const col=e=>{const list=naEst.filter(k=>k.esteira.etapa===e.v).sort((a,b)=>a.esteira.ts-b.esteira.ts);
-    const card=k=>{const ts=k.esteira.ts,el=now()-ts;const f=faseDe(el);const cel=celName(k.celularId);
-      const body=e.v==="aquecendo"
-        ?`<div class="efase"><b>Dia ${f.dia} · ${esc(f.t)}</b><span>${esc(f.d)}</span></div>`
-        :`<div class="efase done"><b>Levou ${fmtEst((k.esteira.aquecidoTs||now())-ts)} pra aquecer</b></div>`;
+    const card=k=>{const ts=k.esteira.ts,el=now()-ts;const cel=celName(k.celularId);
+      const body=e.v==="aquecido"?`<div class="efase done"><b>Levou ${fmtEst((k.esteira.aquecidoTs||now())-ts)} pra aquecer</b></div>`:"";
       return `<div class="ecard" draggable="true" data-eid="${k.id}" style="border-top-color:var(${e.c})">
         <div class="ec-top"><div class="num">${esc(k.numero)}</div>${cel?`<div class="celline">${svg("phone")}<span>${esc(cel)}</span></div>`:""}</div>
         <div class="etimer"><span class="esttimer" data-ts="${ts}">${fmtEst(el)}</span><small>na esteira</small></div>
@@ -1658,7 +1655,7 @@ render();
 startRestabTicker();
 initCloud();
 /* ---------- versão + aviso de atualização ---------- */
-const BUILD="2026-10-06.5";
+const BUILD="2026-10-06.6";
 {const vs=$("#verstamp");if(vs)vs.textContent="versão "+BUILD;}
 async function checarVersaoNova(){
   try{const r=await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"});const t=await r.text();const m=t.match(/const BUILD="([^"]+)"/);
