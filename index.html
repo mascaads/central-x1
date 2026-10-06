@@ -280,6 +280,9 @@ td .sub2{font-size:12px;color:var(--text-3);margin-top:1px}
 
 /* prompts */
 .prompts{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.verstamp{margin-top:8px;text-align:center;font-family:var(--mono);font-size:10.5px;color:var(--text-3)}
+.updbar{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:300;background:var(--accent);color:#fff;font-size:13px;font-weight:600;padding:10px 14px;border-radius:12px;box-shadow:0 12px 40px -10px rgba(0,0,0,.6);display:flex;align-items:center;gap:12px}
+.updbar button{background:#fff;color:var(--accent);border:0;border-radius:8px;padding:6px 12px;font-weight:700;font-family:var(--sans);cursor:pointer}
 .paginas{grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
 .pagc{padding:16px}
 .pag-top{display:flex;align-items:center;gap:9px}
@@ -408,6 +411,7 @@ td .sub2{font-size:12px;color:var(--text-3);margin-top:1px}
       <div id="acct"></div>
       <button class="themebtn" id="widetoggle" style="margin-bottom:8px"></button>
       <button class="themebtn" id="theme"></button>
+      <div class="verstamp" id="verstamp"></div>
     </div>
   </aside>
   <div class="scrim" id="scrim"></div>
@@ -1510,6 +1514,16 @@ initTheme();
 render();
 startRestabTicker();
 initCloud();
+/* ---------- versão + aviso de atualização ---------- */
+const BUILD="2026-10-06.1";
+{const vs=$("#verstamp");if(vs)vs.textContent="versão "+BUILD;}
+async function checarVersaoNova(){
+  try{const r=await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"});const t=await r.text();const m=t.match(/const BUILD="([^"]+)"/);
+    if(m&&m[1]!==BUILD&&!$("#updbar")){const b=document.createElement("div");b.id="updbar";b.className="updbar";b.innerHTML=`Tem uma versão nova do app (${m[1]}). <button id="updgo">Atualizar agora</button>`;document.body.appendChild(b);$("#updgo").onclick=()=>{location.href=location.pathname+"?v="+encodeURIComponent(m[1]);};}
+  }catch(e){}
+}
+setTimeout(checarVersaoNova,4000);setInterval(checarVersaoNova,5*60*1000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)checarVersaoNova();});
 </script>
 </body>
 </html>
