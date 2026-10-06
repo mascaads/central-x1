@@ -280,6 +280,38 @@ td .sub2{font-size:12px;color:var(--text-3);margin-top:1px}
 
 /* prompts */
 .prompts{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.ch-est{margin-top:12px}
+.ch-est .btn{width:100%;justify-content:center}
+.ch-est .btn svg{width:14px;height:14px}
+.board.ebd{grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr))}
+.ecol.drop{outline:2px dashed var(--accent);outline-offset:-3px;border-radius:14px}
+.ecol .col-body{min-height:140px}
+.ecard{background:var(--surface);border:1px solid var(--border);border-top:2px solid var(--text-3);border-radius:12px;padding:13px 14px;cursor:grab;display:flex;flex-direction:column;gap:10px;transition:box-shadow .15s,opacity .12s}
+.ecard.drag{opacity:.45}
+.ecard:hover{box-shadow:0 6px 22px -10px rgba(0,0,0,.5)}
+.ec-top .num{font-family:var(--mono);font-size:14px;font-weight:700}
+.ec-top .celline{margin-top:5px;display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-3)}
+.ec-top .celline svg{width:12px;height:12px}
+.etimer{display:flex;align-items:baseline;gap:8px}
+.esttimer{font-family:var(--mono);font-size:22px;font-weight:700;letter-spacing:-.5px}
+.etimer small{font-size:11px;color:var(--text-3);font-weight:600}
+.efase{display:flex;flex-direction:column;gap:3px;font-size:12px;line-height:1.45;color:var(--text-2);background:var(--bg-2);border:1px solid var(--border);border-radius:9px;padding:9px 11px}
+.efase b{color:var(--text);font-size:12px}
+.efase.done{border-color:color-mix(in srgb,var(--accent) 35%,var(--border))}
+.ec-act{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.einsight{font-size:13px;line-height:1.55;color:var(--text-2);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 35%,var(--border));border-radius:12px;padding:13px 15px}
+.einsight b{color:var(--text)}
+.tips{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.tipc{padding:15px 16px;display:flex;flex-direction:column;gap:8px}
+.tipc h3{font-size:14px;font-weight:600;margin:0;line-height:1.35}
+.tipc p{margin:0;font-size:12.5px;line-height:1.55;color:var(--text-2)}
+.tip-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.tipcat{font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--text-3)}
+.tipsrc{font-size:10.5px;font-weight:700;border-radius:6px;padding:2px 7px;white-space:nowrap}
+.tipsrc.oficial{color:var(--good);background:var(--good-soft)}
+.tipsrc.mercado{color:var(--text-2);background:var(--bg-2);border:1px solid var(--border-2)}
+.esources{margin-top:22px;font-size:11.5px;color:var(--text-3);line-height:1.8}
+.esources a{color:var(--text-2);text-decoration:underline;text-underline-offset:2px}
 .testchips{display:flex;flex-wrap:wrap;gap:8px}
 .testchip{display:inline-flex;align-items:center;gap:9px;padding:8px 13px 8px 10px;border-radius:999px;border:1px solid var(--border-2);background:var(--bg-2);color:var(--text-2);font-size:12.5px;font-weight:600;font-family:var(--sans);cursor:pointer;transition:.12s}
 .testchip .tcheck{width:18px;height:18px;border-radius:50%;border:2px solid var(--border-2);display:inline-grid;place-items:center;flex:none;transition:.12s}
@@ -550,6 +582,7 @@ const I={
   refresh:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/>',
   spark:'<path d="M12 2v6M12 16v6M2 12h6M16 12h6"/>',
   flag:'<path d="M4 22V4M4 4c3-2 6 2 9 0s4-2 7 0v9c-3 2-4 2-7 0s-6-2-9 0"/>',
+  flame:'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4.1 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
 };
 const svg=(k,cls="")=>`<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${I[k]}</svg>`;
 
@@ -569,7 +602,7 @@ const RESTAB_MS=24*60*60*1000;
 // info do timer de 24h do estágio Restabelecido (conta de 0 até 24h, depois vira OK)
 function restabFmt(el){const h=Math.floor(el/3600000),m=Math.floor(el%3600000/60000),s=Math.floor(el%60000/1000);return`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;}
 function restabBadge(c){if(c.status!=="restabelecido"||!c.restabTs)return"";const el=now()-c.restabTs;if(el>=RESTAB_MS)return`<span class="restab ok">✓ OK</span>`;return`<span class="restab" data-restab="${c.id}" data-ts="${c.restabTs}">⏳ ${restabFmt(el)}</span>`;}
-function startRestabTicker(){if(window._restabTick)return;window._restabTick=setInterval(()=>{document.querySelectorAll(".restab[data-ts]").forEach(n=>{const el=now()-(+n.dataset.ts);if(el>=RESTAB_MS){n.textContent="✓ OK";n.classList.add("ok");n.removeAttribute("data-ts");}else n.textContent="⏳ "+restabFmt(el);});},1000);}
+function startRestabTicker(){if(window._restabTick)return;window._restabTick=setInterval(()=>{document.querySelectorAll(".restab[data-ts]").forEach(n=>{const el=now()-(+n.dataset.ts);if(el>=RESTAB_MS){n.textContent="✓ OK";n.classList.add("ok");n.removeAttribute("data-ts");}else n.textContent="⏳ "+restabFmt(el);});document.querySelectorAll(".esttimer[data-ts]").forEach(n=>{n.textContent=fmtEst(now()-(+n.dataset.ts));});},1000);}
 const RECARGA_ATENCAO=60,RECARGA_ALERTA=90; // dias: 2 meses = atenção, 3 meses = alerta
 const CHIP_STATUS={aquecendo:{l:"Aquecendo",c:"--warn"},testando:{l:"Testando",c:"--st-teste"},ativo:{l:"Ativo",c:"--good"},reserva:{l:"Reserva",c:"--text-3"},banido:{l:"Banido",c:"--crit"}};
 
@@ -676,6 +709,7 @@ const VIEWS=[
   {id:"ofertas",nome:"BMs & Ofertas",ico:"layers",sub:"Suas BMs, ofertas e o funil de criativos"},
   {id:"celulares",nome:"Celulares",ico:"phone",sub:"Aparelhos rodando, em descanso e reserva"},
   {id:"chips",nome:"Chips",ico:"chip",sub:"Cadastro, recarga e aquecimento dos chips"},
+  {id:"esteira",nome:"Esteira de Chips",ico:"flame",sub:"Aqueça seus chips e acompanhe o tempo de cada um"},
   {id:"paginas",nome:"Páginas",ico:"flag",sub:"Suas páginas do Facebook e a oferta que cada uma roda"},
   {id:"prompts",nome:"Prompts",ico:"prompt",sub:"Sua biblioteca de prompts salvos"},
 ];
@@ -704,7 +738,7 @@ function go(r){route=r;openOferta=null;chipSearch="";render();window.scrollTo(0,
 
 /* ---------- render shell ---------- */
 function renderNav(){
-  const counts={overview:"",ofertas:DB.ofertas.length,celulares:DB.celulares.length,chips:DB.chips.length,paginas:(DB.paginas||[]).length,prompts:DB.prompts.length};
+  const counts={overview:"",ofertas:DB.ofertas.length,celulares:DB.celulares.length,chips:DB.chips.length,esteira:DB.chips.filter(k=>k.esteira).length,paginas:(DB.paginas||[]).length,prompts:DB.prompts.length};
   $("#nav").innerHTML=`<div class="lbl">Operação</div>`+VIEWS.map(v=>`
     <button class="${route===v.id?"on":""}" data-go="${v.id}">${svg(v.ico)}<span>${v.nome}</span>${counts[v.id]!==""?`<span class="cnt">${counts[v.id]}</span>`:""}</button>`).join("");
   $("#nav").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{go(b.dataset.go);closeSide();});
@@ -719,7 +753,7 @@ function render(){
   $("#vt").textContent=route==="ofertas"&&openOferta?byId(DB.ofertas,openOferta)?.nome||v.nome:v.nome;
   $("#vs").textContent=v.sub;
   renderNav();
-  const R={overview:vOverview,ofertas:vOfertas,celulares:vCelulares,chips:vChips,paginas:vPaginas,prompts:vPrompts}[route];
+  const R={overview:vOverview,ofertas:vOfertas,celulares:vCelulares,chips:vChips,esteira:vEsteira,paginas:vPaginas,prompts:vPrompts}[route];
   R();
 }
 const byId=(arr,id)=>arr.find(x=>x.id===id);
@@ -1121,6 +1155,7 @@ function vChips(){
         <div class="g"><div class="gl">Sem recarga</div><div class="gv" style="color:var(${col})">${rec}<span class="gu"> dias</span></div></div>
         <div class="g"><div class="gl">Vida do chip</div><div class="gv">${vida}<span class="gu"> dias</span></div></div>
       </div>
+      <div class="ch-est">${k.esteira?`<button class="btn sm ghost" data-goest="1">${svg("flame")}Na esteira · ${k.esteira.etapa==="aquecido"?"Aquecido":"Aquecendo"} ✓</button>`:`<button class="btn sm" data-toest="${k.id}">${svg("flame")}Levar para esteira</button>`}</div>
       <div class="ch-foot">
         <button class="btn sm" data-rec="${k.id}">${svg("refresh")}Recarreguei</button>
         <div style="flex:1"></div>
@@ -1132,6 +1167,8 @@ function vChips(){
   $("#addchip").onclick=()=>chipModal();
   const cs=$("#chipsearch");if(cs)cs.oninput=()=>{chipSearch=cs.value;render();const n=$("#chipsearch");if(n){n.focus();try{n.setSelectionRange(n.value.length,n.value.length);}catch(e){}}};
   $("#view").querySelectorAll("[data-rec]").forEach(b=>b.onclick=()=>{const k=byId(DB.chips,b.dataset.rec);k.ultimaRecargaEm=now();save();render();toast("Recarga registrada ✓");});
+  $("#view").querySelectorAll("[data-toest]").forEach(b=>b.onclick=()=>{const k=byId(DB.chips,b.dataset.toest);k.esteira={ts:now(),etapa:"aquecendo"};save();render();toast(`${k.numero} entrou na esteira ✓`);});
+  $("#view").querySelectorAll("[data-goest]").forEach(b=>b.onclick=()=>go("esteira"));
   $("#view").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>chipModal(byId(DB.chips,b.dataset.edit)));
   $("#view").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const k=byId(DB.chips,b.dataset.del);const cel=DB.celulares.find(c=>c.chipId===k.id);confirmDel(`Excluir o chip ${k.numero}?`,`Remove de tudo${cel?` — e o celular <b>${esc(cel.nome)}</b> também sai (o celular é o chip)`:""}.`,()=>{const celIds=DB.celulares.filter(c=>c.chipId===k.id).map(c=>c.id);DB.criativos.forEach(x=>{if(celIds.includes(x.celularId))x.celularId=null;});DB.celulares=DB.celulares.filter(c=>!celIds.includes(c.id));DB.chips=DB.chips.filter(x=>x.id!==k.id);save();render();toast(cel?"Chip e celular removidos ✓":"Chip removido ✓");});});
 }
@@ -1161,6 +1198,94 @@ function vPrompts(){
   $("#view").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const p=byId(DB.prompts,b.dataset.del);confirmDel(`Excluir "${p.titulo}"?`,"",()=>{DB.prompts=DB.prompts.filter(x=>x.id!==p.id);save();render();toast("Prompt excluído");});});
   $("#view").querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{const p=byId(DB.prompts,b.dataset.copy);try{await navigator.clipboard.writeText(p.conteudo);toast("Copiado ✓");}catch(e){toast("Não consegui copiar");}});
   $("#view").querySelectorAll("[data-toggle]").forEach(b=>b.onclick=()=>{const body=$(`[data-body="${b.dataset.toggle}"]`);const open=body.classList.toggle("open");const fade=$(`[data-fade="${b.dataset.toggle}"]`);if(fade)fade.style.display=open?"none":"";b.textContent=open?"Recolher":"Ver tudo";});
+}
+
+/* ======================= ESTEIRA DE CHIPS ======================= */
+const ESTEIRA_ETAPAS=[{v:"aquecendo",l:"Aquecendo",c:"--warn"},{v:"aquecido",l:"Aquecido",c:"--accent"}];
+// fases do aquecimento por dia na esteira (dia 1 = dia em que o chip entrou)
+const ESTEIRA_FASES=[
+  {de:1,ate:1,t:"Preparar",d:"Perfil completo, contatos reais e ~24h de espera antes de conectar em Web/ferramenta."},
+  {de:2,ate:3,t:"Só receber",d:"Deixe chegar ~1 mensagem a cada 2h, de gente diferente, variando texto, áudio e mídia."},
+  {de:4,ate:6,t:"Começar a responder",d:"Responda ~1 a cada 2h, só pra quem está na agenda, sem texto de template."},
+  {de:7,ate:10,t:"Subir aos poucos",d:"Aumente em degraus. 1–2 grupos pequenos (3–5 pessoas) e uma ligação de vez em quando."},
+  {de:11,ate:30,t:"Estabilizar",d:"Rotina normal, sem picos de volume. Histórico limpo vai dando mais folga."},
+  {de:31,ate:99999,t:"Maduro",d:"30+ dias limpos: já dá pra marcar como Aquecido. Mantenha o ritmo, sem saltos."},
+];
+const faseDe=ms=>{const dia=Math.floor(ms/86400000)+1;return {dia,...(ESTEIRA_FASES.find(f=>dia>=f.de&&dia<=f.ate)||ESTEIRA_FASES[ESTEIRA_FASES.length-1])};};
+function fmtEst(ms){const m=Math.max(0,Math.floor(ms/60000)),d=Math.floor(m/1440),h=Math.floor(m%1440/60),mm=m%60,p=n=>String(n).padStart(2,"0");return d?`${d}d ${p(h)}h ${p(mm)}m`:h?`${h}h ${p(mm)}m`:`${mm}m`;}
+// dicas: src "oficial" = WhatsApp (regras/central de ajuda) · "mercado" = guias e fóruns do mercado
+const ESTEIRA_DICAS=[
+  {cat:"Roteiro",src:"mercado",t:"Espere ~24h antes de conectar",d:"Depois de registrar o número, deixe umas 24h antes de ligar em WhatsApp Web ou ferramenta de automação. Conectar no minuto zero é padrão de robô."},
+  {cat:"Roteiro",src:"mercado",t:"Perfil completo desde o dia 1",d:"Foto, nome, descrição e horário (se for Business) e alguns contatos reais na agenda. Número pelado e sem histórico chama mais atenção."},
+  {cat:"Roteiro",src:"mercado",t:"Comece recebendo, não mandando",d:"Nos primeiros dias deixe só chegar mensagem (~1 a cada 2h), de pessoas diferentes, variando texto, áudio e mídia. Só depois comece a responder."},
+  {cat:"Roteiro",src:"mercado",t:"Suba o volume em degraus",d:"Comece com 10–15 mensagens por dia e vá subindo aos poucos. Cada degrau só depois de 1–2 dias sem nenhum sinal de alerta. Pico no primeiro dia é o erro clássico."},
+  {cat:"Roteiro",src:"mercado",t:"Grupo pequeno e ligação de vez em quando",d:"1–2 grupos de 3 a 5 pessoas e uma chamada ocasional dão cara de uso normal. Não adicione contatos em massa de uma vez."},
+  {cat:"Roteiro",src:"mercado",t:"Sem pico depois de aquecido",d:"Mesmo com o chip maduro, salto brusco de volume é o que acende alerta. Cerca de 30 dias limpos dão mais folga, mas não dão imunidade."},
+
+  {cat:"Comportamento",src:"mercado",t:"Aja como gente",d:"Mensagens com tamanhos e horários diferentes. Evite mandar sempre no mesmo minuto ou com intervalo cravado entre uma e outra."},
+  {cat:"Comportamento",src:"mercado",t:"Nunca a mesma mensagem pra todo mundo",d:"Texto idêntico em sequência é o sinal mais óbvio de automação. Varie a abertura e o jeito de falar de uma pessoa pra outra."},
+  {cat:"Comportamento",src:"mercado",t:"Conversa de ida e volta",d:"A proporção entre enviadas e recebidas pesa. Número que só manda e quase não recebe resposta levanta suspeita."},
+  {cat:"Comportamento",src:"mercado",t:"Um aparelho, uma sessão",d:"Deslogue sessões antigas antes de abrir outra e use uma ferramenta por vez no mesmo número."},
+  {cat:"Comportamento",src:"oficial",t:"Só o app oficial",d:"Use apenas o WhatsApp ou WhatsApp Business oficiais. Versões modificadas (GB e similares), clones e emuladores podem levar a banimento temporário ou permanente."},
+  {cat:"Comportamento",src:"mercado",t:"Se apresente na primeira mensagem",d:"Diga quem você é e por que está falando. Quem reconhece o remetente bloqueia e denuncia menos."},
+
+  {cat:"Automação",src:"oficial",t:"Automação é o gatilho número 1 de ban",d:"As regras do WhatsApp proíbem envio em massa, mensagens automáticas e clientes não oficiais, e eles detectam por máquina e por denúncia. Quanto mais robô, mais o resto precisa estar perfeito."},
+  {cat:"Automação",src:"mercado",t:"Só ligue a automação depois do aquecimento",d:"Comece usando ela apenas para responder quem te chamou, com atraso variável (nem instantâneo, nem sempre igual)."},
+  {cat:"Automação",src:"mercado",t:"Atraso aleatório entre mensagens",d:"Intervalo zero ou fixo é assinatura de script. Use uma faixa aleatória e pausas maiores de vez em quando."},
+  {cat:"Automação",src:"mercado",t:"Teste com volume baixo primeiro",d:"Rode a automação com poucas conversas por 2–3 dias e observe se aparece algum alerta antes de escalar."},
+  {cat:"Automação",src:"mercado",t:"API oficial é o caminho previsível",d:"Com ela existe política documentada, nota de qualidade visível e canal de recurso. Em chip comum com cliente não oficial você escala sem nenhuma dessas redes de proteção."},
+
+  {cat:"Anúncio (CTWA)",src:"mercado",t:"Quem chama primeiro protege o número",d:"No anúncio de clique pro WhatsApp o lead inicia a conversa. É o melhor cenário: contato desejado e baixa chance de denúncia. Evite abordar lead frio fora disso."},
+  {cat:"Anúncio (CTWA)",src:"mercado",t:"Responda rápido",d:"Responda dentro de 24h (a janela de atendimento) e, de preferência, em poucos minutos. Demora vira frustração, bloqueio e denúncia."},
+  {cat:"Anúncio (CTWA)",src:"mercado",t:"Confira a política de comércio",d:"O WhatsApp tem categorias restritas. Oferta ou produto fora da política pode gerar restrição do número independente de aquecimento."},
+
+  {cat:"Qualidade",src:"mercado",t:"Denúncia e bloqueio mandam em tudo",d:"O que decide restrição é quanta gente denuncia ou bloqueia, não só o número estar aquecido. Se muita gente bloqueia, pause e revise a mensagem e a oferta."},
+  {cat:"Qualidade",src:"oficial",t:"Quem pediu pra parar, você para",d:"Remova da lista na hora. Contato indesejado repetido é violação das diretrizes e acelera a punição."},
+  {cat:"Qualidade",src:"mercado",t:"Menos volume, mais relevância",d:"Mensagem que a pessoa queria receber gera menos bloqueio do que muita mensagem genérica."},
+  {cat:"Qualidade",src:"mercado",t:"Poucos links, e confiáveis",d:"Evite encurtador estranho e abordagem agressiva. Link suspeito em chip novo é combinação ruim."},
+
+  {cat:"Alertas",src:"mercado",t:"Sinais de que o número está sob pressão",d:"Mensagens demorando pra sair, não conseguir criar grupo ou adicionar gente, Web/dispositivos caindo e pedindo QR toda hora, status e chamadas bloqueados."},
+  {cat:"Alertas",src:"mercado",t:"Apareceu sinal? Freie na hora",d:"Reduza o volume, desconecte os dispositivos vinculados por 24–48h, volte a conversar só com contatos próximos e deixe o número receber mensagens."},
+
+  {cat:"Se cair",src:"mercado",t:"O aquecimento zera",d:"Se o número for restringido e voltar, refaça o processo do dia 1, de 10 a 30 dias, com ritmo mais lento que da primeira vez."},
+  {cat:"Se cair",src:"oficial",t:"Peça análise",d:"Na tela de banimento dá pra pedir revisão. A resposta costuma sair em até 24h. Vale pedir antes de desistir do número."},
+  {cat:"Se cair",src:"mercado",t:"Caiu de novo? Olhe a causa, não o chip",d:"Trocar de chip sem mudar mensagem, ritmo e automação só repete o problema. Procure o que mudou antes da queda."},
+  {cat:"Se cair",src:"mercado",t:"Chip com recarga em dia",d:"Chip parado por muito tempo pode ser reciclado pela operadora e você perde o número. O app avisa na aba Chips, é só usar o Recarreguei."},
+];
+let esteiraCat="Todas";let dragEid=null;
+function vEsteira(){
+  topActions(`<button class="btn" id="goChips">${svg("chip")}Escolher chips</button>`);
+  const naEst=DB.chips.filter(k=>k.esteira);
+  const col=e=>{const list=naEst.filter(k=>k.esteira.etapa===e.v).sort((a,b)=>a.esteira.ts-b.esteira.ts);
+    const card=k=>{const ts=k.esteira.ts,el=now()-ts;const f=faseDe(el);const cel=celName(k.celularId);
+      const body=e.v==="aquecendo"
+        ?`<div class="efase"><b>Dia ${f.dia} · ${esc(f.t)}</b><span>${esc(f.d)}</span></div>`
+        :`<div class="efase done"><b>Levou ${fmtEst((k.esteira.aquecidoTs||now())-ts)} pra aquecer</b></div>`;
+      return `<div class="ecard" draggable="true" data-eid="${k.id}" style="border-top-color:var(${e.c})">
+        <div class="ec-top"><div class="num">${esc(k.numero)}</div>${cel?`<div class="celline">${svg("phone")}<span>${esc(cel)}</span></div>`:""}</div>
+        <div class="etimer"><span class="esttimer" data-ts="${ts}">${fmtEst(el)}</span><small>na esteira</small></div>
+        ${body}
+        <div class="ec-act">${e.v==="aquecendo"?`<button class="btn sm pri" data-eadv="${k.id}">Marcar como Aquecido ↗</button>`:`<button class="btn sm" data-eback="${k.id}">↩ Voltar pra Aquecendo</button>`}<button class="iconbtn" data-eout="${k.id}" title="Tirar da esteira">${svg("trash")}</button></div>
+      </div>`;};
+    return `<div class="col ecol" data-ecol="${e.v}"><div class="col-h"><span class="cdot" style="background:var(${e.c})"></span><span class="cn">${e.l}</span><span class="cc">${list.length}</span></div>
+      <div class="col-body">${list.map(card).join("")||`<div class="emptycol">${e.v==="aquecendo"?"Nenhum chip aquecendo. Vá em Chips e clique em “Levar para esteira”.":"Nenhum chip aquecido ainda."}</div>`}</div></div>`;};
+  const cats=["Todas",...new Set(ESTEIRA_DICAS.map(d=>d.cat))];
+  const dicas=ESTEIRA_DICAS.filter(d=>esteiraCat==="Todas"||d.cat===esteiraCat);
+  $("#view").innerHTML=`<div class="sect-h" style="margin-top:0"><h2>${svgInline("flame")}Esteira</h2><div class="line"></div><span class="tag">${naEst.length} chip${naEst.length===1?"":"s"} na esteira</span></div>
+    <div class="board ebd">${ESTEIRA_ETAPAS.map(col).join("")}</div>
+    <div class="sect-h"><h2>${svgInline("spark")}Dicas pra aquecer</h2><div class="line"></div><span class="tag">${ESTEIRA_DICAS.length} dicas</span></div>
+    <div class="einsight"><b>Antes de tudo:</b> aquecer reduz o risco, mas não dá imunidade. O que decide restrição no WhatsApp é denúncia/bloqueio de usuário, falta de consentimento, qualidade da mensagem e uso de automação ou app não oficial. Aqui estão as dicas que mais se repetem nas regras do WhatsApp e nos guias e fóruns do mercado.</div>
+    <div class="bmtabs" style="margin:14px 0 16px">${cats.map(c=>`<button class="bmtab ${esteiraCat===c?"on":""}" data-ecat="${esc(c)}">${esc(c)}<span class="n">${c==="Todas"?ESTEIRA_DICAS.length:ESTEIRA_DICAS.filter(d=>d.cat===c).length}</span></button>`).join("")}</div>
+    <div class="grid tips">${dicas.map(d=>`<div class="card tipc"><div class="tip-top"><span class="tipcat">${esc(d.cat)}</span><span class="tipsrc ${d.src}">${d.src==="oficial"?"WhatsApp oficial":"Guias e fóruns"}</span></div><h3>${esc(d.t)}</h3><p>${esc(d.d)}</p></div>`).join("")}</div>
+    <div class="esources">Fontes consultadas: <a href="https://www.whatsapp.com/legal/messaging-guidelines" target="_blank" rel="noopener">Diretrizes de mensagens do WhatsApp</a> · <a href="https://faq.whatsapp.com/465883178708358" target="_blank" rel="noopener">Sobre banimentos (WhatsApp)</a> · <a href="https://green-api.com/en/docs/faq/warming-up-whatsapp-number/" target="_blank" rel="noopener">Guia de aquecimento (Green API)</a> · <a href="https://www.take.app/help/tips-to-avoid-getting-banned-by-whatsapp" target="_blank" rel="noopener">take.app</a> · <a href="https://chakrahq.com/article/prevent-whatsapp-business-restriction/" target="_blank" rel="noopener">Chakra</a> · <a href="https://chatsac.com/blog/aquecer-chip-whatsapp-business/" target="_blank" rel="noopener">Chatsac</a></div>`;
+  $("#goChips").onclick=()=>go("chips");
+  $("#view").querySelectorAll("[data-ecat]").forEach(b=>b.onclick=()=>{esteiraCat=b.dataset.ecat;render();});
+  const setEtapa=(id,etapa)=>{const k=byId(DB.chips,id);if(!k||!k.esteira||k.esteira.etapa===etapa)return;k.esteira.etapa=etapa;if(etapa==="aquecido")k.esteira.aquecidoTs=now();else delete k.esteira.aquecidoTs;save();render();toast(`${k.numero} → ${etapa==="aquecido"?"Aquecido":"Aquecendo"}`);};
+  $("#view").querySelectorAll("[data-eadv]").forEach(b=>b.onclick=()=>setEtapa(b.dataset.eadv,"aquecido"));
+  $("#view").querySelectorAll("[data-eback]").forEach(b=>b.onclick=()=>setEtapa(b.dataset.eback,"aquecendo"));
+  $("#view").querySelectorAll("[data-eout]").forEach(b=>b.onclick=()=>{const k=byId(DB.chips,b.dataset.eout);delete k.esteira;save();render();toast(`${k.numero} saiu da esteira`);});
+  $("#view").querySelectorAll(".ecard").forEach(c=>{c.addEventListener("dragstart",e=>{dragEid=c.dataset.eid;e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/plain",dragEid);}catch(_){}c.classList.add("drag");});c.addEventListener("dragend",()=>{c.classList.remove("drag");dragEid=null;$("#view").querySelectorAll(".ecol").forEach(x=>x.classList.remove("drop"));});});
+  $("#view").querySelectorAll(".ecol").forEach(c=>{c.addEventListener("dragover",e=>{if(!dragEid)return;e.preventDefault();c.classList.add("drop");});c.addEventListener("dragleave",e=>{if(!c.contains(e.relatedTarget))c.classList.remove("drop");});c.addEventListener("drop",e=>{e.preventDefault();c.classList.remove("drop");if(dragEid)setEtapa(dragEid,c.dataset.ecol);});});
 }
 
 /* ======================= PÁGINAS ======================= */
@@ -1532,7 +1657,7 @@ render();
 startRestabTicker();
 initCloud();
 /* ---------- versão + aviso de atualização ---------- */
-const BUILD="2026-10-06.3";
+const BUILD="2026-10-06.4";
 {const vs=$("#verstamp");if(vs)vs.textContent="versão "+BUILD;}
 async function checarVersaoNova(){
   try{const r=await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"});const t=await r.text();const m=t.match(/const BUILD="([^"]+)"/);
