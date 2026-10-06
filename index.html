@@ -280,6 +280,16 @@ td .sub2{font-size:12px;color:var(--text-3);margin-top:1px}
 
 /* prompts */
 .prompts{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.testchips{display:flex;flex-wrap:wrap;gap:8px}
+.testchip{display:inline-flex;align-items:center;gap:9px;padding:8px 13px 8px 10px;border-radius:999px;border:1px solid var(--border-2);background:var(--bg-2);color:var(--text-2);font-size:12.5px;font-weight:600;font-family:var(--sans);cursor:pointer;transition:.12s}
+.testchip .tcheck{width:18px;height:18px;border-radius:50%;border:2px solid var(--border-2);display:inline-grid;place-items:center;flex:none;transition:.12s}
+.testchip:hover{border-color:var(--tc);color:var(--text)}
+.testchip:hover .tcheck{border-color:var(--tc)}
+.testchip.on{border-color:var(--tc);background:color-mix(in srgb,var(--tc) 16%,transparent);color:var(--text)}
+.testchip.on .tcheck{background:var(--tc);border-color:var(--tc)}
+.testchip.on .tcheck::after{content:"✓";color:#fff;font-size:11px;font-weight:800;line-height:1}
+.ctested{gap:5px;flex-wrap:wrap}
+.tdone{display:inline-flex;align-items:center;font-size:10.5px;font-weight:700;color:var(--tc);background:color-mix(in srgb,var(--tc) 14%,transparent);border:1px solid color-mix(in srgb,var(--tc) 38%,transparent);border-radius:6px;padding:2px 6px}
 .verstamp{margin-top:8px;text-align:center;font-family:var(--mono);font-size:10.5px;color:var(--text-3)}
 .updbar{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:300;background:var(--accent);color:#fff;font-size:13px;font-weight:600;padding:10px 14px;border-radius:12px;box-shadow:0 12px 40px -10px rgba(0,0,0,.6);display:flex;align-items:center;gap:12px}
 .updbar button{background:#fff;color:var(--accent);border:0;border-radius:8px;padding:6px 12px;font-weight:700;font-family:var(--sans);cursor:pointer}
@@ -465,6 +475,8 @@ const OBJETIVOS=[
   {v:"conversas-compras",l:"Conversas Compras",c:"--warn"},
 ];
 const OBJ=Object.fromEntries(OBJETIVOS.map(o=>[o.v,o]));
+// tipos de campanha que dá pra marcar como "já testei" num criativo (os 4 objetivos + BID)
+const TESTES_CAMP=[...OBJETIVOS,{v:"bid",l:"BID",c:"--st-pre"}];
 const EM_VEIC=["pre-escala","escala"];
 const FUNIL_STAGES=["modelado","validado","pre-escala","escala","zona-branca"]; // estágios do criativo (funil)
 const CAMP_STAGES=["teste","pre-escala","escala"]; // estágios da campanha (rodada)
@@ -995,6 +1007,7 @@ function cCard(c){
   return `<div class="ccard" draggable="true" data-id="${c.id}" style="border-top-color:var(${ESTG[c.estagio].cor})">
     <div class="cname">${c.sigla?`<span class="sigtag">${esc(c.sigla)}</span> `:""}${esc(c.nome)}</div>
     <div class="cmeta">${c.formato?`<span class="tag">${svgInline("film")}${esc(c.formato)}</span>`:""}${nCamps?`<span class="tag">${nCamps} campanha${nCamps>1?"s":""}</span>`:""}</div>
+    ${(c.testados&&c.testados.length)?`<div class="cmeta ctested">${TESTES_CAMP.filter(t=>c.testados.includes(t.v)).map(t=>`<span class="tdone" style="--tc:var(${t.c})" title="Já testei ${esc(t.l)}">✓ ${esc(t.l)}</span>`).join("")}</div>`:""}
     ${(c.roi||c.postId)?`<div class="cmeta">${c.roi?`<span class="pill" style="color:var(--good);background:var(--good-soft);font-size:11px"><span class="dot"></span>ROI ${esc(c.roi)}</span>`:""}${c.postId?`<button class="tag postidbtn" data-copypost="${c.id}" title="Copiar Post ID: ${esc(c.postId)}">${svgInline("copy")}${esc(c.postId.length>14?c.postId.slice(0,14)+"…":c.postId)}</button>`:""}</div>`:""}
     <div class="cfoot" style="align-items:flex-start">${celsHTML}${canNext?`<button class="nextbtn" data-next="${c.id}" title="Avançar para ${ESTG[canNext].nome}">Avançar ↗</button>`:""}</div>
   </div>`;
@@ -1312,13 +1325,16 @@ function criativoModal(cr,preset={}){
     ${field("Formato","formato",c.formato||"",{optional:true,ph:"Ex.: Depoimento POV"})}</div>
     <div class="frow"><div class="field"><label>ROI <span class="opt">(destaque)</span></label><input name="roi" value="${esc(c.roi||"")}" placeholder="Ex.: 2.5x" style="border-color:color-mix(in srgb,var(--good) 45%,var(--border-2));font-weight:600"></div>
     ${field("Post ID","postId",c.postId||"",{optional:true,ph:"Ex.: 122100000000"})}</div>
+    <div class="field"><label>Campanhas já testadas <span class="opt">(clique pra marcar o que você já testou neste criativo)</span></label>
+      <div class="testchips" id="testchips">${TESTES_CAMP.map(t=>`<button type="button" class="testchip ${(c.testados||[]).includes(t.v)?"on":""}" data-test="${t.v}" style="--tc:var(${t.c})"><span class="tcheck"></span>${esc(t.l)}</button>`).join("")}</div></div>
     ${field("Notas","notas",c.notas||"",{type:"textarea",optional:true,ph:"Anotações sobre o criativo, ângulo, etc."})}`,
     onOk:close=>{const root=$("#modal-root");const nome=val(root,"nome");if(!nome)return toast("Dê um nome ao criativo"),false;
-      const data={nome,sigla:val(root,"sigla"),ofertaId:val(root,"ofertaId"),estagio:val(root,"estagio"),formato:val(root,"formato"),roi:val(root,"roi"),postId:val(root,"postId"),notas:val(root,"notas")};
+      const data={nome,sigla:val(root,"sigla"),ofertaId:val(root,"ofertaId"),estagio:val(root,"estagio"),formato:val(root,"formato"),roi:val(root,"roi"),postId:val(root,"postId"),notas:val(root,"notas"),testados:[...root.querySelectorAll("#testchips .testchip.on")].map(b=>b.dataset.test)};
       if(!data.ofertaId)return toast("Crie uma oferta antes"),false;
       let cid;if(editing){Object.assign(cr,data);cid=cr.id;}else{cid=uid();DB.criativos.push({id:cid,...data,criadoEm:now()});}
       const juntou=data.sigla&&data.sigla.trim()?consolidarSiglas(DB,cid):false;
       save();render();close();toast(editing?(juntou?"Criativo atualizado · campanhas reconectadas":"Criativo atualizado"):"Criativo criado");}});
+  $("#modal-root").querySelectorAll("#testchips .testchip").forEach(b=>b.onclick=()=>b.classList.toggle("on"));
   if(editing){const f=$("#modal-root .modal-f");f.insertAdjacentHTML("afterbegin",`<button class="btn ghost danger" style="margin-right:auto" id="delcr">${svg("trash")}Excluir</button>`);
     $("#delcr").onclick=()=>{$("#modal-root").innerHTML="";const nc=campsDe(cr.id).length;confirmDel(`Excluir o criativo "${esc(cr.nome)}"?`,`Apaga o criativo <b>de vez</b>${nc?` e as <b>${nc}</b> campanha(s) dele`:""}. Se ele é vencedor, prefira arrastar pra <b>Zona Branca</b>.`,()=>{removerCriativo(cr.id);save();render();toast("Criativo excluído");});};}
 }
@@ -1515,7 +1531,7 @@ render();
 startRestabTicker();
 initCloud();
 /* ---------- versão + aviso de atualização ---------- */
-const BUILD="2026-10-06.1";
+const BUILD="2026-10-06.2";
 {const vs=$("#verstamp");if(vs)vs.textContent="versão "+BUILD;}
 async function checarVersaoNova(){
   try{const r=await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"});const t=await r.text();const m=t.match(/const BUILD="([^"]+)"/);
