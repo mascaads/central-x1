@@ -299,32 +299,6 @@ td .sub2{font-size:12px;color:var(--text-3);margin-top:1px}
 .efase b{color:var(--text);font-size:12px}
 .efase.done{border-color:color-mix(in srgb,var(--accent) 35%,var(--border))}
 .ec-act{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.roteiro{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
-.rstep{background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--rc);border-radius:12px;padding:12px 13px;display:flex;flex-direction:column;gap:5px}
-.rtop{display:flex;align-items:center;gap:8px}
-.rnum{width:20px;height:20px;border-radius:50%;background:var(--rc);color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center;flex:none}
-.rdia{font-family:var(--mono);font-size:11.5px;font-weight:700;color:var(--rc)}
-.rstep b{font-size:13.5px}
-.rstep span:last-child{font-size:12px;line-height:1.45;color:var(--text-2)}
-.fe{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
-.fecol{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:6px 16px 10px}
-.feh{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:700;padding:11px 0 9px;border-bottom:1px solid var(--border)}
-.feic{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;color:#fff}
-.faca .feh{color:var(--good)}.faca .feic{background:var(--good)}
-.evite .feh{color:var(--crit)}.evite .feic{background:var(--crit)}
-.feit{display:flex;flex-direction:column;gap:2px;padding:10px 0;border-bottom:1px solid var(--border)}
-.feit:last-child{border-bottom:0}
-.feit b{font-size:13px;font-weight:600}
-.feit span{font-size:12px;color:var(--text-3);line-height:1.4}
-.prob{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
-.pstep{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 14px}
-.pnum{width:24px;height:24px;border-radius:50%;background:var(--crit);color:#fff;font-size:12px;font-weight:800;display:grid;place-items:center;flex:none}
-.pstep b{display:block;font-size:13.5px;margin-bottom:3px}
-.pstep span{font-size:12px;line-height:1.45;color:var(--text-2)}
-.enota{margin-top:20px;font-size:11.5px;line-height:1.6;color:var(--text-3)}
-.enota details{display:inline;margin-left:6px}
-.enota summary{display:inline;cursor:pointer;color:var(--text-2);text-decoration:underline;text-underline-offset:2px}
-.enota a{color:var(--text-2);text-decoration:underline;text-underline-offset:2px}
 .testchips{display:flex;flex-wrap:wrap;gap:8px}
 .testchip{display:inline-flex;align-items:center;gap:9px;padding:8px 13px 8px 10px;border-radius:999px;border:1px solid var(--border-2);background:var(--bg-2);color:var(--text-2);font-size:12.5px;font-weight:600;font-family:var(--sans);cursor:pointer;transition:.12s}
 .testchip .tcheck{width:18px;height:18px;border-radius:50%;border:2px solid var(--border-2);display:inline-grid;place-items:center;flex:none;transition:.12s}
@@ -1215,40 +1189,7 @@ function vPrompts(){
 
 /* ======================= ESTEIRA DE CHIPS ======================= */
 const ESTEIRA_ETAPAS=[{v:"aquecendo",l:"Aquecendo",c:"--warn"},{v:"aquecido",l:"Aquecido",c:"--accent"}];
-// fases do aquecimento por dia na esteira (dia 1 = dia em que o chip entrou)
-const ESTEIRA_FASES=[
-  {de:1,ate:1,rot:"Dia 1",t:"Preparar",d:"Perfil completo e 24h de espera antes de conectar.",c:"--warn"},
-  {de:2,ate:3,rot:"Dias 2–3",t:"Só receber",d:"Deixe chegar ~1 mensagem a cada 2h. Não mande ainda.",c:"--warn"},
-  {de:4,ate:6,rot:"Dias 4–6",t:"Responder",d:"Responda ~1 a cada 2h, só pra contatos da agenda.",c:"--st-pre"},
-  {de:7,ate:10,rot:"Dias 7–10",t:"Subir aos poucos",d:"Aumente o volume em degraus. 1–2 grupos pequenos.",c:"--accent"},
-  {de:11,ate:30,rot:"Dias 11–30",t:"Estabilizar",d:"Rotina normal, sem picos de volume.",c:"--st-escala"},
-  {de:31,ate:99999,rot:"Dia 31+",t:"Maduro",d:"Já dá pra marcar como Aquecido.",c:"--good"},
-];
 function fmtEst(ms){const m=Math.max(0,Math.floor(ms/60000)),d=Math.floor(m/1440),h=Math.floor(m%1440/60),mm=m%60,p=n=>String(n).padStart(2,"0");return d?`${d}d ${p(h)}h ${p(mm)}m`:h?`${h}h ${p(mm)}m`:`${mm}m`;}
-// dicas curtas: uma frase por item
-const DICAS_FACA=[
-  ["Perfil completo","Foto, nome e contatos reais na agenda."],
-  ["Comece só recebendo","Nos primeiros dias, deixe as pessoas te chamarem."],
-  ["Suba em degraus","10–15 mensagens por dia no início, aumentando aos poucos."],
-  ["Varie tudo","Texto, horário e tamanho diferentes a cada conversa."],
-  ["Deixe o lead chamar primeiro","No anúncio de WhatsApp, o cliente inicia a conversa."],
-  ["Responda rápido","Dentro de 24h, de preferência em minutos."],
-  ["Automação só depois do aquecimento","E com atraso aleatório entre as mensagens."],
-];
-const DICAS_EVITE=[
-  ["Conectar no minuto zero","Espere ~24h antes do Web ou de ferramenta."],
-  ["A mesma mensagem pra todo mundo","Texto idêntico em sequência é sinal de robô."],
-  ["Pico de volume","Subir de repente é o erro mais comum."],
-  ["App modificado","GB, clones e emuladores levam a ban. Só app oficial."],
-  ["Mandar pra quem não pediu","Contato frio gera denúncia e bloqueio."],
-  ["Insistir com quem pediu pra parar","Tire da lista na hora."],
-  ["Duas ferramentas no mesmo número","Uma sessão por vez."],
-];
-const DICAS_PROBLEMA=[
-  ["Freie","Mensagem demorando, QR toda hora, sem criar grupo? Reduza o volume e desconecte os aparelhos por 24–48h."],
-  ["Peça análise","Na tela de banimento. Costuma sair em até 24h."],
-  ["Refaça do dia 1","O aquecimento zera. Descubra o que mudou antes de trocar de chip."],
-];
 let dragEid=null;
 function vEsteira(){
   topActions(`<button class="btn" id="goChips">${svg("chip")}Escolher chips</button>`);
@@ -1265,18 +1206,7 @@ function vEsteira(){
     return `<div class="col ecol" data-ecol="${e.v}"><div class="col-h"><span class="cdot" style="background:var(${e.c})"></span><span class="cn">${e.l}</span><span class="cc">${list.length}</span></div>
       <div class="col-body">${list.map(card).join("")||`<div class="emptycol">${e.v==="aquecendo"?"Nenhum chip aquecendo. Vá em Chips e clique em “Levar para esteira”.":"Nenhum chip aquecido ainda."}</div>`}</div></div>`;};
   $("#view").innerHTML=`<div class="sect-h" style="margin-top:0"><h2>${svgInline("flame")}Esteira</h2><div class="line"></div><span class="tag">${naEst.length} chip${naEst.length===1?"":"s"} na esteira</span></div>
-    <div class="board ebd">${ESTEIRA_ETAPAS.map(col).join("")}</div>
-    <div class="sect-h"><h2>${svgInline("clock")}Roteiro dia a dia</h2><div class="line"></div></div>
-    <div class="roteiro">${ESTEIRA_FASES.map((f,i)=>`<div class="rstep" style="--rc:var(${f.c})"><div class="rtop"><span class="rnum">${i+1}</span><span class="rdia">${f.rot}</span></div><b>${esc(f.t)}</b><span>${esc(f.d)}</span></div>`).join("")}</div>
-    <div class="sect-h"><h2>${svgInline("spark")}Dicas rápidas</h2><div class="line"></div></div>
-    <div class="fe">
-      <div class="fecol faca"><div class="feh"><span class="feic">✓</span>Faça</div>${DICAS_FACA.map(([t,d])=>`<div class="feit"><b>${esc(t)}</b><span>${esc(d)}</span></div>`).join("")}</div>
-      <div class="fecol evite"><div class="feh"><span class="feic">✕</span>Evite</div>${DICAS_EVITE.map(([t,d])=>`<div class="feit"><b>${esc(t)}</b><span>${esc(d)}</span></div>`).join("")}</div>
-    </div>
-    <div class="sect-h"><h2>${svgInline("refresh")}Se o número cair</h2><div class="line"></div></div>
-    <div class="prob">${DICAS_PROBLEMA.map(([t,d],i)=>`<div class="pstep"><span class="pnum">${i+1}</span><div><b>${esc(t)}</b><span>${esc(d)}</span></div></div>`).join("")}</div>
-    <div class="enota">Aquecer reduz o risco, mas não dá imunidade: o que decide restrição é denúncia, consentimento e qualidade da mensagem.
-      <details><summary>Fontes</summary><a href="https://www.whatsapp.com/legal/messaging-guidelines" target="_blank" rel="noopener">Diretrizes do WhatsApp</a> · <a href="https://faq.whatsapp.com/465883178708358" target="_blank" rel="noopener">Sobre banimentos (WhatsApp)</a> · <a href="https://green-api.com/en/docs/faq/warming-up-whatsapp-number/" target="_blank" rel="noopener">Green API</a> · <a href="https://www.take.app/help/tips-to-avoid-getting-banned-by-whatsapp" target="_blank" rel="noopener">take.app</a> · <a href="https://chakrahq.com/article/prevent-whatsapp-business-restriction/" target="_blank" rel="noopener">Chakra</a> · <a href="https://chatsac.com/blog/aquecer-chip-whatsapp-business/" target="_blank" rel="noopener">Chatsac</a></details></div>`;
+    <div class="board ebd">${ESTEIRA_ETAPAS.map(col).join("")}</div>`;
   $("#goChips").onclick=()=>go("chips");
   const setEtapa=(id,etapa)=>{const k=byId(DB.chips,id);if(!k||!k.esteira||k.esteira.etapa===etapa)return;k.esteira.etapa=etapa;if(etapa==="aquecido")k.esteira.aquecidoTs=now();else delete k.esteira.aquecidoTs;save();render();toast(`${k.numero} → ${etapa==="aquecido"?"Aquecido":"Aquecendo"}`);};
   $("#view").querySelectorAll("[data-eadv]").forEach(b=>b.onclick=()=>setEtapa(b.dataset.eadv,"aquecido"));
@@ -1655,7 +1585,7 @@ render();
 startRestabTicker();
 initCloud();
 /* ---------- versão + aviso de atualização ---------- */
-const BUILD="2026-10-06.6";
+const BUILD="2026-10-06.7";
 {const vs=$("#verstamp");if(vs)vs.textContent="versão "+BUILD;}
 async function checarVersaoNova(){
   try{const r=await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"});const t=await r.text();const m=t.match(/const BUILD="([^"]+)"/);
