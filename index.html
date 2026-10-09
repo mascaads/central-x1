@@ -712,6 +712,7 @@ const VIEWS=[
   {id:"celulares",nome:"Celulares",ico:"phone",sub:"Aparelhos rodando, em descanso e reserva"},
   {id:"chips",nome:"Chips",ico:"chip",sub:"Cadastro, recarga e aquecimento dos chips"},
   {id:"esteira",nome:"Esteira de Chips",ico:"flame",sub:"Aqueça seus chips e acompanhe o tempo de cada um"},
+  {id:"copys",nome:"Copys Validadas",ico:"check",sub:"As copys que funcionaram, por oferta"},
   {id:"paginas",nome:"Páginas",ico:"flag",sub:"Suas páginas do Facebook e a oferta que cada uma roda"},
   {id:"prompts",nome:"Prompts",ico:"prompt",sub:"Sua biblioteca de prompts salvos"},
 ];
@@ -740,7 +741,7 @@ function go(r){route=r;openOferta=null;chipSearch="";render();window.scrollTo(0,
 
 /* ---------- render shell ---------- */
 function renderNav(){
-  const counts={overview:"",ofertas:DB.ofertas.length,celulares:DB.celulares.length,chips:DB.chips.length,esteira:DB.chips.filter(k=>k.esteira).length,paginas:(DB.paginas||[]).length,prompts:DB.prompts.length};
+  const counts={overview:"",ofertas:DB.ofertas.length,celulares:DB.celulares.length,chips:DB.chips.length,esteira:DB.chips.filter(k=>k.esteira).length,copys:DB.criativos.filter(c=>!c.dup&&c.copyValidada).length,paginas:(DB.paginas||[]).length,prompts:DB.prompts.length};
   $("#nav").innerHTML=`<div class="lbl">Operação</div>`+VIEWS.map(v=>`
     <button class="${route===v.id?"on":""}" data-go="${v.id}">${svg(v.ico)}<span>${v.nome}</span>${counts[v.id]!==""?`<span class="cnt">${counts[v.id]}</span>`:""}</button>`).join("");
   $("#nav").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{go(b.dataset.go);closeSide();});
@@ -755,7 +756,7 @@ function render(){
   $("#vt").textContent=route==="ofertas"&&openOferta?byId(DB.ofertas,openOferta)?.nome||v.nome:v.nome;
   $("#vs").textContent=v.sub;
   renderNav();
-  const R={overview:vOverview,ofertas:vOfertas,celulares:vCelulares,chips:vChips,esteira:vEsteira,paginas:vPaginas,prompts:vPrompts}[route];
+  const R={overview:vOverview,ofertas:vOfertas,celulares:vCelulares,chips:vChips,esteira:vEsteira,copys:vCopys,paginas:vPaginas,prompts:vPrompts}[route];
   R();
 }
 const byId=(arr,id)=>arr.find(x=>x.id===id);
@@ -1231,6 +1232,27 @@ function vEsteira(){
   $("#view").querySelectorAll(".ecol").forEach(c=>{c.addEventListener("dragover",e=>{if(!dragEid)return;e.preventDefault();c.classList.add("drop");});c.addEventListener("dragleave",e=>{if(!c.contains(e.relatedTarget))c.classList.remove("drop");});c.addEventListener("drop",e=>{e.preventDefault();c.classList.remove("drop");if(dragEid)setEtapa(dragEid,c.dataset.ecol);});});
 }
 
+/* ======================= COPYS VALIDADAS ======================= */
+function vCopys(){
+  topActions("");
+  const list=DB.criativos.filter(c=>!c.dup&&c.copyValidada);
+  if(!list.length){$("#view").innerHTML=empty("check","Nenhuma copy validada","Abra um criativo no funil e marque “Copy validada” pra ele aparecer aqui com a copy, o formato e o ângulo.");return;}
+  const card=c=>`<div class="card promptc">
+      <div class="p-top"><h3>${c.sigla?`<span class="sigtag">${esc(c.sigla)}</span> `:""}${esc(c.nome)}</h3><div class="p-act"><button class="iconbtn" data-edit="${c.id}" title="Editar criativo">${svg("edit")}</button><button class="iconbtn" data-unval="${c.id}" title="Tirar das copys validadas">${svg("trash")}</button></div></div>
+      <div class="cmeta"><span class="tag">${svgInline("film")}${esc(c.formato||"sem formato")}</span><span class="tag">${svgInline("spark")}${esc(c.angulo||"sem ângulo")}</span></div>
+      ${c.copy?`<div class="body open">${esc(c.copy)}</div><div class="p-act"><button class="btn sm pri" data-copy="${c.id}">${svg("copy")}Copiar copy</button></div>`:`<div class="pag-semof">Sem copy ainda — clique no lápis pra colar a copy.</div>`}
+      <div><div class="tipcat" style="font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--text-3);margin-bottom:7px">Ofertas em que já testei essa copy</div>
+        <div class="testchips">${DB.ofertas.map(o=>{const bm=byId(DB.bms,o.bmId);return `<button type="button" class="testchip ${(c.copyOfertas||[]).includes(o.id)?"on":""}" data-cof="${c.id}:${o.id}" style="--tc:${bm?.cor||"var(--accent)"}"><span class="tcheck"></span>${esc(o.nome)}</button>`;}).join("")}</div></div>
+    </div>`;
+  const grupos=DB.ofertas.map(o=>({o,cs:list.filter(c=>c.ofertaId===o.id)})).filter(g=>g.cs.length);
+  const orf=list.filter(c=>!byId(DB.ofertas,c.ofertaId));if(orf.length)grupos.push({o:{nome:"Sem oferta"},cs:orf});
+  $("#view").innerHTML=grupos.map((g,i)=>`<div class="sect-h" ${i?"":'style="margin-top:0"'}><h2>${esc(g.o.nome)}</h2><div class="line"></div><span class="tag">${g.cs.length} copy${g.cs.length>1?"s":""}</span></div><div class="grid prompts">${g.cs.map(card).join("")}</div>`).join("");
+  $("#view").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>criativoModal(byId(DB.criativos,b.dataset.edit)));
+  $("#view").querySelectorAll("[data-unval]").forEach(b=>b.onclick=()=>{const c=byId(DB.criativos,b.dataset.unval);c.copyValidada=false;save();render();toast("Tirado das copys validadas (o criativo continua no funil)");});
+  $("#view").querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{try{await navigator.clipboard.writeText(byId(DB.criativos,b.dataset.copy).copy);toast("Copy copiada ✓");}catch(e){toast("Não consegui copiar");}});
+  $("#view").querySelectorAll("[data-cof]").forEach(b=>b.onclick=()=>{const [cid,oid]=b.dataset.cof.split(":");const c=byId(DB.criativos,cid);const a=c.copyOfertas||[];c.copyOfertas=a.includes(oid)?a.filter(x=>x!==oid):[...a,oid];save();render();});
+}
+
 /* ======================= PÁGINAS ======================= */
 const removidosDe=p=>(p.cels||[]).filter(c=>!byId(DB.celulares,c.id));
 function vPaginas(){
@@ -1394,16 +1416,21 @@ function criativoModal(cr,preset={}){
     ${field("Formato","formato",c.formato||"",{optional:true,ph:"Ex.: Depoimento POV"})}</div>
     <div class="frow"><div class="field"><label>ROI <span class="opt">(destaque)</span></label><input name="roi" value="${esc(c.roi||"")}" placeholder="Ex.: 2.5x" style="border-color:color-mix(in srgb,var(--good) 45%,var(--border-2));font-weight:600"></div>
     ${field("Post ID","postId",c.postId||"",{optional:true,ph:"Ex.: 122100000000"})}</div>
+    <div class="field"><label>Copy</label>
+      <div class="testchips" style="margin-bottom:10px"><button type="button" class="testchip ${c.copyValidada?"on":""}" id="copyval" style="--tc:var(--good)"><span class="tcheck"></span>Copy validada — mandar pra área de Copys Validadas</button></div>
+      <input name="angulo" value="${esc(c.angulo||"")}" placeholder="Ângulo (ex.: renda extra pra mãe que fica em casa)" style="margin-bottom:8px">
+      <textarea name="copy" rows="5" placeholder="Cole aqui a copy deste criativo…">${esc(c.copy||"")}</textarea></div>
     <div class="field"><label>Campanhas já testadas <span class="opt">(clique pra marcar o que você já testou neste criativo)</span></label>
       <div class="testchips" id="testchips">${TESTES_CAMP.map(t=>`<button type="button" class="testchip ${(c.testados||[]).includes(t.v)?"on":""}" data-test="${t.v}" style="--tc:var(${t.c})"><span class="tcheck"></span>${esc(t.l)}</button>`).join("")}</div></div>
     ${field("Notas","notas",c.notas||"",{type:"textarea",optional:true,ph:"Anotações sobre o criativo, ângulo, etc."})}`,
     onOk:close=>{const root=$("#modal-root");const nome=val(root,"nome");if(!nome)return toast("Dê um nome ao criativo"),false;
-      const data={nome,sigla:val(root,"sigla"),ofertaId:val(root,"ofertaId"),estagio:val(root,"estagio"),formato:val(root,"formato"),roi:val(root,"roi"),postId:val(root,"postId"),notas:val(root,"notas"),testados:[...root.querySelectorAll("#testchips .testchip.on")].map(b=>b.dataset.test)};
+      const data={nome,sigla:val(root,"sigla"),ofertaId:val(root,"ofertaId"),estagio:val(root,"estagio"),formato:val(root,"formato"),roi:val(root,"roi"),postId:val(root,"postId"),notas:val(root,"notas"),angulo:val(root,"angulo"),copy:root.querySelector('[name="copy"]').value.trim(),copyValidada:$("#copyval").classList.contains("on"),testados:[...root.querySelectorAll("#testchips .testchip.on")].map(b=>b.dataset.test)};
       if(!data.ofertaId)return toast("Crie uma oferta antes"),false;
       let cid;if(editing){Object.assign(cr,data);cid=cr.id;}else{cid=uid();DB.criativos.push({id:cid,...data,criadoEm:now()});}
       const juntou=data.sigla&&data.sigla.trim()?consolidarSiglas(DB,cid):false;
       save();render();close();toast(editing?(juntou?"Criativo atualizado · campanhas reconectadas":"Criativo atualizado"):"Criativo criado");}});
   $("#modal-root").querySelectorAll("#testchips .testchip").forEach(b=>b.onclick=()=>b.classList.toggle("on"));
+  $("#copyval").onclick=()=>$("#copyval").classList.toggle("on");
   if(editing){const f=$("#modal-root .modal-f");f.insertAdjacentHTML("afterbegin",`<button class="btn ghost danger" style="margin-right:auto" id="delcr">${svg("trash")}Excluir</button>`);
     $("#delcr").onclick=()=>{$("#modal-root").innerHTML="";const nc=campsDe(cr.id).length;confirmDel(`Excluir o criativo "${esc(cr.nome)}"?`,`Apaga o criativo <b>de vez</b>${nc?` e as <b>${nc}</b> campanha(s) dele`:""}. Se ele é vencedor, prefira arrastar pra <b>Zona Branca</b>.`,()=>{removerCriativo(cr.id);save();render();toast("Criativo excluído");});};}
 }
@@ -1697,7 +1724,7 @@ rebuildShadow();
 {const bb=$("#bkbtn");bb.innerHTML=`${svg("archive")}<span>Backups</span>`;bb.onclick=backupsModal;}
 initCloud();
 /* ---------- versão + aviso de atualização ---------- */
-const BUILD="2026-10-09.2";
+const BUILD="2026-10-09.3";
 {const vs=$("#verstamp");if(vs)vs.textContent="versão "+BUILD;}
 async function checarVersaoNova(){
   try{const r=await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"});const t=await r.text();const m=t.match(/const BUILD="([^"]+)"/);
