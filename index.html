@@ -438,6 +438,7 @@ td .sub2{font-size:12px;color:var(--text-3);margin-top:1px}
     <nav class="nav" id="nav"></nav>
     <div class="side-foot">
       <div id="acct"></div>
+      <button class="themebtn" id="bkbtn" style="margin-bottom:8px"></button>
       <button class="themebtn" id="widetoggle" style="margin-bottom:8px"></button>
       <button class="themebtn" id="theme"></button>
       <div class="verstamp" id="verstamp"></div>
@@ -638,7 +639,18 @@ function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(DB));}catch(e){
 let saveVer=0;const DIRTY_K=KEY+"_dirty",IGN_K=KEY+"_ign";
 const isDirty=()=>{try{return localStorage.getItem(DIRTY_K)==="1";}catch(e){return false;}};
 const setDirty=v=>{try{v?localStorage.setItem(DIRTY_K,"1"):localStorage.removeItem(DIRTY_K);}catch(e){}};
-function save(){saveVer++;setDirty(true);saveLocal();pushCloudDebounced();}
+const COLS=["bms","ofertas","criativos","celulares","chips","paginas","prompts"];
+// "sombra" = como cada item estava no último save/sync. save() compara com ela pra saber o que mudou.
+let shadow=new Map();
+const sig=x=>{const {_u,...r}=x;return JSON.stringify(r);};
+function rebuildShadow(){shadow=new Map();COLS.forEach(k=>(DB[k]||[]).forEach(x=>shadow.set(x.id,sig(x))));}
+// item alterado ganha _u (hora da edição); item apagado vira lápide em DB._del — é isso que permite juntar aparelhos sem perder nada
+function stampChanges(){
+  const t=now(),cur=new Set();DB._del=DB._del||{};
+  COLS.forEach(k=>(DB[k]||[]).forEach(x=>{cur.add(x.id);if(shadow.get(x.id)!==sig(x)){x._u=t;delete DB._del[x.id];}}));
+  shadow.forEach((_,id)=>{if(!cur.has(id))DB._del[id]=t;});
+}
+function save(){stampChanges();rebuildShadow();saveVer++;setDirty(true);saveLocal();pushCloudDebounced();}
 function seed(){
   const bm1=uid(),bm2=uid();
   const of1=uid(),of2=uid(),of3=uid();
@@ -1556,45 +1568,111 @@ function initCloud(){
     });
   }catch(e){renderAccount();}
 }
+let pendingCloud=null;
 function onCloudSnap(snap){
-          if(snap.metadata.hasPendingWrites){syncBadge("ok");return;}
-          // sem confirmação do servidor (offline/bloqueado): NÃO sobrescreve a nuvem com dado local velho
-          if(snap.metadata.fromCache&&!snap.exists){syncBadge("err","sem conexão com a nuvem");return;}
-          if(snap.exists&&snap.data().payload){
-            let cloud;try{cloud=normalize(JSON.parse(snap.data().payload));}catch(e){syncBadge("err","dado da nuvem ilegível");return;}
-            const local=DB,first=!bootSynced;bootSynced=true;
-            if(isDirty()){DB=mergeDB(cloud,local,true);_migrated=true;}   // tinha edição não enviada: junta, não descarta
-            else{DB=cloud;if(first&&!local._seed)offerRestore(cloud,local);}
-            saveLocal();if(_migrated){_migrated=false;pushCloud();}
-            if(!$("#modal-root").innerHTML)render();
-          }else{pushCloud();}
-          cloudOn=true;syncBadge("ok");
+  if(snap.metadata.hasPendingWrites)return;
+  // sem confirmação do servidor (offline/bloqueado): NÃO sobrescreve a nuvem com dado local velho
+  if(snap.metadata.fromCache&&!snap.exists){syncBadge("err","sem conexão com a nuvem");return;}
+  if(!(snap.exists&&snap.data().payload)){cloudOn=true;setDirty(true);pushCloud();return;}
+  let cloud;try{cloud=normalize(JSON.parse(snap.data().payload));}catch(e){syncBadge("err","dado da nuvem ilegível");return;}
+  // formulário aberto: aplica quando fechar, senão a edição em andamento cairia num objeto descartado
+  if($("#modal-root").innerHTML){pendingCloud=cloud;return;}
+  applyCloud(cloud);
 }
+function applyCloud(cloud){
+  const local=DB,first=!bootSynced;bootSynced=true;cloudOn=true;
+  if(_migrated){_migrated=false;setDirty(true);}
+  if(isDirty())DB=mergeDB(cloud,local);          // há edição ainda não enviada: junta item a item
+  else{DB=cloud;if(first&&!local._seed)offerRestore(cloud,local);}
+  rebuildShadow();saveLocal();render();
+  if(first)dailyBackup(cloud);
+  if(isDirty())pushCloudDebounced();else syncBadge("ok");
+}
+new MutationObserver(()=>{if(pendingCloud&&!$("#modal-root").innerHTML){const c=pendingCloud;pendingCloud=null;applyCloud(c);}}).observe($("#modal-root"),{childList:true});
 let bootSynced=false;
-const COLS=["bms","ofertas","criativos","celulares","chips","paginas","prompts"];
-// junta duas versões por id. localWins: em item que existe nos dois, vale o local (edição não enviada)
-// ponytail: sem tombstones, item apagado num aparelho pode voltar de outro; só roda quando há edição pendente
-function mergeDB(cloud,local,localWins){
+const DEL_TTL=90*24*3600*1000;
+// Junta duas versões item a item: em cada id vale a edição mais recente (_u); lápide mais nova que o item = apagado.
+// Ordem das listas: a de `mine`. Empate/sem carimbo: vale a nuvem (toda edição local é carimbada pelo save()).
+// ponytail: usa o relógio de cada aparelho; relógios muito errados só afetam edições do MESMO item quase ao mesmo tempo
+function mergeDB(cloud,mine){
+  const del={...(cloud._del||{})};Object.entries(mine._del||{}).forEach(([id,t])=>{if(!(del[id]>=t))del[id]=t;});
+  const lim=now()-DEL_TTL;Object.keys(del).forEach(id=>{if(del[id]<lim)delete del[id];});
+  const dead=x=>del[x.id]&&del[x.id]>=(x._u||0);
   const out={...cloud};
-  COLS.forEach(k=>{const m=new Map((cloud[k]||[]).map(x=>[x.id,x]));(local[k]||[]).forEach(x=>{if(localWins||!m.has(x.id))m.set(x.id,x);});out[k]=[...m.values()];});
-  return out;
+  COLS.forEach(k=>{
+    const c=new Map((cloud[k]||[]).map(x=>[x.id,x])),seen=new Set(),arr=[];
+    (mine[k]||[]).forEach(x=>{seen.add(x.id);const cv=c.get(x.id);const w=cv&&!((x._u||0)>(cv._u||0))?cv:x;if(!dead(w))arr.push(w);});
+    (cloud[k]||[]).forEach(x=>{if(!seen.has(x.id)&&!dead(x))arr.push(x);});
+    out[k]=arr;});
+  out._del=del;return out;
 }
 const itemNome=x=>x.nome||x.numero||x.titulo||x.campanha||"item";
-// ao abrir: se este aparelho tem itens que a nuvem não tem, oferece restaurar (não perde em silêncio)
+// traz itens de volta (restaurar): carimba como recém-editados e tira a lápide
+function reviver(items){const t=now();DB._del=DB._del||{};COLS.forEach(k=>(items[k]||[]).forEach(x=>{delete DB._del[x.id];const y={...x,_u:t};const i=(DB[k]=DB[k]||[]).findIndex(z=>z.id===x.id);if(i>=0)DB[k][i]=y;else DB[k].push(y);}));rebuildShadow();setDirty(true);saveVer++;saveLocal();pushCloudDebounced();render();}
+// ao abrir: se este aparelho tem itens que a nuvem não tem (e não foram apagados), oferece restaurar
 function offerRestore(cloud,local){
   let ign=[];try{ign=JSON.parse(localStorage.getItem(IGN_K)||"[]");}catch(e){}
-  const only=[];COLS.forEach(k=>{const ids=new Set((cloud[k]||[]).map(x=>x.id));(local[k]||[]).forEach(x=>{if(!ids.has(x.id)&&!ign.includes(x.id))only.push(x);});});
-  if(!only.length||$("#restbar"))return;
+  const del=cloud._del||{},only={};let n=0;const nomes=[];
+  COLS.forEach(k=>{const ids=new Set((cloud[k]||[]).map(x=>x.id));only[k]=(local[k]||[]).filter(x=>!ids.has(x.id)&&!del[x.id]&&!ign.includes(x.id));n+=only[k].length;only[k].forEach(x=>nomes.push(itemNome(x)));});
+  if(!n||$("#restbar"))return;
   const b=document.createElement("div");b.id="restbar";b.className="updbar";b.style.maxWidth="min(560px,92vw)";b.style.flexWrap="wrap";
-  b.innerHTML=`<span>Este aparelho tinha ${only.length} item(ns) que não estão na nuvem (${esc(only.slice(0,3).map(itemNome).join(", "))}${only.length>3?"…":""}). Se você apagou em outro aparelho, é só ignorar.</span><button id="restgo">Restaurar</button><button id="restno">Ignorar</button>`;
+  b.innerHTML=`<span>Este aparelho tinha ${n} item(ns) que não estão na nuvem (${esc(nomes.slice(0,3).join(", "))}${n>3?"…":""}). Se você apagou em outro aparelho, é só ignorar.</span><button id="restgo">Restaurar</button><button id="restno">Ignorar</button>`;
   document.body.appendChild(b);
-  $("#restgo").onclick=()=>{const ids=new Set(only.map(x=>x.id));DB=mergeDB(DB,Object.fromEntries(COLS.map(k=>[k,(local[k]||[]).filter(x=>ids.has(x.id))])),false);save();render();b.remove();toast("Restaurado e enviado pra nuvem ✓");};
-  $("#restno").onclick=()=>{try{localStorage.setItem(IGN_K,JSON.stringify([...ign,...only.map(x=>x.id)]));}catch(e){}b.remove();};
+  $("#restgo").onclick=()=>{reviver(only);b.remove();toast("Restaurado ✓");};
+  $("#restno").onclick=()=>{try{localStorage.setItem(IGN_K,JSON.stringify([...ign,...COLS.flatMap(k=>only[k].map(x=>x.id))]));}catch(e){}b.remove();};
 }
-function pushCloud(){if(!fbDoc)return;syncBadge("sync");const v=saveVer;fbDoc.set({payload:JSON.stringify(DB),updatedAt:Date.now()}).then(()=>{if(v===saveVer)setDirty(false);syncBadge("ok");}).catch(e=>syncBadge("err",e.code||e.message));}
+// Envio: transação — lê a nuvem, junta com o local e grava. Nunca passa por cima do que outro aparelho salvou.
+let pushing=false,pushAgain=false;
+function pushCloud(){
+  if(!fbDoc)return;if(pushing){pushAgain=true;return;}
+  pushing=true;pushAgain=false;const v=saveVer;syncBadge("sync");
+  firebase.firestore().runTransaction(async tx=>{
+    const snap=await tx.get(fbDoc);const raw=snap.exists&&snap.data().payload;
+    const merged=raw?mergeDB(normalize(JSON.parse(raw)),DB):DB;const out=JSON.stringify(merged);
+    if(out!==raw)tx.set(fbDoc,{payload:out,updatedAt:Date.now()});
+  }).then(()=>{if(v===saveVer&&!pushAgain)setDirty(false);syncBadge(isDirty()?"sync":"ok");})
+    .catch(e=>syncBadge("err",(e.code==="unavailable"||!navigator.onLine)?"sem internet — envia sozinho quando voltar":(e.code||e.message)))
+    .finally(()=>{pushing=false;if(pushAgain||v!==saveVer)pushCloudDebounced();});
+}
 const flushCloud=()=>{if(isDirty()&&fbDoc){clearTimeout(pushT);pushCloud();}};
 document.addEventListener("visibilitychange",()=>{if(document.hidden)flushCloud();});addEventListener("pagehide",flushCloud);
-function pushCloudDebounced(){if(!fbDoc)return;clearTimeout(pushT);pushT=setTimeout(pushCloud,700);}
+addEventListener("online",flushCloud);setInterval(()=>{if(!pushing)flushCloud();},10000);   // tenta de novo sozinho até conseguir
+function pushCloudDebounced(){if(!fbDoc)return;clearTimeout(pushT);pushT=setTimeout(()=>{if(isDirty())pushCloud();},300);}
+
+/* ---------- backups: 1 cópia por dia (nuvem + este aparelho) ---------- */
+const BK_K=KEY+"_bk_";
+const bkCol=()=>fbDoc&&fbDoc.parent;
+function localBackup(tag,db){try{localStorage.setItem(BK_K+tag,JSON.stringify(db));const ks=Object.keys(localStorage).filter(k=>k.startsWith(BK_K)&&!k.endsWith("antes")).sort();ks.slice(0,-7).forEach(k=>localStorage.removeItem(k));}catch(e){}}
+function dailyBackup(db){
+  const d=todayISO();let has=false;try{has=!!localStorage.getItem(BK_K+d);}catch(e){}
+  if(!has)localBackup(d,db);
+  const col=bkCol();if(!col)return;const payload=JSON.stringify(db);
+  col.doc("backup-"+d).get().then(sn=>{if(sn.exists)return;return col.doc("backup-"+d).set({payload,updatedAt:Date.now()}).then(()=>col.get()).then(q=>{const ids=q.docs.map(x=>x.id).filter(id=>/^backup-\d{4}/.test(id)).sort();return Promise.all(ids.slice(0,-30).map(id=>col.doc(id).delete()));});}).catch(()=>{});
+}
+function restaurarBackup(db,nome){
+  let b;try{b=normalize(JSON.parse(JSON.stringify(db)));}catch(e){return toast("Backup ilegível");}
+  if(!COLS.some(k=>Array.isArray(b[k])&&b[k].length))return toast("Esse backup está vazio");
+  localBackup("antes",DB);const col=bkCol();if(col)col.doc("backup-antes-de-restaurar").set({payload:JSON.stringify(DB),updatedAt:Date.now()}).catch(()=>{});
+  reviver(b);toast(`Backup ${nome} restaurado ✓`);
+}
+async function backupsModal(){
+  const list=[];
+  try{Object.keys(localStorage).filter(k=>k.startsWith(BK_K)).forEach(k=>list.push({tag:k.slice(BK_K.length),src:"este aparelho",get:async()=>JSON.parse(localStorage.getItem(k))}));}catch(e){}
+  let erroNuvem="";const col=bkCol();
+  if(col){try{const q=await col.get();q.docs.filter(d=>d.id.startsWith("backup-")).forEach(d=>list.push({tag:d.id.slice(7),src:"nuvem",get:async()=>JSON.parse(d.data().payload)}));}catch(e){erroNuvem=e.code||e.message;}}
+  list.sort((a,b)=>a.tag<b.tag?1:-1);
+  const rot=t=>/^\d{4}-\d\d-\d\d$/.test(t)?fmtDataBR(t):"Antes da última restauração";
+  modal({title:"Backups",ico:"archive",okText:"Fechar",onOk:c=>c(),body:`
+    <p style="font-size:12.5px;color:var(--text-2);line-height:1.5;margin:0 0 12px">O app guarda sozinho uma cópia por dia (como estava ao abrir). Restaurar traz de volta o que estava na cópia e <b>não apaga</b> o que você criou depois.</p>
+    ${erroNuvem?`<div class="pag-alert" style="margin:0 0 12px">Não consegui ler os backups da nuvem (${esc(erroNuvem)}). Os deste aparelho funcionam.</div>`:""}
+    <div class="celpick" style="max-height:260px">${list.length?list.map((b,i)=>`<div class="celopt" style="cursor:default"><span style="flex:1">${rot(b.tag)} <em>${b.src}</em></span><button class="btn sm" data-bk="${i}">Restaurar</button></div>`).join(""):'<div class="pag-semof" style="padding:10px">Ainda não há backups. O primeiro é criado hoje.</div>'}</div>
+    <div style="display:flex;gap:8px;margin-top:14px"><button class="btn sm" id="bkexp">${svg("copy")}Exportar arquivo</button><button class="btn sm" id="bkimp">${svg("refresh")}Importar arquivo</button><input type="file" id="bkfile" accept=".json,application/json" hidden></div>`});
+  const root=$("#modal-root");
+  root.querySelectorAll("[data-bk]").forEach(btn=>btn.onclick=async()=>{const b=list[+btn.dataset.bk];try{const db=await b.get();root.innerHTML="";confirmDel(`Restaurar o backup de ${rot(b.tag)}?`,"Volta os itens como estavam nessa cópia. O que foi criado depois continua.",()=>restaurarBackup(db,rot(b.tag)));}catch(e){toast("Não consegui abrir esse backup");}});
+  $("#bkexp").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(DB)],{type:"application/json"}));a.download=`central-x1-${todayISO()}.json`;a.click();URL.revokeObjectURL(a.href);};
+  $("#bkimp").onclick=()=>$("#bkfile").click();
+  $("#bkfile").onchange=async ev=>{const f=ev.target.files[0];if(!f)return;try{const db=JSON.parse(await f.text());root.innerHTML="";restaurarBackup(db,f.name);}catch(e){toast("Arquivo inválido");}};
+}
 function signIn(){const p=new firebase.auth.GoogleAuthProvider();firebase.auth().signInWithPopup(p).catch(()=>{try{firebase.auth().signInWithRedirect(p);}catch(e){toast("Não consegui abrir o login");}});}
 function signOutCloud(){if(firebase?.auth)firebase.auth().signOut();}
 function gate(show){const g=$("#gate");if(!g)return;g.hidden=!(cloudEnabled()&&show);}
@@ -1615,9 +1693,11 @@ function renderAccount(){
 initTheme();
 render();
 startRestabTicker();
+rebuildShadow();
+{const bb=$("#bkbtn");bb.innerHTML=`${svg("archive")}<span>Backups</span>`;bb.onclick=backupsModal;}
 initCloud();
 /* ---------- versão + aviso de atualização ---------- */
-const BUILD="2026-10-09.1";
+const BUILD="2026-10-09.2";
 {const vs=$("#verstamp");if(vs)vs.textContent="versão "+BUILD;}
 async function checarVersaoNova(){
   try{const r=await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"});const t=await r.text();const m=t.match(/const BUILD="([^"]+)"/);
