@@ -299,6 +299,8 @@ td .sub2{font-size:12px;color:var(--text-3);margin-top:1px}
 .efase b{color:var(--text);font-size:12px}
 .efase.done{border-color:color-mix(in srgb,var(--accent) 35%,var(--border))}
 .ec-act{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.copydif{font-size:12.5px;line-height:1.5;color:var(--text-2);white-space:pre-wrap;border-left:3px solid var(--warn);padding:2px 0 2px 11px}
+.copydif b{display:block;font-size:10.5px;letter-spacing:.4px;text-transform:uppercase;color:var(--warn);margin-bottom:3px}
 .testchips{display:flex;flex-wrap:wrap;gap:8px}
 .testchip{display:inline-flex;align-items:center;gap:9px;padding:8px 13px 8px 10px;border-radius:999px;border:1px solid var(--border-2);background:var(--bg-2);color:var(--text-2);font-size:12.5px;font-weight:600;font-family:var(--sans);cursor:pointer;transition:.12s}
 .testchip .tcheck{width:18px;height:18px;border-radius:50%;border:2px solid var(--border-2);display:inline-grid;place-items:center;flex:none;transition:.12s}
@@ -1234,23 +1236,42 @@ function vEsteira(){
 
 /* ======================= COPYS VALIDADAS ======================= */
 function vCopys(){
-  topActions("");
+  topActions(`<button class="btn pri" id="addcopy">${svg("plus")}Nova copy</button>`);$("#addcopy").onclick=()=>copyModal();
   const list=DB.criativos.filter(c=>!c.dup&&c.copyValidada);
-  if(!list.length){$("#view").innerHTML=empty("check","Nenhuma copy validada","Abra um criativo no funil e marque “Copy validada” pra ele aparecer aqui com a copy, o formato e o ângulo.");return;}
+  if(!list.length){$("#view").innerHTML=empty("check","Nenhuma copy validada","Clique em Nova copy, ou abra um criativo no funil e marque “Copy validada”.",`<button class="btn pri" id="e">${svg("plus")}Nova copy</button>`);$("#e").onclick=()=>copyModal();return;}
   const card=c=>`<div class="card promptc">
       <div class="p-top"><h3>${c.sigla?`<span class="sigtag">${esc(c.sigla)}</span> `:""}${esc(c.nome)}</h3><div class="p-act"><button class="iconbtn" data-edit="${c.id}" title="Editar criativo">${svg("edit")}</button><button class="iconbtn" data-unval="${c.id}" title="Tirar das copys validadas">${svg("trash")}</button></div></div>
       <div class="cmeta"><span class="tag">${svgInline("film")}${esc(c.formato||"sem formato")}</span><span class="tag">${svgInline("spark")}${esc(c.angulo||"sem ângulo")}</span></div>
       ${c.copy?`<div class="body open">${esc(c.copy)}</div><div class="p-act"><button class="btn sm pri" data-copy="${c.id}">${svg("copy")}Copiar copy</button></div>`:`<div class="pag-semof">Sem copy ainda — clique no lápis pra colar a copy.</div>`}
+      ${c.diferenciais?`<div class="copydif"><b>Diferenciais</b>${esc(c.diferenciais)}</div>`:""}
       <div><div class="tipcat" style="font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--text-3);margin-bottom:7px">Ofertas em que já testei essa copy</div>
         <div class="testchips">${DB.ofertas.map(o=>{const bm=byId(DB.bms,o.bmId);return `<button type="button" class="testchip ${(c.copyOfertas||[]).includes(o.id)?"on":""}" data-cof="${c.id}:${o.id}" style="--tc:${bm?.cor||"var(--accent)"}"><span class="tcheck"></span>${esc(o.nome)}</button>`;}).join("")}</div></div>
     </div>`;
   const grupos=DB.ofertas.map(o=>({o,cs:list.filter(c=>c.ofertaId===o.id)})).filter(g=>g.cs.length);
   const orf=list.filter(c=>!byId(DB.ofertas,c.ofertaId));if(orf.length)grupos.push({o:{nome:"Sem oferta"},cs:orf});
   $("#view").innerHTML=grupos.map((g,i)=>`<div class="sect-h" ${i?"":'style="margin-top:0"'}><h2>${esc(g.o.nome)}</h2><div class="line"></div><span class="tag">${g.cs.length} copy${g.cs.length>1?"s":""}</span></div><div class="grid prompts">${g.cs.map(card).join("")}</div>`).join("");
-  $("#view").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>criativoModal(byId(DB.criativos,b.dataset.edit)));
-  $("#view").querySelectorAll("[data-unval]").forEach(b=>b.onclick=()=>{const c=byId(DB.criativos,b.dataset.unval);c.copyValidada=false;save();render();toast("Tirado das copys validadas (o criativo continua no funil)");});
+  $("#view").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{const c=byId(DB.criativos,b.dataset.edit);c.soCopy?copyModal(c):criativoModal(c);});
+  $("#view").querySelectorAll("[data-unval]").forEach(b=>b.onclick=()=>{const c=byId(DB.criativos,b.dataset.unval);if(c.soCopy)return confirmDel(`Excluir a copy "${esc(c.nome)}"?`,"",()=>{DB.criativos=DB.criativos.filter(x=>x.id!==c.id);save();render();toast("Copy excluída");});c.copyValidada=false;save();render();toast("Tirado das copys validadas (o criativo continua no funil)");});
   $("#view").querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{try{await navigator.clipboard.writeText(byId(DB.criativos,b.dataset.copy).copy);toast("Copy copiada ✓");}catch(e){toast("Não consegui copiar");}});
   $("#view").querySelectorAll("[data-cof]").forEach(b=>b.onclick=()=>{const [cid,oid]=b.dataset.cof.split(":");const c=byId(DB.criativos,cid);const a=c.copyOfertas||[];c.copyOfertas=a.includes(oid)?a.filter(x=>x!==oid):[...a,oid];save();render();});
+}
+
+// copy criada direto na aba (sem criativo no funil): guardada como criativo fora do funil, marcado soCopy
+function copyModal(c){
+  const editing=!!c;const ofOpts=DB.ofertas.map(o=>{const bm=byId(DB.bms,o.bmId);return {v:o.id,l:`${bm?bm.nome+" · ":""}${o.nome}`};});
+  modal({wide:true,title:editing?"Editar copy":"Nova copy",ico:"check",body:`
+    <div class="frow">${field("Nome","nome",c?.nome||"",{ph:"Ex.: Copy mãe em casa"})}
+    ${field("Oferta","ofertaId",c?.ofertaId||DB.ofertas[0]?.id||"",{type:"select",options:ofOpts.length?ofOpts:[{v:"",l:"Crie uma oferta primeiro"}]})}</div>
+    <div class="frow">${field("Formato","formato",c?.formato||"",{optional:true,ph:"Ex.: Depoimento POV"})}
+    ${field("Ângulo","angulo",c?.angulo||"",{optional:true,ph:"Ex.: renda extra em casa"})}</div>
+    <div class="field"><label>Copy</label><textarea name="copy" rows="9" placeholder="Cole aqui a copy…">${esc(c?.copy||"")}</textarea></div>
+    <div class="field"><label>Diferenciais <span class="opt">(opcional)</span></label><textarea name="diferenciais" rows="3" placeholder="Ex.: teve caixinha de pergunta, legenda grande, gancho com prova…">${esc(c?.diferenciais||"")}</textarea></div>`,
+    onOk:close=>{const root=$("#modal-root");const nome=val(root,"nome");if(!nome)return toast("Dê um nome à copy"),false;
+      const ofertaId=val(root,"ofertaId");if(!ofertaId)return toast("Crie uma oferta antes"),false;
+      const copy=root.querySelector('[name="copy"]').value.trim();if(!copy)return toast("Cole a copy"),false;
+      const data={nome,ofertaId,formato:val(root,"formato"),angulo:val(root,"angulo"),copy,diferenciais:root.querySelector('[name="diferenciais"]').value.trim()};
+      if(editing)Object.assign(c,data);else DB.criativos.push({id:uid(),...data,sigla:"",estagio:"validado",roi:"",postId:"",notas:"",noFunil:true,soCopy:true,copyValidada:true,criadoEm:now()});
+      save();render();close();toast(editing?"Copy atualizada":"Copy adicionada");}});
 }
 
 /* ======================= PÁGINAS ======================= */
@@ -1419,12 +1440,13 @@ function criativoModal(cr,preset={}){
     <div class="field"><label>Copy</label>
       <div class="testchips" style="margin-bottom:10px"><button type="button" class="testchip ${c.copyValidada?"on":""}" id="copyval" style="--tc:var(--good)"><span class="tcheck"></span>Copy validada — mandar pra área de Copys Validadas</button></div>
       <input name="angulo" value="${esc(c.angulo||"")}" placeholder="Ângulo (ex.: renda extra pra mãe que fica em casa)" style="margin-bottom:8px">
-      <textarea name="copy" rows="5" placeholder="Cole aqui a copy deste criativo…">${esc(c.copy||"")}</textarea></div>
+      <textarea name="copy" rows="5" placeholder="Cole aqui a copy deste criativo…">${esc(c.copy||"")}</textarea>
+      <textarea name="diferenciais" rows="2" style="margin-top:8px" placeholder="Diferenciais (ex.: teve caixinha de pergunta, legenda grande…)">${esc(c.diferenciais||"")}</textarea></div>
     <div class="field"><label>Campanhas já testadas <span class="opt">(clique pra marcar o que você já testou neste criativo)</span></label>
       <div class="testchips" id="testchips">${TESTES_CAMP.map(t=>`<button type="button" class="testchip ${(c.testados||[]).includes(t.v)?"on":""}" data-test="${t.v}" style="--tc:var(${t.c})"><span class="tcheck"></span>${esc(t.l)}</button>`).join("")}</div></div>
     ${field("Notas","notas",c.notas||"",{type:"textarea",optional:true,ph:"Anotações sobre o criativo, ângulo, etc."})}`,
     onOk:close=>{const root=$("#modal-root");const nome=val(root,"nome");if(!nome)return toast("Dê um nome ao criativo"),false;
-      const data={nome,sigla:val(root,"sigla"),ofertaId:val(root,"ofertaId"),estagio:val(root,"estagio"),formato:val(root,"formato"),roi:val(root,"roi"),postId:val(root,"postId"),notas:val(root,"notas"),angulo:val(root,"angulo"),copy:root.querySelector('[name="copy"]').value.trim(),copyValidada:$("#copyval").classList.contains("on"),testados:[...root.querySelectorAll("#testchips .testchip.on")].map(b=>b.dataset.test)};
+      const data={nome,sigla:val(root,"sigla"),ofertaId:val(root,"ofertaId"),estagio:val(root,"estagio"),formato:val(root,"formato"),roi:val(root,"roi"),postId:val(root,"postId"),notas:val(root,"notas"),angulo:val(root,"angulo"),copy:root.querySelector('[name="copy"]').value.trim(),diferenciais:root.querySelector('[name="diferenciais"]').value.trim(),copyValidada:$("#copyval").classList.contains("on"),testados:[...root.querySelectorAll("#testchips .testchip.on")].map(b=>b.dataset.test)};
       if(!data.ofertaId)return toast("Crie uma oferta antes"),false;
       let cid;if(editing){Object.assign(cr,data);cid=cr.id;}else{cid=uid();DB.criativos.push({id:cid,...data,criadoEm:now()});}
       const juntou=data.sigla&&data.sigla.trim()?consolidarSiglas(DB,cid):false;
@@ -1440,7 +1462,7 @@ function campanhaModal(camp,preset={},dup=false){
   const criativos=DB.criativos.filter(x=>!x.dup&&x.ofertaId===ofId);
   const curSigla=paisDe(c).map(x=>x.sigla||x.nome).join(" / ")||(c.sigla||"");
   const partirSiglas=v=>[...new Set(String(v||"").split(/[\/,;+]+/).map(x=>x.trim().toUpperCase()).filter(Boolean))];
-  const acharCr=sg=>{const q=sg.toLowerCase();return DB.criativos.find(x=>!x.dup&&x.ofertaId===ofId&&((x.sigla||"").trim().toLowerCase()===q||(x.nome||"").trim().toLowerCase()===q));};
+  const acharCr=sg=>{const q=sg.toLowerCase();return DB.criativos.find(x=>!x.dup&&!x.soCopy&&x.ofertaId===ofId&&((x.sigla||"").trim().toLowerCase()===q||(x.nome||"").trim().toLowerCase()===q));};
   const celList=DB.celulares.filter(x=>x.ofertaId===ofId);
   if(c.celularId&&!celList.some(x=>x.id===c.celularId)){const s=byId(DB.celulares,c.celularId);if(s)celList.push(s);}
   const celOpts=[{v:"",l:"— Sem celular —"},...celList.map(x=>({v:x.id,l:`${x.nome}${x.modelo?" ("+x.modelo+")":""}`}))];
@@ -1724,7 +1746,7 @@ rebuildShadow();
 {const bb=$("#bkbtn");bb.innerHTML=`${svg("archive")}<span>Backups</span>`;bb.onclick=backupsModal;}
 initCloud();
 /* ---------- versão + aviso de atualização ---------- */
-const BUILD="2026-10-09.3";
+const BUILD="2026-10-11.1";
 {const vs=$("#verstamp");if(vs)vs.textContent="versão "+BUILD;}
 async function checarVersaoNova(){
   try{const r=await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"});const t=await r.text();const m=t.match(/const BUILD="([^"]+)"/);
