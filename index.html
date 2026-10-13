@@ -634,6 +634,8 @@ function normalize(db){
   });
   (db.celulares||[]).forEach(c=>{if(c.ofertaId===undefined)c.ofertaId=null;if(!CEL_STATUS[c.status])c.status="aquecido";});
   if(!Array.isArray(db.paginas))db.paginas=[];
+  // página guarda nome + número de cada celular enquanto ele existe, pra saber qual tirar do Facebook depois que for removido
+  db.paginas.forEach(p=>(p.cels||[]).forEach(cc=>{const c=(db.celulares||[]).find(x=>x.id===cc.id);if(!c)return;const k=(db.chips||[]).find(x=>x.id===c.chipId);const num=k?k.numero||"":"";if(cc.nome!==c.nome||(cc.num||"")!==num){cc.nome=c.nome;cc.num=num;p._u=Date.now();_migrated=true;}}));
   if(consolidarSiglas(db))_migrated=true;
   return db;
 }
@@ -1286,8 +1288,8 @@ function vPaginas(){
     return `<div class="card pagc ${remov.length?"hasgone":""}">
       <div class="pag-top">${svg("flag")}<h3>${esc(p.nome)}</h3><div class="p-act"><button class="iconbtn" data-edit="${p.id}">${svg("edit")}</button><button class="iconbtn" data-del="${p.id}">${svg("trash")}</button></div></div>
       <div class="pag-of">${of?`<span class="ofpill" style="--oc:${bm?.cor||"var(--accent)"}"><span class="dot"></span>${esc(of.nome)}</span>`:'<span class="pag-semof">Sem oferta definida</span>'}</div>
-      <div class="pag-cels">${cels.length?cels.map(cc=>{const c=byId(DB.celulares,cc.id);if(c){const st=CEL_STATUS[c.status]||{c:"--text-3",l:""};const k=byId(DB.chips,c.chipId);return `<div class="pag-cel" title="${esc(st.l)}"><span class="cdot2" style="background:var(${st.c});flex:none"></span><b>${esc(c.nome)}</b><span class="num">${k?esc(k.numero):"sem chip"}</span></div>`;}return `<div class="pag-cel gone">⚠ <b>${esc(cc.nome)}</b><span class="num" style="color:inherit">removido</span></div>`;}).join(""):'<span class="pag-semof">Nenhum celular vinculado</span>'}</div>
-      ${remov.length?`<div class="pag-alert">⚠ ${remov.length>1?`${remov.length} celulares/chips foram removidos`:"Esse celular/chip foi removido"} e ainda ${remov.length>1?"estão":"está"} nesta página — <b>entre no Facebook e tire ${remov.length>1?"eles":"ele"} da página</b> (${esc(remov.map(r=>r.nome).join(", "))})</div>`:""}
+      <div class="pag-cels">${cels.length?cels.map(cc=>{const c=byId(DB.celulares,cc.id);if(c){const st=CEL_STATUS[c.status]||{c:"--text-3",l:""};const k=byId(DB.chips,c.chipId);return `<div class="pag-cel" title="${esc(st.l)}"><span class="cdot2" style="background:var(${st.c});flex:none"></span><b>${esc(c.nome)}</b><span class="num">${k?esc(k.numero):"sem chip"}</span></div>`;}return `<div class="pag-cel gone">⚠ <b>${esc(cc.nome)}</b><span class="num" style="color:inherit">${cc.num?esc(cc.num):"removido"}</span></div>`;}).join(""):'<span class="pag-semof">Nenhum celular vinculado</span>'}</div>
+      ${remov.length?`<div class="pag-alert">⚠ ${remov.length>1?`${remov.length} celulares/chips foram removidos`:"Esse celular/chip foi removido"} e ainda ${remov.length>1?"estão":"está"} nesta página — <b>entre no Facebook e tire ${remov.length>1?"eles":"ele"} da página</b> (${esc(remov.map(r=>r.nome+(last4(r.num)?" · final "+last4(r.num):"")).join(", "))})</div>`:""}
     </div>`;};
   $("#view").innerHTML=`<div class="sect-h" style="margin-top:0"><h2>${svgInline("flag")}Páginas do Facebook</h2><div class="line"></div><span class="tag">${pags.length} página${pags.length>1?"s":""}</span></div>
     ${totalRemov?`<div class="pag-alert top">⚠ <b>${pagsComRemov.length} ${pagsComRemov.length>1?"páginas têm":"página tem"} celular/chip removido ainda vinculado.</b> Veja ${pagsComRemov.length>1?"os cards marcados":"o card marcado"} abaixo e tire do Facebook.</div>`:""}
@@ -1313,7 +1315,8 @@ function paginaModal(p){
         <div class="cp-list" id="cplist"></div>
       </div></div>`,
     onOk:close=>{const root=$("#modal-root");const nome=val(root,"nome");if(!nome)return toast("Dê um nome à página"),false;
-      const cels=[...sel].map(([id,nm])=>{const c=byId(DB.celulares,id);return {id,nome:c?c.nome:nm};});
+      const old=new Map((p?.cels||[]).map(c=>[c.id,c]));
+      const cels=[...sel].map(([id,nm])=>{const c=byId(DB.celulares,id);const k=c&&byId(DB.chips,c.chipId);return {id,nome:c?c.nome:nm,num:c?(k?k.numero||"":""):(old.get(id)||{}).num||""};});
       const data={nome,ofertaId:val(root,"ofertaId")||null,cels};
       if(editing){Object.assign(p,data);}else{(DB.paginas||(DB.paginas=[])).push({id:uid(),...data,criadoEm:now()});}
       save();render();close();toast(editing?"Página atualizada":"Página cadastrada");}});
@@ -1746,7 +1749,7 @@ rebuildShadow();
 {const bb=$("#bkbtn");bb.innerHTML=`${svg("archive")}<span>Backups</span>`;bb.onclick=backupsModal;}
 initCloud();
 /* ---------- versão + aviso de atualização ---------- */
-const BUILD="2026-10-11.1";
+const BUILD="2026-10-13.1";
 {const vs=$("#verstamp");if(vs)vs.textContent="versão "+BUILD;}
 async function checarVersaoNova(){
   try{const r=await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"});const t=await r.text();const m=t.match(/const BUILD="([^"]+)"/);
