@@ -1637,7 +1637,7 @@ function applyCloud(cloud){
   if(isDirty())DB=mergeDB(cloud,local);          // há edição ainda não enviada: junta item a item
   else{DB=cloud;if(first&&!local._seed)offerRestore(cloud,local);}
   rebuildShadow();saveLocal();render();
-  if(first)dailyBackup(cloud);
+  if(first){dailyBackup(cloud);recuperarNums();}
   if(isDirty())pushCloudDebounced();else syncBadge("ok");
 }
 new MutationObserver(()=>{if(pendingCloud&&!$("#modal-root").innerHTML){const c=pendingCloud;pendingCloud=null;applyCloud(c);}}).observe($("#modal-root"),{childList:true});
@@ -1701,6 +1701,16 @@ function dailyBackup(db){
   const col=bkCol();if(!col)return;const payload=JSON.stringify(db);
   col.doc("backup-"+d).get().then(sn=>{if(sn.exists)return;return col.doc("backup-"+d).set({payload,updatedAt:Date.now()}).then(()=>col.get()).then(q=>{const ids=q.docs.map(x=>x.id).filter(id=>/^backup-\d{4}/.test(id)).sort();return Promise.all(ids.slice(0,-30).map(id=>col.doc(id).delete()));});}).catch(()=>{});
 }
+// celular removido antes de a página guardar o número: procura o número dele nos backups (aparelho e nuvem)
+async function recuperarNums(){
+  const falta=()=>(DB.paginas||[]).flatMap(p=>(p.cels||[]).filter(c=>!c.num&&!byId(DB.celulares,c.id)));
+  if(!falta().length)return;
+  const dbs=[];
+  try{Object.keys(localStorage).filter(k=>k.startsWith(BK_K)).forEach(k=>{try{dbs.push(JSON.parse(localStorage.getItem(k)));}catch(e){}});}catch(e){}
+  const col=bkCol();if(col){try{(await col.get()).docs.filter(d=>d.id.startsWith("backup-")).forEach(d=>{try{dbs.push(JSON.parse(d.data().payload));}catch(e){}});}catch(e){}}
+  let n=0;falta().forEach(cc=>{for(const b of dbs){const c=(b&&b.celulares||[]).find(x=>x.id===cc.id);const k=c&&(b.chips||[]).find(x=>x.id===c.chipId||x.celularId===c.id);if(k&&k.numero){cc.num=k.numero;n++;break;}}});
+  if(n){save();if(!$("#modal-root").innerHTML)render();}
+}
 function restaurarBackup(db,nome){
   let b;try{b=normalize(JSON.parse(JSON.stringify(db)));}catch(e){return toast("Backup ilegível");}
   if(!COLS.some(k=>Array.isArray(b[k])&&b[k].length))return toast("Esse backup está vazio");
@@ -1749,7 +1759,7 @@ rebuildShadow();
 {const bb=$("#bkbtn");bb.innerHTML=`${svg("archive")}<span>Backups</span>`;bb.onclick=backupsModal;}
 initCloud();
 /* ---------- versão + aviso de atualização ---------- */
-const BUILD="2026-10-13.1";
+const BUILD="2026-10-13.2";
 {const vs=$("#verstamp");if(vs)vs.textContent="versão "+BUILD;}
 async function checarVersaoNova(){
   try{const r=await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"});const t=await r.text();const m=t.match(/const BUILD="([^"]+)"/);
