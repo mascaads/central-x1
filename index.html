@@ -171,6 +171,9 @@ a{color:inherit}
 .objchip:hover{border-color:var(--oc);color:var(--text)}
 .objchip.on{border-color:var(--oc);background:color-mix(in srgb,var(--oc) 15%,transparent);color:var(--text)}
 .kadd:hover{border-color:var(--accent);color:var(--accent)}
+.coladd{width:22px;height:22px;border-radius:7px;border:1px solid var(--border-2);background:var(--bg-2);color:var(--text-2);display:grid;place-items:center;padding:0;margin-left:6px;cursor:pointer}
+.coladd svg{width:13px;height:13px}
+.coladd:hover{border-color:var(--accent);color:var(--accent)}
 .ccard{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:12px 13px;cursor:grab;transition:.12s;border-top:2px solid var(--accent)}
 .ccard:hover{border-color:var(--border-2);box-shadow:var(--shadow)}
 .ccard.drag{opacity:.4}
@@ -913,7 +916,7 @@ function vKanban(){
     const total=cards.length;const key=openOferta+":"+id;const expanded=funilExpand[key];
     const shown=expanded?cards:cards.slice(0,FUNIL_LIMIT);const hidden=total-shown.length;
     return `<div class="col" data-col="${id}">
-      <div class="col-h"><span class="cdot" style="background:var(${e.cor})"></span><span class="cn">${e.nome}</span><span class="cc">${total}</span></div>
+      <div class="col-h"><span class="cdot" style="background:var(${e.cor})"></span><span class="cn">${e.nome}</span>${id==="modelado"?`<button class="coladd" data-addmod="1" title="Adicionar criativo modelado">${svg("plus")}</button>`:""}<span class="cc">${total}</span></div>
       <div class="col-body" data-body="${id}">
         ${shown.map(cCard).join("")||`<div class="emptycol">${fq?"Nenhum resultado":"Vazio"}</div>`}
       </div>
@@ -944,7 +947,8 @@ function vKanban(){
   const at2=$("#addteste");if(at2)at2.onclick=()=>campanhaModal(null,{ofertaId:of.id,estagio:"teste"});
   const ac=$("#addcamp");if(ac)ac.onclick=()=>campanhaModal(null,{ofertaId:of.id,estagio:"pre-escala"});
   const cso=$("#campsort");if(cso)cso.querySelectorAll("[data-sort]").forEach(b=>b.onclick=()=>{campSort=b.dataset.sort;render();});
-  $("#view").querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>criativoModal(null,{ofertaId:of.id,estagio:b.dataset.add}));
+  $("#view").querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>b.dataset.add==="modelado"?modeladoModal(of.id):criativoModal(null,{ofertaId:of.id,estagio:b.dataset.add}));
+  $("#view").querySelectorAll("[data-addmod]").forEach(b=>b.onclick=()=>modeladoModal(of.id));
   $("#view").querySelectorAll(".ccard").forEach(el=>el.onclick=ev=>{if(el._dragging||ev.target.closest("[data-next]")||ev.target.closest("[data-copypost]"))return;criativoModal(byId(DB.criativos,el.dataset.id));});
   $("#view").querySelectorAll("[data-next]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.next);if(NEXT[c.estagio]){c.estagio=NEXT[c.estagio];save();render();toast(`Avançou para ${ESTG[c.estagio].nome}`);}});
   $("#view").querySelectorAll("[data-tglall]").forEach(b=>b.onclick=(ev)=>{ev.stopPropagation();const c=byId(DB.criativos,b.dataset.tglall);ensureSubs(c);const on=!campAtiva(c);c.subs.forEach(s=>s.ativo=on);c.ativo=on;save();render();});
@@ -1259,6 +1263,22 @@ function vCopys(){
 }
 
 // copy criada direto na aba (sem criativo no funil): guardada como criativo fora do funil, marcado soCopy
+// cadastro enxuto pro Modelado: só o que importa nessa fase
+function modeladoModal(ofertaId){
+  const ofOpts=DB.ofertas.map(o=>{const bm=byId(DB.bms,o.bmId);return {v:o.id,l:`${bm?bm.nome+" · ":""}${o.nome}`};});
+  modal({wide:true,title:"Novo criativo modelado",ico:"film",body:`
+    <div class="frow">${field("Nome do criativo","nome","",{ph:"Ex.: POV vovó ensinando"})}
+    ${field("Oferta","ofertaId",ofertaId||DB.ofertas[0]?.id||"",{type:"select",options:ofOpts.length?ofOpts:[{v:"",l:"Crie uma oferta primeiro"}]})}</div>
+    <div class="frow">${field("Formato","formato","",{optional:true,ph:"Ex.: Depoimento POV"})}
+    ${field("Ângulo","angulo","",{optional:true,ph:"Ex.: renda extra em casa"})}</div>
+    <div class="field"><label>Copy <span class="opt">(opcional)</span></label><textarea name="copy" rows="6" placeholder="Cole aqui a copy…"></textarea></div>
+    ${field("Diferenciais","diferenciais","",{type:"textarea",optional:true,ph:"Ex.: caixinha de pergunta, legenda grande…"})}
+    ${field("Notas","notas","",{type:"textarea",optional:true,ph:"Anotações sobre o criativo"})}`,
+    onOk:close=>{const root=$("#modal-root");const nome=val(root,"nome");if(!nome)return toast("Dê um nome ao criativo"),false;
+      const of=val(root,"ofertaId");if(!of)return toast("Crie uma oferta antes"),false;
+      DB.criativos.push({id:uid(),nome,ofertaId:of,estagio:"modelado",sigla:"",formato:val(root,"formato"),angulo:val(root,"angulo"),copy:root.querySelector('[name="copy"]').value.trim(),diferenciais:val(root,"diferenciais"),notas:val(root,"notas"),roi:"",postId:"",criadoEm:now()});
+      save();render();close();toast("Criativo adicionado no Modelado ✓");}});
+}
 function copyModal(c){
   const editing=!!c;const ofOpts=DB.ofertas.map(o=>{const bm=byId(DB.bms,o.bmId);return {v:o.id,l:`${bm?bm.nome+" · ":""}${o.nome}`};});
   modal({wide:true,title:editing?"Editar copy":"Nova copy",ico:"check",body:`
@@ -1759,7 +1779,7 @@ rebuildShadow();
 {const bb=$("#bkbtn");bb.innerHTML=`${svg("archive")}<span>Backups</span>`;bb.onclick=backupsModal;}
 initCloud();
 /* ---------- versão + aviso de atualização ---------- */
-const BUILD="2026-10-13.2";
+const BUILD="2026-10-28.1";
 {const vs=$("#verstamp");if(vs)vs.textContent="versão "+BUILD;}
 async function checarVersaoNova(){
   try{const r=await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"});const t=await r.text();const m=t.match(/const BUILD="([^"]+)"/);
