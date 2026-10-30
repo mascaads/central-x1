@@ -1274,10 +1274,11 @@ function vFormatos(){
   $("#view").innerHTML=`<div class="grid fmts">${fs.map(f=>`<div class="card fmtc">
       <div class="p-top"><h3>${esc(f.nome)}</h3><div class="p-act"><button class="iconbtn" data-edit="${f.id}">${svg("edit")}</button><button class="iconbtn" data-del="${f.id}">${svg("trash")}</button></div></div>
       ${midiaFmt(f.midia)}
-      ${f.resumo?`<p class="fmt-res">${esc(f.resumo)}</p>`:""}
+      ${f.resumo?`<p class="fmt-res">${esc(f.resumo)}</p><div><button class="btn sm" data-cpres="${f.id}">${svg("copy")}Copiar resumo</button></div>`:""}
       <div class="fmt-niv">${NIVEIS_FMT.filter(n=>(f.nichos||{})[n.k]).map(n=>`<div class="fmt-row" style="--nc:var(${n.c})"><span class="fmt-tag">${n.l}</span><span>${esc(f.nichos[n.k])}</span></div>`).join("")||'<span class="pag-semof">Nenhum nicho anotado ainda</span>'}</div>
     </div>`).join("")}</div>`;
   $("#view").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>formatoModal(byId(DB.formatos,b.dataset.edit)));
+  $("#view").querySelectorAll("[data-cpres]").forEach(b=>b.onclick=async()=>{try{await navigator.clipboard.writeText(byId(DB.formatos,b.dataset.cpres).resumo);toast("Resumo copiado ✓");}catch(e){toast("Não consegui copiar");}});
   $("#view").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const f=byId(DB.formatos,b.dataset.del);confirmDel(`Excluir o formato "${esc(f.nome)}"?`,"",()=>{DB.formatos=DB.formatos.filter(x=>x.id!==f.id);save();render();toast("Formato excluído");});});
 }
 function formatoModal(f){
@@ -1837,7 +1838,7 @@ rebuildShadow();
 {const bb=$("#bkbtn");bb.innerHTML=`${svg("archive")}<span>Backups</span>`;bb.onclick=backupsModal;}
 initCloud();
 /* ---------- versão + aviso de atualização ---------- */
-const BUILD="2026-10-30.2";
+const BUILD="2026-10-30.3";
 {const vs=$("#verstamp");if(vs)vs.textContent="versão "+BUILD;}
 async function checarVersaoNova(){
   try{const r=await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"});const t=await r.text();const m=t.match(/const BUILD="([^"]+)"/);
