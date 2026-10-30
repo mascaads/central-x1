@@ -1264,20 +1264,24 @@ function vCopys(){
 
 // copy criada direto na aba (sem criativo no funil): guardada como criativo fora do funil, marcado soCopy
 // cadastro enxuto pro Modelado: só o que importa nessa fase
-function modeladoModal(ofertaId){
+function modeladoModal(ofertaId,cr){
+  const editing=!!cr,c=cr||{};
   const ofOpts=DB.ofertas.map(o=>{const bm=byId(DB.bms,o.bmId);return {v:o.id,l:`${bm?bm.nome+" · ":""}${o.nome}`};});
-  modal({wide:true,title:"Novo criativo modelado",ico:"film",body:`
-    <div class="frow">${field("Nome do criativo","nome","",{ph:"Ex.: POV vovó ensinando"})}
-    ${field("Oferta","ofertaId",ofertaId||DB.ofertas[0]?.id||"",{type:"select",options:ofOpts.length?ofOpts:[{v:"",l:"Crie uma oferta primeiro"}]})}</div>
-    <div class="frow">${field("Formato","formato","",{optional:true,ph:"Ex.: Depoimento POV"})}
-    ${field("Ângulo","angulo","",{optional:true,ph:"Ex.: renda extra em casa"})}</div>
-    <div class="field"><label>Copy <span class="opt">(opcional)</span></label><textarea name="copy" rows="6" placeholder="Cole aqui a copy…"></textarea></div>
-    ${field("Diferenciais","diferenciais","",{type:"textarea",optional:true,ph:"Ex.: caixinha de pergunta, legenda grande…"})}
-    ${field("Notas","notas","",{type:"textarea",optional:true,ph:"Anotações sobre o criativo"})}`,
+  modal({wide:true,title:editing?"Editar criativo modelado":"Novo criativo modelado",ico:"film",body:`
+    <div class="frow">${field("Nome do criativo","nome",c.nome||"",{ph:"Ex.: POV vovó ensinando"})}
+    ${field("Oferta","ofertaId",c.ofertaId||ofertaId||DB.ofertas[0]?.id||"",{type:"select",options:ofOpts.length?ofOpts:[{v:"",l:"Crie uma oferta primeiro"}]})}</div>
+    <div class="frow">${field("Formato","formato",c.formato||"",{optional:true,ph:"Ex.: Depoimento POV"})}
+    ${field("Ângulo","angulo",c.angulo||"",{optional:true,ph:"Ex.: renda extra em casa"})}</div>
+    <div class="field"><label>Copy <span class="opt">(opcional)</span></label><textarea name="copy" rows="6" placeholder="Cole aqui a copy…">${esc(c.copy||"")}</textarea></div>
+    ${field("Diferenciais","diferenciais",c.diferenciais||"",{type:"textarea",optional:true,ph:"Ex.: caixinha de pergunta, legenda grande…"})}
+    ${field("Notas","notas",c.notas||"",{type:"textarea",optional:true,ph:"Anotações sobre o criativo"})}`,
     onOk:close=>{const root=$("#modal-root");const nome=val(root,"nome");if(!nome)return toast("Dê um nome ao criativo"),false;
       const of=val(root,"ofertaId");if(!of)return toast("Crie uma oferta antes"),false;
-      DB.criativos.push({id:uid(),nome,ofertaId:of,estagio:"modelado",sigla:"",formato:val(root,"formato"),angulo:val(root,"angulo"),copy:root.querySelector('[name="copy"]').value.trim(),diferenciais:val(root,"diferenciais"),notas:val(root,"notas"),roi:"",postId:"",criadoEm:now()});
-      save();render();close();toast("Criativo adicionado no Modelado ✓");}});
+      const data={nome,ofertaId:of,formato:val(root,"formato"),angulo:val(root,"angulo"),copy:root.querySelector('[name="copy"]').value.trim(),diferenciais:val(root,"diferenciais"),notas:val(root,"notas")};
+      if(editing)Object.assign(cr,data);else DB.criativos.push({id:uid(),...data,estagio:"modelado",sigla:"",roi:"",postId:"",criadoEm:now()});
+      save();render();close();toast(editing?"Criativo atualizado":"Criativo adicionado no Modelado ✓");}});
+  if(editing){$("#modal-root .modal-f").insertAdjacentHTML("afterbegin",`<button class="btn ghost danger" style="margin-right:auto" id="delcr">${svg("trash")}Excluir</button>`);
+    $("#delcr").onclick=()=>{$("#modal-root").innerHTML="";confirmDel(`Excluir o criativo "${esc(cr.nome)}"?`,"Apaga o criativo <b>de vez</b>.",()=>{removerCriativo(cr.id);save();render();toast("Criativo excluído");});};}
 }
 function copyModal(c){
   const editing=!!c;const ofOpts=DB.ofertas.map(o=>{const bm=byId(DB.bms,o.bmId);return {v:o.id,l:`${bm?bm.nome+" · ":""}${o.nome}`};});
@@ -1450,6 +1454,7 @@ function duplicarCampanha(c){
   campanhaModal(null,copy,true);
 }
 function criativoModal(cr,preset={}){
+  if(cr&&!cr.dup&&cr.estagio==="modelado"&&!cr.soCopy)return modeladoModal(cr.ofertaId,cr);   // no Modelado, sempre o formulário enxuto
   const editing=!!cr;const c=cr||preset;
   const ofOpts=DB.ofertas.map(o=>{const bm=byId(DB.bms,o.bmId);return {v:o.id,l:`${bm?bm.nome+" · ":""}${o.nome}`};});
   modal({wide:true,title:editing?"Editar criativo":"Novo criativo",ico:"film",body:`
@@ -1779,7 +1784,7 @@ rebuildShadow();
 {const bb=$("#bkbtn");bb.innerHTML=`${svg("archive")}<span>Backups</span>`;bb.onclick=backupsModal;}
 initCloud();
 /* ---------- versão + aviso de atualização ---------- */
-const BUILD="2026-10-28.1";
+const BUILD="2026-10-30.1";
 {const vs=$("#verstamp");if(vs)vs.textContent="versão "+BUILD;}
 async function checarVersaoNova(){
   try{const r=await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"});const t=await r.text();const m=t.match(/const BUILD="([^"]+)"/);
