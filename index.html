@@ -304,6 +304,20 @@ td .sub2{font-size:12px;color:var(--text-3);margin-top:1px}
 .ec-act{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .copydif{font-size:12.5px;line-height:1.5;color:var(--text-2);white-space:pre-wrap;border-left:3px solid var(--warn);padding:2px 0 2px 11px}
 .copydif b{display:block;font-size:10.5px;letter-spacing:.4px;text-transform:uppercase;color:var(--warn);margin-bottom:3px}
+.fmts{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+.fmtc{padding:16px 17px;display:flex;flex-direction:column;gap:12px}
+.fmtc .p-top{display:flex;justify-content:space-between;align-items:start;gap:10px}
+.fmtc h3{font-size:15px;font-weight:600}
+.fmtc .p-act{display:flex;gap:4px}
+.fmt-mid{border-radius:10px;overflow:hidden;background:var(--bg-2);border:1px solid var(--border);aspect-ratio:16/9;display:block}
+.fmt-mid iframe,.fmt-mid video{width:100%;height:100%;border:0;display:block}
+.fmt-mid.img{aspect-ratio:auto;max-height:320px}
+.fmt-mid img{width:100%;max-height:320px;object-fit:contain;display:block}
+.fmt-res{margin:0;font-size:13px;line-height:1.55;color:var(--text-2);white-space:pre-wrap}
+.fmt-niv,.fmt-form{display:flex;flex-direction:column;gap:7px}
+.fmt-row{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--text)}
+.fmt-tag{flex:none;width:96px;font-size:11px;font-weight:700;color:var(--nc);background:color-mix(in srgb,var(--nc) 14%,transparent);border:1px solid color-mix(in srgb,var(--nc) 40%,transparent);border-radius:7px;padding:4px 8px;text-align:center}
+.fmt-form input{flex:1}
 .testchips{display:flex;flex-wrap:wrap;gap:8px}
 .testchip{display:inline-flex;align-items:center;gap:9px;padding:8px 13px 8px 10px;border-radius:999px;border:1px solid var(--border-2);background:var(--bg-2);color:var(--text-2);font-size:12.5px;font-weight:600;font-family:var(--sans);cursor:pointer;transition:.12s}
 .testchip .tcheck{width:18px;height:18px;border-radius:50%;border:2px solid var(--border-2);display:inline-grid;place-items:center;flex:none;transition:.12s}
@@ -637,6 +651,7 @@ function normalize(db){
   });
   (db.celulares||[]).forEach(c=>{if(c.ofertaId===undefined)c.ofertaId=null;if(!CEL_STATUS[c.status])c.status="aquecido";});
   if(!Array.isArray(db.paginas))db.paginas=[];
+  if(!Array.isArray(db.formatos))db.formatos=[];
   // página guarda nome + número de cada celular enquanto ele existe, pra saber qual tirar do Facebook depois que for removido
   db.paginas.forEach(p=>(p.cels||[]).forEach(cc=>{const c=(db.celulares||[]).find(x=>x.id===cc.id);if(!c)return;const k=(db.chips||[]).find(x=>x.id===c.chipId);const num=k?k.numero||"":"";if(cc.nome!==c.nome||(cc.num||"")!==num){cc.nome=c.nome;cc.num=num;p._u=Date.now();_migrated=true;}}));
   if(consolidarSiglas(db))_migrated=true;
@@ -646,7 +661,7 @@ function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(DB));}catch(e){
 let saveVer=0;const DIRTY_K=KEY+"_dirty",IGN_K=KEY+"_ign";
 const isDirty=()=>{try{return localStorage.getItem(DIRTY_K)==="1";}catch(e){return false;}};
 const setDirty=v=>{try{v?localStorage.setItem(DIRTY_K,"1"):localStorage.removeItem(DIRTY_K);}catch(e){}};
-const COLS=["bms","ofertas","criativos","celulares","chips","paginas","prompts"];
+const COLS=["bms","ofertas","criativos","celulares","chips","paginas","formatos","prompts"];
 // "sombra" = como cada item estava no último save/sync. save() compara com ela pra saber o que mudou.
 let shadow=new Map();
 const sig=x=>{const {_u,...r}=x;return JSON.stringify(r);};
@@ -719,6 +734,7 @@ const VIEWS=[
   {id:"celulares",nome:"Celulares",ico:"phone",sub:"Aparelhos rodando, em descanso e reserva"},
   {id:"chips",nome:"Chips",ico:"chip",sub:"Cadastro, recarga e aquecimento dos chips"},
   {id:"esteira",nome:"Esteira de Chips",ico:"flame",sub:"Aqueça seus chips e acompanhe o tempo de cada um"},
+  {id:"formatos",nome:"Formatos",ico:"film",sub:"Seus formatos de criativo e em quais nichos funcionam"},
   {id:"copys",nome:"Copys Validadas",ico:"check",sub:"As copys que funcionaram, por oferta"},
   {id:"paginas",nome:"Páginas",ico:"flag",sub:"Suas páginas do Facebook e a oferta que cada uma roda"},
   {id:"prompts",nome:"Prompts",ico:"prompt",sub:"Sua biblioteca de prompts salvos"},
@@ -748,7 +764,7 @@ function go(r){route=r;openOferta=null;chipSearch="";render();window.scrollTo(0,
 
 /* ---------- render shell ---------- */
 function renderNav(){
-  const counts={overview:"",ofertas:DB.ofertas.length,celulares:DB.celulares.length,chips:DB.chips.length,esteira:DB.chips.filter(k=>k.esteira).length,copys:DB.criativos.filter(c=>!c.dup&&c.copyValidada).length,paginas:(DB.paginas||[]).length,prompts:DB.prompts.length};
+  const counts={overview:"",ofertas:DB.ofertas.length,celulares:DB.celulares.length,chips:DB.chips.length,esteira:DB.chips.filter(k=>k.esteira).length,formatos:(DB.formatos||[]).length,copys:DB.criativos.filter(c=>!c.dup&&c.copyValidada).length,paginas:(DB.paginas||[]).length,prompts:DB.prompts.length};
   $("#nav").innerHTML=`<div class="lbl">Operação</div>`+VIEWS.map(v=>`
     <button class="${route===v.id?"on":""}" data-go="${v.id}">${svg(v.ico)}<span>${v.nome}</span>${counts[v.id]!==""?`<span class="cnt">${counts[v.id]}</span>`:""}</button>`).join("");
   $("#nav").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{go(b.dataset.go);closeSide();});
@@ -763,7 +779,7 @@ function render(){
   $("#vt").textContent=route==="ofertas"&&openOferta?byId(DB.ofertas,openOferta)?.nome||v.nome:v.nome;
   $("#vs").textContent=v.sub;
   renderNav();
-  const R={overview:vOverview,ofertas:vOfertas,celulares:vCelulares,chips:vChips,esteira:vEsteira,copys:vCopys,paginas:vPaginas,prompts:vPrompts}[route];
+  const R={overview:vOverview,ofertas:vOfertas,celulares:vCelulares,chips:vChips,esteira:vEsteira,formatos:vFormatos,copys:vCopys,paginas:vPaginas,prompts:vPrompts}[route];
   R();
 }
 const byId=(arr,id)=>arr.find(x=>x.id===id);
@@ -1240,6 +1256,43 @@ function vEsteira(){
   $("#view").querySelectorAll(".ecol").forEach(c=>{c.addEventListener("dragover",e=>{if(!dragEid)return;e.preventDefault();c.classList.add("drop");});c.addEventListener("dragleave",e=>{if(!c.contains(e.relatedTarget))c.classList.remove("drop");});c.addEventListener("drop",e=>{e.preventDefault();c.classList.remove("drop");if(dragEid)setEtapa(dragEid,c.dataset.ecol);});});
 }
 
+/* ======================= FORMATOS ======================= */
+const NIVEIS_FMT=[{k:"validado",l:"Validado",c:"--good"},{k:"muitoBom",l:"Muito bom",c:"--accent"},{k:"ok",l:"OK",c:"--warn"},{k:"maisOuMenos",l:"Mais ou menos",c:"--text-3"}];
+// mostra a mídia do formato a partir de um link (YouTube, Google Drive, imagem ou vídeo direto); outros sites viram botão
+function midiaFmt(url){
+  if(!url)return"";const u=esc(url);let m;
+  if(m=url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{6,})/))return `<div class="fmt-mid"><iframe src="https://www.youtube.com/embed/${m[1]}" allowfullscreen loading="lazy"></iframe></div>`;
+  if(m=url.match(/drive\.google\.com\/file\/d\/([\w-]+)/))return `<div class="fmt-mid"><iframe src="https://drive.google.com/file/d/${m[1]}/preview" allowfullscreen loading="lazy"></iframe></div>`;
+  if(/\.(png|jpe?g|gif|webp)(\?|$)/i.test(url))return `<a class="fmt-mid img" href="${u}" target="_blank" rel="noopener"><img src="${u}" alt="" loading="lazy"></a>`;
+  if(/\.(mp4|webm|mov)(\?|$)/i.test(url))return `<div class="fmt-mid"><video src="${u}" controls preload="metadata"></video></div>`;
+  return `<a class="btn sm" href="${u}" target="_blank" rel="noopener">${svg("film")}Ver exemplo do formato</a>`;
+}
+function vFormatos(){
+  topActions(`<button class="btn pri" id="addfmt">${svg("plus")}Novo formato</button>`);$("#addfmt").onclick=()=>formatoModal();
+  const fs=DB.formatos||(DB.formatos=[]);
+  if(!fs.length){$("#view").innerHTML=empty("film","Nenhum formato","Cadastre seus formatos: como é, em quais nichos funciona e um exemplo em vídeo ou imagem.",`<button class="btn pri" id="e">${svg("plus")}Novo formato</button>`);$("#e").onclick=()=>formatoModal();return;}
+  $("#view").innerHTML=`<div class="grid fmts">${fs.map(f=>`<div class="card fmtc">
+      <div class="p-top"><h3>${esc(f.nome)}</h3><div class="p-act"><button class="iconbtn" data-edit="${f.id}">${svg("edit")}</button><button class="iconbtn" data-del="${f.id}">${svg("trash")}</button></div></div>
+      ${midiaFmt(f.midia)}
+      ${f.resumo?`<p class="fmt-res">${esc(f.resumo)}</p>`:""}
+      <div class="fmt-niv">${NIVEIS_FMT.filter(n=>(f.nichos||{})[n.k]).map(n=>`<div class="fmt-row" style="--nc:var(${n.c})"><span class="fmt-tag">${n.l}</span><span>${esc(f.nichos[n.k])}</span></div>`).join("")||'<span class="pag-semof">Nenhum nicho anotado ainda</span>'}</div>
+    </div>`).join("")}</div>`;
+  $("#view").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>formatoModal(byId(DB.formatos,b.dataset.edit)));
+  $("#view").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const f=byId(DB.formatos,b.dataset.del);confirmDel(`Excluir o formato "${esc(f.nome)}"?`,"",()=>{DB.formatos=DB.formatos.filter(x=>x.id!==f.id);save();render();toast("Formato excluído");});});
+}
+function formatoModal(f){
+  const editing=!!f,n=(f&&f.nichos)||{};
+  modal({wide:true,title:editing?"Editar formato":"Novo formato",ico:"film",body:`
+    ${field("Nome do formato","nome",f?.nome||"",{ph:"Ex.: POV tela dividida"})}
+    ${field("Resumo","resumo",f?.resumo||"",{type:"textarea",ph:"Como é esse formato, em poucas linhas"})}
+    <div class="field"><label>Nichos em que esse formato é…</label><div class="fmt-form">${NIVEIS_FMT.map(x=>`<div class="fmt-row" style="--nc:var(${x.c})"><span class="fmt-tag">${x.l}</span><input name="n_${x.k}" value="${esc(n[x.k]||"")}" placeholder="Ex.: crochê, receitas, renda extra"></div>`).join("")}</div></div>
+    ${field("Vídeo ou imagem de exemplo","midia",f?.midia||"",{optional:true,ph:"Cole o link (YouTube, Google Drive, TikTok, Instagram ou link de imagem)"})}`,
+    onOk:close=>{const root=$("#modal-root");const nome=val(root,"nome");if(!nome)return toast("Dê um nome ao formato"),false;
+      const data={nome,resumo:val(root,"resumo"),midia:val(root,"midia"),nichos:Object.fromEntries(NIVEIS_FMT.map(x=>[x.k,val(root,"n_"+x.k)]))};
+      if(editing)Object.assign(f,data);else DB.formatos.push({id:uid(),...data,criadoEm:now()});
+      save();render();close();toast(editing?"Formato atualizado":"Formato cadastrado");}});
+}
+
 /* ======================= COPYS VALIDADAS ======================= */
 function vCopys(){
   topActions(`<button class="btn pri" id="addcopy">${svg("plus")}Nova copy</button>`);$("#addcopy").onclick=()=>copyModal();
@@ -1381,7 +1434,7 @@ function paginaModal(p){
 /* ======================= shared UI ======================= */
 function empty(ico,h,p,btn){return `<div class="empty"><div class="ico">${svg(ico)}</div><h3>${h}</h3><p>${p}</p>${btn||""}</div>`;}
 function seedBanner(){return `<div class="seedbanner">${svg("spark")}<div class="sp"><b>Dados de exemplo.</b> Isto é uma operação fictícia pra você ver o app funcionando. Comece a editar ou limpe tudo quando quiser.</div><button class="btn sm" id="clearseed">Limpar exemplos</button></div>`;}
-function bindSeed(){const b=$("#clearseed");if(b)b.onclick=()=>confirmDel("Limpar os dados de exemplo?","Você vai começar do zero, com a operação vazia.",()=>{DB={_seed:false,bms:[],ofertas:[],criativos:[],celulares:[],chips:[],paginas:[],prompts:[]};curBM=null;save();render();toast("Tudo limpo — é sua operação agora");});}
+function bindSeed(){const b=$("#clearseed");if(b)b.onclick=()=>confirmDel("Limpar os dados de exemplo?","Você vai começar do zero, com a operação vazia.",()=>{DB={_seed:false,bms:[],ofertas:[],criativos:[],celulares:[],chips:[],paginas:[],formatos:[],prompts:[]};curBM=null;save();render();toast("Tudo limpo — é sua operação agora");});}
 
 let toastT;
 function toast(msg){let t=$(".toast");if(t)t.remove();t=document.createElement("div");t.className="toast";t.textContent=msg;document.body.appendChild(t);clearTimeout(toastT);toastT=setTimeout(()=>t.remove(),2200);}
@@ -1784,7 +1837,7 @@ rebuildShadow();
 {const bb=$("#bkbtn");bb.innerHTML=`${svg("archive")}<span>Backups</span>`;bb.onclick=backupsModal;}
 initCloud();
 /* ---------- versão + aviso de atualização ---------- */
-const BUILD="2026-10-30.1";
+const BUILD="2026-10-30.2";
 {const vs=$("#verstamp");if(vs)vs.textContent="versão "+BUILD;}
 async function checarVersaoNova(){
   try{const r=await fetch(location.pathname+"?_="+Date.now(),{cache:"no-store"});const t=await r.text();const m=t.match(/const BUILD="([^"]+)"/);
